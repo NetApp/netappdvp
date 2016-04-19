@@ -40,7 +40,7 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
     tar zxf netappdvp-1.0.tar.gz
 
     # move to a location in the bin path
-    sudo mv netappdvp/netappdvp /usr/local/bin
+    sudo mv netappdvp /usr/local/bin
     sudo chown root:root /usr/local/bin/netappdvp
     sudo chmod 755 /usr/local/bin/netappdvp
 
