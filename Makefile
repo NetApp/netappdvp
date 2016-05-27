@@ -22,7 +22,7 @@ clean:
 	docker volume rm $(GO_PATH_VOLUME) || true
 
 fmt:
-	@$(GO) fmt
+	@$(GO) fmt ./...
 
 get:
 	@$(GO) get -v

@@ -12,6 +12,8 @@ var lookupTable = make(map[string]int)
 
 func init() {
 	// populate the lookup table for suffixes up to power (1024 ^ n)
+	lookupTable["b"] = 0
+	lookupTable["bytes"] = 0
 	lookupTable["k"] = 1
 	lookupTable["kb"] = 1
 	lookupTable["m"] = 2
@@ -22,6 +24,12 @@ func init() {
 	lookupTable["tb"] = 4
 	lookupTable["p"] = 5
 	lookupTable["pb"] = 5
+	lookupTable["e"] = 6
+	lookupTable["eb"] = 6
+	lookupTable["z"] = 7
+	lookupTable["zb"] = 7
+	lookupTable["y"] = 8
+	lookupTable["yb"] = 8
 }
 
 // Linux is a constant value for the runtime.GOOS that represents the Linux OS
@@ -60,6 +68,40 @@ func ConvertSizeToBytes(s string) (string, error) {
 			}
 			i = i * Pow(1024, y)
 			s = strconv.Itoa(i)
+			return s, nil
+		}
+	}
+
+	return s, nil
+}
+
+// Pow is an integer version of exponentation; existing builtin is float, we needed an int version
+func Pow64(x int64, y int) int64 {
+	if y == 0 {
+		return 1
+	}
+
+	result := x
+	for n := 1; n < y; n++ {
+		result = result * x
+	}
+	return result
+}
+
+// ConvertSizeToBytes64 converts size to bytes; see also https://en.wikipedia.org/wiki/Kilobyte
+func ConvertSizeToBytes64(s string) (string, error) {
+	s = strings.TrimSpace(strings.ToLower(s))
+
+	// spin until we find a match, if no match return original string
+	for k, y := range lookupTable {
+		if strings.HasSuffix(s, k) {
+			s = s[:len(s)-len(k)]
+			i, err := strconv.ParseInt(s, 10, 0)
+			if err != nil {
+				return "", err
+			}
+			i = i * Pow64(1024, y)
+			s = strconv.FormatInt(i, 10)
 			return s, nil
 		}
 	}
