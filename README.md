@@ -15,6 +15,8 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
         - [Ubuntu / Debian](#ubuntu-debian-1)
     - [ONTAP Config File Variables](#ontap-config-file-variables)
         - [Example ONTAP Config Files](#example-ontap-config-files)
+    - [E-Series Config File Variables](#e-series-config-file-variables)
+        - [Example E-Series Config Files](#example-e-series-config-files)
 
 ## Quick Start
 
@@ -259,3 +261,65 @@ sudo apt-get install -y nfs-common
     "aggregate": "aggr1"
 }
 ```
+
+## E-Series Config File Variables
+
+| Option            | Description                                                               | Example       |
+| ----------------- | --------------------------------------------------------------------------| ------------- |
+| version           | Config file version number                                                | 1             |
+| storageDriverName | Docker volume plugin name                                                 | eseries-iscsi |
+| debug             | Turn debugging output on or off                                           | false         |
+| webProxyHostname  | Hostname or IP address of Web Services Proxy                              | localhost     |
+| username          | Username for Web Services Proxy                                           | rw            |
+| password          | Password for Web Services Proxy                                           | rw            |
+| controllerA       | IP address of controller A                                                | 10.0.0.5      |
+| controllerB       | IP address of controller B                                                | 10.0.0.6      |
+| passwordArray     | Password for storage array if set                                         | blank/empty   |
+| hostData_IP       | Host iSCSI IP address (if multipathing just choose either one)            | 10.0.0.101    |
+
+### Example E-Series Config Files
+**Example for eseries-iscsi driver**
+
+```json
+{    
+	"version": 1,    
+	"storageDriverName": "eseries-iscsi",    
+	"debug": true,    
+	"webProxyHostname": "localhost",    
+	"username": "rw",    
+	"password": "rw",    
+	"controllerA": "10.0.0.5",    
+	"controllerB": "10.0.0.6",    
+	"passwordArray": "",    
+	"hostData_IP": "10.0.0.101"
+}
+```
+
+## E-Series Array Setup Notes
+
+The E-Series Docker Driver assumes that you have a volume group or a DDP pool
+pre-configured (N number of drives; segment size; RAID type; ...). The driver
+then allocates Docker volumes out of this volume group or DDP pool. The volume group 
+and/or DDP pool must be given a specific name and there must be two groups allocated.
+For example, you could create a volume group/DDP pool named 'netappdvp_hdd' and another named 'netappdvp_ssd'.
+
+When creating a docker volume you can specify the volume size as well as the allocation group/DDP pool using the
+'-o' option and the tags 'size' and 'mediaType'. Note that these are optional; if unspecified, the defaults will
+be a 1 GB volume allocated from the HDD pool. An example of using these tags to create a 2 GB
+volume from the SSD volume group/DDP pool:
+ 	
+	docker volume create -d netapp --name my_vol -o size=2g -o mediaType=ssd 	
+
+Note that the current driver is meant to be used with iSCSI.
+
+*Compatibility note:* When assigning LUN numbers for volumes attached to Linux hosts, start with LUN 1
+rather than LUN 0. If an array is connected to the host before a device is mapped to LUN 0, the
+Linux host will detect the REPORT LUNS well known logical unit as LUN 0, so that it can
+complete discovery. LUN 0 might not immediately map properly with a simple rescan,
+depending on the version of the host operating system in use.
+
+See [SANtricity® Storage Manager 11.20 SAS Configuration and Provisioning for Linux Express Guide](https://library.netapp.com/ecm/ecm_download_file/ECMP1532526) for more details.
+
+
+
+
