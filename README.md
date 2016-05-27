@@ -38,8 +38,8 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
 
     ```bash
     # download and unpack the application
-    wget https://github.com/NetApp/netappdvp/releases/download/v1.0/netappdvp-1.0.tar.gz
-    tar zxf netappdvp-1.0.tar.gz
+    wget https://github.com/NetApp/netappdvp/releases/download/v1.1/netappdvp-1.1.tar.gz
+    tar zxf netappdvp-1.1.tar.gz
 
     # move to a location in the bin path
     sudo mv netappdvp /usr/local/bin
@@ -49,7 +49,7 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
     # create a location for the config files
     sudo mkdir -p /etc/netappdvp
 
-    # create the configuration file, see below for Data ONTAP NFS and iSCSI configuration examples
+    # create the configuration file, see below for more configuration examples
     cat << EOF > /etc/netappdvp/ontap-nas.json
     {
         "version": 1,
@@ -277,7 +277,7 @@ sudo apt-get install -y nfs-common
 | passwordArray     | Password for storage array if set                                         | blank/empty   |
 | hostData_IP       | Host iSCSI IP address (if multipathing just choose either one)            | 10.0.0.101    |
 
-### Example E-Series Config Files
+### Example E-Series Config File
 **Example for eseries-iscsi driver**
 
 ```json
@@ -297,7 +297,7 @@ sudo apt-get install -y nfs-common
 
 ## E-Series Array Setup Notes
 
-The E-Series Docker Driver assumes that you have a volume group or a DDP pool
+The E-Series Docker driver assumes that you have a volume group or a DDP pool
 pre-configured (N number of drives; segment size; RAID type; ...). The driver
 then allocates Docker volumes out of this volume group or DDP pool. The volume group 
 and/or DDP pool must be given a specific name and there must be two groups allocated.
@@ -319,7 +319,3 @@ complete discovery. LUN 0 might not immediately map properly with a simple resca
 depending on the version of the host operating system in use.
 
 See [SANtricity® Storage Manager 11.20 SAS Configuration and Provisioning for Linux Express Guide](https://library.netapp.com/ecm/ecm_download_file/ECMP1532526) for more details.
-
-
-
-
