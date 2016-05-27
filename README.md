@@ -1,6 +1,6 @@
 # NetApp Docker Volume Plugin
 
-The NetApp Docker Volume Plugin (nDVP) provides direct integration with the Docker ecosystem for the clustered Data ONTAP platform.  The nDVP package supports the provisioning and management of storage resources from the storage platform to Docker hosts, with a robust framework for adding additional platforms in the future.
+The NetApp Docker Volume Plugin (nDVP) provides direct integration with the Docker ecosystem for NetApp's ONTAP and E-Series storage platforms. The nDVP package supports the provisioning and management of storage resources from the storage platform to Docker hosts, with a robust framework for adding additional platforms in the future.
 
 Multiple instances of the nDVP can run concurrently on the same host.  The allows simultaneous connections to multiple storage systems and storage types, with the ablity to customize the storage used for the Docker volume(s).
 
