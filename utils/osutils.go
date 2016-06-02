@@ -62,8 +62,8 @@ func GetInitiatorIqns() ([]string, error) {
 	return iqns, nil
 }
 
-// waitForPathToExist retries every second, up to numTries times, for the specified fileName to show up
-func waitForPathToExist(fileName string, numTries int) bool {
+// WaitForPathToExist retries every second, up to numTries times, for the specified fileName to show up
+func WaitForPathToExist(fileName string, numTries int) bool {
 	log.Debugf("Begin osutils.waitForPathToExist fileName: %v", fileName)
 	for i := 0; i < numTries; i++ {
 		_, err := os.Stat(fileName)
@@ -253,8 +253,9 @@ func GetDeviceInfoForLuns() ([]ScsiDeviceInfo, error) {
 	return info1, nil
 }
 
-func getDeviceFileFromIscsiPath(iscsiPath string) (devFile string) {
-	log.Debug("Begin osutils.getDeviceFileFromIscsiPath: ", iscsiPath)
+// GetDeviceFileFromIscsiPath returns the /dev device for the supplied iscsiPath
+func GetDeviceFileFromIscsiPath(iscsiPath string) (devFile string) {
+	log.Debug("Begin osutils.GetDeviceFileFromIscsiPath: ", iscsiPath)
 	out, err := exec.Command("ls", "-la", iscsiPath).CombinedOutput()
 	if err != nil {
 		return
@@ -350,6 +351,29 @@ func GetIscsiSessionInfo() ([]IscsiSessionInfo, error) {
 	}
 
 	return sessionInfo, nil
+}
+
+// IscsiTargetInfo structure for usage with the iscsiadm command
+type IscsiTargetInfo struct {
+	IP        string
+	Port      string
+	Portal    string
+	Iqn       string
+	Lun       string
+	Device    string
+	Discovery string
+}
+
+// IscsiDisableDelete logout from the supplied target and remove the iscsi device
+func IscsiDisableDelete(tgt *IscsiTargetInfo) (err error) {
+	log.Debugf("Begin osutils.IscsiDisableDelete: %v", tgt)
+	_, err = exec.Command("sudo", "iscsiadm", "-m", "node", "-T", tgt.Iqn, "--portal", tgt.IP, "-u").CombinedOutput()
+	if err != nil {
+		log.Debugf("Error during iscsi logout: ", err)
+		//return
+	}
+	_, err = exec.Command("sudo", "iscsiadm", "-m", "node", "-o", "delete", "-T", tgt.Iqn).CombinedOutput()
+	return
 }
 
 // IscsiSessionExists checks to see if a session exists to the sepecified portal
@@ -460,8 +484,13 @@ func Umount(mountpoint string) error {
 	log.Debugf("Begin osutils.Umount: %s", mountpoint)
 	out, err := exec.Command("umount", mountpoint).CombinedOutput()
 	log.Debug("Response from umount ", mountpoint, ": ", out)
-	out, _ = exec.Command("rmdir", mountpoint).CombinedOutput()
-	log.Debug("Response from rmdir ", mountpoint, ": ", out)
+	if err != nil {
+		log.Error("Error in unmount: ", err)
+	}
+	/*
+		out, _ = exec.Command("rmdir", mountpoint).CombinedOutput()
+		log.Debug("Response from rmdir ", mountpoint, ": ", out)
+	*/
 	return err
 }
 
@@ -474,4 +503,39 @@ func IscsiadmCmd(args []string) ([]byte, error) {
 		log.Error("Error message: ", err)
 	}
 	return resp, err
+}
+
+// LoginWithChap will login to the iscsi target with the supplied credentials
+func LoginWithChap(tiqn, portal, username, password, iface string) error {
+	log.Debugf("Begin osutils.LoginWithChap: iqn: %s, portal: %s, username: %s, password=xxxx, iface: %s", tiqn, portal, username, iface)
+	args := []string{"-m", "node", "-T", tiqn, "-p", portal + ":3260"}
+	createArgs := append(args, []string{"--interface", iface, "--op", "new"}...)
+
+	if _, err := exec.Command("iscsiadm", createArgs...).CombinedOutput(); err != nil {
+		log.Error("Error running iscsiadm node create: ", err)
+		return err
+	}
+
+	authMethodArgs := append(args, []string{"--op=update", "--name", "node.session.auth.authmethod", "--value=CHAP"}...)
+	if out, err := exec.Command("iscsiadm", authMethodArgs...).CombinedOutput(); err != nil {
+		log.Error("Error running iscsiadm set authmethod: ", err, "{", out, "}")
+		return err
+	}
+
+	authUserArgs := append(args, []string{"--op=update", "--name", "node.session.auth.username", "--value=" + username}...)
+	if _, err := exec.Command("iscsiadm", authUserArgs...).CombinedOutput(); err != nil {
+		log.Error("Error running iscsiadm set authuser: ", err)
+		return err
+	}
+	authPasswordArgs := append(args, []string{"--op=update", "--name", "node.session.auth.password", "--value=" + password}...)
+	if _, err := exec.Command("iscsiadm", authPasswordArgs...).CombinedOutput(); err != nil {
+		log.Error("Error running iscsiadm set authpassword: ", err)
+		return err
+	}
+	loginArgs := append(args, []string{"--login"}...)
+	if _, err := exec.Command("iscsiadm", loginArgs...).CombinedOutput(); err != nil {
+		log.Error("Error running iscsiadm login: ", err)
+		return err
+	}
+	return nil
 }

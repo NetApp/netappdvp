@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
-	"strings"
 
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
@@ -46,11 +45,18 @@ func (d *OntapNASStorageDriver) Initialize(configJSON string) error {
 	config := &OntapStorageDriverConfig{}
 
 	// decode configJSON into OntapStorageDriverConfig object
-	decoder := json.NewDecoder(strings.NewReader(configJSON))
-	err := decoder.Decode(&config)
+	err := json.Unmarshal([]byte(configJSON), &config)
 	if err != nil {
 		return fmt.Errorf("Cannot decode json configuration error: %v", err)
 	}
+
+	log.WithFields(log.Fields{
+		"Version":           config.Version,
+		"StorageDriverName": config.StorageDriverName,
+		"Debug":             config.Debug,
+		"DisableDelete":     config.DisableDelete,
+		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
+	}).Debugf("Reparsed into ontapConfig")
 
 	d.config = *config
 	d.api, err = InitializeOntapDriver(d.config)
@@ -67,6 +73,7 @@ func (d *OntapNASStorageDriver) Initialize(configJSON string) error {
 	EmsInitialized(d.Name(), d.api)
 
 	d.initialized = true
+	log.Info("Successfully initialized Ontap NAS Docker driver")
 	return nil
 }
 
@@ -235,4 +242,9 @@ func (d *OntapNASStorageDriver) Detach(name, mountpoint string) error {
 	}
 
 	return nil
+}
+
+// DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
+func (d *OntapNASStorageDriver) DefaultStoragePrefix() string {
+	return "netappdvp_"
 }

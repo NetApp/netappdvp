@@ -1,6 +1,6 @@
 # NetApp Docker Volume Plugin
 
-The NetApp Docker Volume Plugin (nDVP) provides direct integration with the Docker ecosystem for NetApp's ONTAP and E-Series storage platforms. The nDVP package supports the provisioning and management of storage resources from the storage platform to Docker hosts, with a robust framework for adding additional platforms in the future.
+The NetApp Docker Volume Plugin (nDVP) provides direct integration with the Docker ecosystem for NetApp's ONTAP, E-Series, and SolidFire storage platforms. The nDVP package supports the provisioning and management of storage resources from the storage platform to Docker hosts, with a robust framework for adding additional platforms in the future.
 
 Multiple instances of the nDVP can run concurrently on the same host.  The allows simultaneous connections to multiple storage systems and storage types, with the ablity to customize the storage used for the Docker volume(s).
 
@@ -13,10 +13,16 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
     - [iSCSI](#iscsi)
         - [RHEL / CentOS](#rhel-centos-1)
         - [Ubuntu / Debian](#ubuntu-debian-1)
-    - [ONTAP Config File Variables](#ontap-config-file-variables)
-        - [Example ONTAP Config Files](#example-ontap-config-files)
-    - [E-Series Config File Variables](#e-series-config-file-variables)
-        - [Example E-Series Config Files](#example-e-series-config-files)
+- [Global Config File Variables](#global-config-file-variables)
+    - [Storage Prefix](#storage-prefix)
+- [ONTAP Config File Variables](#ontap-config-file-variables)
+    - [Example ONTAP Config Files](#example-ontap-config-files)
+- [E-Series Config File Variables](#e-series-config-file-variables)
+    - [Example E-Series Config Files](#example-e-series-config-files)
+    - [E-Series Array Setup Notes](#e-series-array-setup-notes)
+- [SolidFire Config File Variables](#solidfire-config-file-variables)
+    - [Example Solidfire Config Files](#example-solidfire-config-files)
+- [Storage Prefix](#storage-prefix)
 
 ## Quick Start
 
@@ -38,8 +44,8 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
 
     ```bash
     # download and unpack the application
-    wget https://github.com/NetApp/netappdvp/releases/download/v1.1/netappdvp-1.1.tar.gz
-    tar zxf netappdvp-1.1.tar.gz
+    wget https://github.com/NetApp/netappdvp/releases/download/v1.1/netappdvp-1.2.tar.gz
+    tar zxf netappdvp-1.2.tar.gz
 
     # move to a location in the bin path
     sudo mv netappdvp /usr/local/bin
@@ -217,19 +223,39 @@ sudo apt-get install -y nfs-common
     ```bash
     sudo iscsiadm -m node -p <DATA_LIF_IP> --login
     ```
+## Global Configuration File Variables
+
+| Option            | Description                                                              | Example    |
+| ----------------- | ------------------------------------------------------------------------ | ---------- |
+| version           | Config file version number                                               | 1          |
+| storageDriverName | `ontap-nas`, `ontap-san`, `eseries-iscsi`, or `solidfire-san`            | ontap-nas  |
+| debug             | Turn debugging output on or off                                          | false      |
+| storagePrefix     | Optional prefix for volume names.  Default: "netappdvp_"                 | netappdvp_ |
+
+### Storage Prefix
+
+A new config file variable has been added in v1.2 called "storagePrefix" that allows you to modify the prefix
+applied to volume names by the plugin.  By default, when you run `docker volume create`, the volume name
+supplied is prepended with "netappdvp_".  _("netappdvp-" for SolidFire.)_
+
+If you wish to use a different prefix, you can specify it with this directive.  Alternatively, you can use
+*pre-existing* volumes with the volume plugin by setting `storagePrefix` to an empty string, "".
+
+**A note of caution**: `docker volume rm` will *delete* these volumes just as it does volumes created by the
+plugin using the default prefix.  Be very careful when using pre-existing volumes!
 
 ## ONTAP Config File Variables
 
-| Option            | Description                                                              | Example   |
-| ----------------- | ------------------------------------------------------------------------ | --------- |
-| version           | Config file version number                                               | 1         |
-| storageDriverName | `ontap-nas` or `ontap-san`                                               | ontap-nas |
-| managementLIF     | IP address of clustered Data ONTAP management LIF                        | 10.0.0.1  |
-| dataLIF           | IP address of protocol lif; will be derived if not specified             | 10.0.0.2  |
-| svm               | Storage virtual machine to use (req, if management LIF is a cluster LIF) | svm_nfs   |
-| username          | Username to connect to the storage device                                | vsadmin   |
-| password          | Password to connect to the storage device                                | netapp123 |
-| aggregate         | Aggregate to use for volume/LUN provisioning                             | aggr1     |
+In addition to the global configuration values above, when using clustered Data ONTAP, these options are avaialble.
+
+| Option            | Description                                                              | Example    |
+| ----------------- | ------------------------------------------------------------------------ | ---------- |
+| managementLIF     | IP address of clustered Data ONTAP management LIF                        | 10.0.0.1   |
+| dataLIF           | IP address of protocol lif; will be derived if not specified             | 10.0.0.2   |
+| svm               | Storage virtual machine to use (req, if management LIF is a cluster LIF) | svm_nfs    |
+| username          | Username to connect to the storage device                                | vsadmin    |
+| password          | Password to connect to the storage device                                | netapp123  |
+| aggregate         | Aggregate to use for volume/LUN provisioning                             | aggr1      |
 
 ### Example ONTAP Config Files
 **NFS Example for ontap-nas driver**
@@ -264,11 +290,10 @@ sudo apt-get install -y nfs-common
 
 ## E-Series Config File Variables
 
+In addition to the global configuration values above, when using E-Series, these options are avaialble.
+
 | Option            | Description                                                               | Example       |
 | ----------------- | --------------------------------------------------------------------------| ------------- |
-| version           | Config file version number                                                | 1             |
-| storageDriverName | Docker volume plugin name                                                 | eseries-iscsi |
-| debug             | Turn debugging output on or off                                           | false         |
 | webProxyHostname  | Hostname or IP address of Web Services Proxy                              | localhost     |
 | username          | Username for Web Services Proxy                                           | rw            |
 | password          | Password for Web Services Proxy                                           | rw            |
@@ -295,7 +320,7 @@ sudo apt-get install -y nfs-common
 }
 ```
 
-## E-Series Array Setup Notes
+### E-Series Array Setup Notes
 
 The E-Series Docker driver assumes that you have a volume group or a DDP pool
 pre-configured (N number of drives; segment size; RAID type; ...). The driver
@@ -318,4 +343,58 @@ Linux host will detect the REPORT LUNS well known logical unit as LUN 0, so that
 complete discovery. LUN 0 might not immediately map properly with a simple rescan,
 depending on the version of the host operating system in use.
 
-See [SANtricity® Storage Manager 11.20 SAS Configuration and Provisioning for Linux Express Guide](https://library.netapp.com/ecm/ecm_download_file/ECMP1532526) for more details.
+See [SANtricity Storage Manager 11.20 SAS Configuration and Provisioning for Linux Express Guide](https://library.netapp.com/ecm/ecm_download_file/ECMP1532526) for more details.
+
+## SolidFire Config File Variables
+
+In addition to the global configuration values above, when using SolidFire, these options are avaialble.
+
+| Option            | Description                                                               | Example                    |
+| ----------------- | --------------------------------------------------------------------------| -------------------------- |
+| Endpoint          | Ex. https://<login>:<password>@<mvip>/json-rpc/<element-version>          |                            |
+| SVIP              | iSCSI IP address and port                                                 | 10.0.0.7:3260              |
+| TenantName        | SF Tenant to use (created if not found)                                   | "docker"                   |
+| DefaultVolSz      | Volume size in GiB                                                        | 1                          |
+| InitiatorIFace    | Specify interface when restricting iSCSI traffic to non-default interface | "default"                  |
+| Types             | QoS specifications                                                        | See below                  |
+
+### Example Solidfire Config File
+```json
+{
+    "version": 1,
+    "storageDriverName": "solidfire-san",
+    "debug": false,
+    "Endpoint": "https://admin:admin@192.168.160.3/json-rpc/7.0",
+    "SVIP": "10.0.0.7:3260",
+    "TenantName": "docker",
+    "DefaultVolSz": 1,
+    "InitiatorIFace": "default",
+    "Types": [
+        {
+            "Type": "Bronze",
+            "Qos": {
+                "minIOPS": 1000,
+                "maxIOPS": 2000,
+                "burstIOPS": 4000
+            }
+        },
+        {
+            "Type": "Silver",
+            "Qos": {
+                "minIOPS": 4000,
+                "maxIOPS": 6000,
+                "burstIOPS": 8000
+            }
+        },
+        {
+            "Type": "Gold",
+            "Qos": {
+                "minIOPS": 6000,
+                "maxIOPS": 8000,
+                "burstIOPS": 10000
+            }
+        }
+    ]
+
+}
+```

@@ -5,7 +5,8 @@ package storage_drivers
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
+
+	"github.com/netapp/netappdvp/apis/sfapi"
 )
 
 // CurrentDriverVersion is the expected version in the config file
@@ -13,10 +14,11 @@ const CurrentDriverVersion = 1
 
 // CommonStorageDriverConfig holds settings in common across all StorageDrivers
 type CommonStorageDriverConfig struct {
-	Version           int    `json:"version"`
-	StorageDriverName string `json:"storageDriverName"`
-	Debug             bool   `json:"debug"`
-	DisableDelete     bool   `json:"disableDelete"`
+	Version           int             `json:"version"`
+	StorageDriverName string          `json:"storageDriverName"`
+	Debug             bool            `json:"debug"`
+	DisableDelete     bool            `json:"disableDelete"`
+	StoragePrefixRaw  json.RawMessage `json:"storagePrefix,string"`
 }
 
 // ValidateCommonSettings attempts to "partially" decode the JSON into just the settings in CommonStorageDriverConfig
@@ -24,8 +26,7 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 	config := &CommonStorageDriverConfig{}
 
 	// decode configJSON into config object
-	decoder := json.NewDecoder(strings.NewReader(configJSON))
-	err := decoder.Decode(&config)
+	err := json.Unmarshal([]byte(configJSON), &config)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot decode json configuration error: %v", err)
 	}
@@ -74,6 +75,17 @@ type ESeriesStorageDriverConfig struct {
 	HostData_IP string `json:"hostData_IP"` //for iSCSI can be either port if multipathing is setup
 }
 
+// SolidfireStorageDriverConfig holds settings for SolidfireStorageDrivers
+type SolidfireStorageDriverConfig struct {
+	CommonStorageDriverConfig // embedded types replicate all fields
+	TenantName                string
+	EndPoint                  string
+	DefaultVolSz              int64 //Default volume size in GiB
+	SVIP                      string
+	InitiatorIFace            string //iface to use of iSCSI initiator
+	Types                     *[]sfapi.VolType
+}
+
 // Drivers is a map of driver names -> object
 var Drivers = make(map[string]StorageDriver)
 
@@ -86,4 +98,5 @@ type StorageDriver interface {
 	Destroy(name string) error
 	Attach(name, mountpoint string, opts map[string]string) error
 	Detach(name, mountpoint string) error
+	DefaultStoragePrefix() string
 }

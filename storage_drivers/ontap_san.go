@@ -26,15 +26,8 @@ func init() {
 	log.Debugf("Registered driver '%v'", san.Name())
 }
 
-func volumeName(name string) string {
-	if strings.HasPrefix(name, "netappdvp_") {
-		return name
-	}
-	return "netappdvp_" + name
-}
-
 func lunName(name string) string {
-	return fmt.Sprintf("/vol/%v/lun0", volumeName(name))
+	return fmt.Sprintf("/vol/%v/lun0", name)
 }
 
 // OntapSANStorageDriver is for iSCSI storage provisioning
@@ -57,11 +50,18 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 	config.IgroupName = "netappdvp"
 
 	// decode configJSON into OntapStorageDriverConfig object
-	decoder := json.NewDecoder(strings.NewReader(configJSON))
-	err := decoder.Decode(&config)
+	err := json.Unmarshal([]byte(configJSON), &config)
 	if err != nil {
 		return fmt.Errorf("Cannot decode json configuration error: %v", err)
 	}
+
+	log.WithFields(log.Fields{
+		"Version":           config.Version,
+		"StorageDriverName": config.StorageDriverName,
+		"Debug":             config.Debug,
+		"DisableDelete":     config.DisableDelete,
+		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
+	}).Debugf("Reparsed into ontapConfig")
 
 	d.config = *config
 	d.api, err = InitializeOntapDriver(d.config)
@@ -78,6 +78,7 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 	EmsInitialized(d.Name(), d.api)
 
 	d.initialized = true
+	log.Info("Successfully initialized Ontap SAN Docker driver")
 	return nil
 }
 
@@ -406,4 +407,9 @@ func (d *OntapSANStorageDriver) Detach(name, mountpoint string) error {
 	}
 
 	return nil
+}
+
+// DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
+func (d *OntapSANStorageDriver) DefaultStoragePrefix() string {
+	return "netappdvp_"
 }

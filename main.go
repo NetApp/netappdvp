@@ -50,6 +50,9 @@ func initLogging(logName string) *os.File {
 	case utils.Darwin:
 		logFileLocation = logRoot + "/" + logName + ".log"
 		break
+	case utils.Windows:
+		logFileLocation = logName + ".log"
+		break
 	}
 
 	logFile, err := os.OpenFile(logFileLocation, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
@@ -58,9 +61,7 @@ func initLogging(logName string) *os.File {
 		os.Exit(1)
 	}
 
-	// assign it to the standard logger
-	log.SetFormatter(&log.TextFormatter{}) // default for logrus
-	log.SetOutput(logFile)                 // os.Stderr
+	log.SetOutput(logFile) // os.Stderr OR logFile
 	if *debug == true {
 		log.SetLevel(log.DebugLevel)
 	} else {
@@ -70,6 +71,10 @@ func initLogging(logName string) *os.File {
 }
 
 func main() {
+	// initially log to console, we'll switch to a file once we know where to write it
+	log.SetFormatter(&log.TextFormatter{}) // default for logrus
+	log.SetOutput(os.Stderr)
+	log.SetLevel(log.InfoLevel)
 
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -88,6 +93,14 @@ func main() {
 		log.Errorf("Problem while validating configuration file: %v error: %v", *configFile, commonConfigErr)
 		os.Exit(1)
 	}
+
+	log.WithFields(log.Fields{
+		"Version":           commonConfig.Version,
+		"StorageDriverName": commonConfig.StorageDriverName,
+		"Debug":             commonConfig.Debug,
+		"DisableDelete":     commonConfig.DisableDelete,
+		"StoragePrefixRaw":  string(commonConfig.StoragePrefixRaw),
+	}).Debugf("Parsed commonConfig")
 
 	// lookup the specified storageDriver
 	storageDriver := storage_drivers.Drivers[commonConfig.StorageDriverName]

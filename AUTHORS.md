@@ -7,6 +7,7 @@ The following people and organizations contributed to its development; please
 add your name in alphabetical order with your first pull request:
 
 * NetApp, Inc.
+    * Griffith, John
     * Hannon, Matthew
     * Hocutt, Jared
     * Mueller, Garrett

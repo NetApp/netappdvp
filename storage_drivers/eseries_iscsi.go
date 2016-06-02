@@ -42,11 +42,18 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	config := &ESeriesStorageDriverConfig{}
 
 	// decode configJSON into ESeriesStorageDriverConfig object
-	decoder := json.NewDecoder(strings.NewReader(configJSON))
-	err := decoder.Decode(&config)
+	err := json.Unmarshal([]byte(configJSON), &config)
 	if err != nil {
 		return fmt.Errorf("Cannot decode json configuration error: %v", err)
 	}
+
+	log.WithFields(log.Fields{
+		"Version":           config.Version,
+		"StorageDriverName": config.StorageDriverName,
+		"Debug":             config.Debug,
+		"DisableDelete":     config.DisableDelete,
+		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
+	}).Debugf("Reparsed into eseriesConfig")
 
 	d.config = *config
 	d.storage = eseries.NewDriver(eseries.DriverConfig{
@@ -74,6 +81,7 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	}
 
 	d.initialized = true
+	log.Info("Successfully initialized E-Series Docker driver")
 	return nil
 }
 
@@ -339,4 +347,9 @@ func (d *ESeriesStorageDriver) Detach(name, mountpoint string) error {
 	}
 
 	return nil
+}
+
+// DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
+func (d *ESeriesStorageDriver) DefaultStoragePrefix() string {
+	return "netappdvp_"
 }

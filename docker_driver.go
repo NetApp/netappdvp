@@ -1,3 +1,5 @@
+// Copyright 2016 NetApp, Inc. All Rights Reserved.
+
 package main
 
 import (
@@ -14,18 +16,45 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func volumeName(name string) string {
-	if strings.HasPrefix(name, "netappdvp_") {
-		return name
-	}
-	return "netappdvp_" + name
-}
-
 type ndvpDriver struct {
 	m      *sync.Mutex
 	root   string
 	config storage_drivers.CommonStorageDriverConfig
 	sd     storage_drivers.StorageDriver
+}
+
+func (d *ndvpDriver) volumePrefix() string {
+	defaultPrefix := d.sd.DefaultStoragePrefix()
+	prefixToUse := defaultPrefix
+	storagePrefixRaw := d.config.StoragePrefixRaw // this is a raw version of the json value, we will get quotes in it
+	if len(storagePrefixRaw) >= 2 {
+		s := string(storagePrefixRaw)
+		if s == "\"\"" || s == "" {
+			prefixToUse = ""
+			log.Debugf("storagePrefix is specified as \"\", using no prefix")
+		} else {
+			// trim quotes from start and end of string
+			prefixToUse = s[1 : len(s)-1]
+			log.Debugf("storagePrefix is specified, using prefix: %v", prefixToUse)
+		}
+	} else {
+		prefixToUse = defaultPrefix
+		log.Debugf("storagePrefix is unspecified, using default prefix: %v", prefixToUse)
+	}
+
+	return prefixToUse
+}
+
+func (d *ndvpDriver) volumeName(name string) string {
+	prefixToUse := d.volumePrefix()
+	if strings.HasPrefix(name, prefixToUse) {
+		return name
+	}
+	return prefixToUse + name
+}
+
+func (d *ndvpDriver) mountpoint(name string) string {
+	return filepath.Join(d.root, name)
 }
 
 func newNetAppDockerVolumePlugin(root string, config storage_drivers.CommonStorageDriverConfig) (*ndvpDriver, error) {
@@ -56,7 +85,7 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 	defer d.m.Unlock()
 
 	opts := r.Options
-	target := volumeName(r.Name)
+	target := d.volumeName(r.Name)
 	m := d.mountpoint(target)
 
 	fi, err := os.Lstat(m)
@@ -82,9 +111,9 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 	return volume.Response{}
 }
 
-// Create is part of the core Docker API and is called to remove a docker volume
+// Remove is part of the core Docker API and is called to remove a docker volume
 func (d ndvpDriver) Remove(r volume.Request) volume.Response {
-	target := volumeName(r.Name)
+	target := d.volumeName(r.Name)
 
 	// allow user to completely disable volume deletion
 	if d.config.DisableDelete {
@@ -125,7 +154,7 @@ func (d ndvpDriver) Remove(r volume.Request) volume.Response {
 }
 
 func (d ndvpDriver) getPath(r volume.Request) (*volume.Volume, error) {
-	target := volumeName(r.Name)
+	target := d.volumeName(r.Name)
 	m := d.mountpoint(target)
 	log.Debugf("Getting path for volume '%s' as '%s'", target, m)
 
@@ -174,13 +203,9 @@ type nfsMount struct {
 	MachineID  string
 }
 
-func (d *ndvpDriver) mountpoint(name string) string {
-	return filepath.Join(d.root, name)
-}
-
 // Mount is part of the core Docker API and is called to mount a docker volume
 func (d ndvpDriver) Mount(r volume.Request) volume.Response {
-	target := volumeName(r.Name)
+	target := d.volumeName(r.Name)
 
 	d.m.Lock()
 	defer d.m.Unlock()
@@ -224,9 +249,9 @@ func (d ndvpDriver) Mount(r volume.Request) volume.Response {
 	return volume.Response{Mountpoint: m}
 }
 
-// Mount is part of the core Docker API and is called to unmount a docker volume
+// Unmount is part of the core Docker API and is called to unmount a docker volume
 func (d ndvpDriver) Unmount(r volume.Request) volume.Response {
-	target := volumeName(r.Name)
+	target := d.volumeName(r.Name)
 
 	d.m.Lock()
 	defer d.m.Unlock()
@@ -242,7 +267,7 @@ func (d ndvpDriver) Unmount(r volume.Request) volume.Response {
 	return volume.Response{}
 }
 
-// Mount is part of the core Docker API and is called to list all known docker volumes for this plugin
+// List is part of the core Docker API and is called to list all known docker volumes for this plugin
 func (d ndvpDriver) List(r volume.Request) volume.Response {
 
 	d.m.Lock()
@@ -277,12 +302,19 @@ func (d ndvpDriver) List(r volume.Request) volume.Response {
 		if fileinfo.IsDir() {
 			dirs = append(dirs, fileinfo.Name())
 
-			// [10:] to remove 'netappdvp_' from start of name, could probably handle better
-			volumeName := fileinfo.Name()[10:]
-			log.Debugf("List() adding volume: %v from: %v", volumeName, filepath.Join(volumeDir, fileinfo.Name()))
+			// removes the prefix based on prefix length, for instance [10:] to remove 'netappdvp_' from start of name
+			volumePrefix := d.volumePrefix()
 
-			v := &volume.Volume{Name: volumeName, Mountpoint: filepath.Join(volumeDir, fileinfo.Name())}
-			vols = append(vols, v)
+			// only trim if it matches the prefix
+			if strings.HasPrefix(fileinfo.Name(), volumePrefix) {
+				volumeName := fileinfo.Name()[len(volumePrefix):]
+				log.Debugf("List() adding volume: %v from: %v", volumeName, filepath.Join(volumeDir, fileinfo.Name()))
+
+				v := &volume.Volume{Name: volumeName, Mountpoint: filepath.Join(volumeDir, fileinfo.Name())}
+				vols = append(vols, v)
+			} else {
+				log.Debugf("wrong prefix, skipping fileinfo.Name: %v", fileinfo.Name())
+			}
 		}
 	}
 
