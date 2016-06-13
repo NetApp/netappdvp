@@ -44,7 +44,7 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
 
     ```bash
     # download and unpack the application
-    wget https://github.com/NetApp/netappdvp/releases/download/v1.1/netappdvp-1.2.tar.gz
+    wget https://github.com/NetApp/netappdvp/releases/download/v1.2/netappdvp-1.2.tar.gz
     tar zxf netappdvp-1.2.tar.gz
 
     # move to a location in the bin path
