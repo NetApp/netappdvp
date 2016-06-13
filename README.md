@@ -22,7 +22,6 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
     - [E-Series Array Setup Notes](#e-series-array-setup-notes)
 - [SolidFire Config File Variables](#solidfire-config-file-variables)
     - [Example Solidfire Config Files](#example-solidfire-config-files)
-- [Storage Prefix](#storage-prefix)
 
 ## Quick Start
 
