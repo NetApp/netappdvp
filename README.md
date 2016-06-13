@@ -222,6 +222,7 @@ sudo apt-get install -y nfs-common
     ```bash
     sudo iscsiadm -m node -p <DATA_LIF_IP> --login
     ```
+
 ## Global Configuration File Variables
 
 | Option            | Description                                                              | Example    |
@@ -257,6 +258,7 @@ In addition to the global configuration values above, when using clustered Data 
 | aggregate         | Aggregate to use for volume/LUN provisioning                             | aggr1      |
 
 ### Example ONTAP Config Files
+
 **NFS Example for ontap-nas driver**
 
 ```json
@@ -302,6 +304,7 @@ In addition to the global configuration values above, when using E-Series, these
 | hostData_IP       | Host iSCSI IP address (if multipathing just choose either one)            | 10.0.0.101    |
 
 ### Example E-Series Config File
+
 **Example for eseries-iscsi driver**
 
 ```json
@@ -358,6 +361,7 @@ In addition to the global configuration values above, when using SolidFire, thes
 | Types             | QoS specifications                                                        | See below                  |
 
 ### Example Solidfire Config File
+
 ```json
 {
     "version": 1,
