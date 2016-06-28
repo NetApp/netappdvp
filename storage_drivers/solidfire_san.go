@@ -197,6 +197,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 	var req sfapi.CreateVolumeRequest
 	var qos sfapi.QoS
 	var vsz int64
+	var meta = map[string]string{"platform": "Docker-NDVP"}
 
 	log.Debugf("GetVolumeByName: %s, %d", name, d.TenantID)
 	log.Debugf("Options passed in to create: %+v", opts)
@@ -243,6 +244,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 	req.TotalSize = vsz
 	req.AccountID = d.TenantID
 	req.Name = name
+	req.Attributes = meta
 	_, err = d.Client.CreateVolume(&req)
 	if err != nil {
 		return err
