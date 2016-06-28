@@ -320,3 +320,7 @@ func (d ndvpDriver) List(r volume.Request) volume.Response {
 
 	return volume.Response{Volumes: vols}
 }
+
+func (d ndvpDriver) Capabilities(r volume.Request) volume.Response {
+	return volume.Response{Capabilities: volume.Capability{Scope: "global"}}
+}
