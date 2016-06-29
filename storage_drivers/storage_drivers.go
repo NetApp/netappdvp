@@ -12,6 +12,9 @@ import (
 // CurrentDriverVersion is the expected version in the config file
 const CurrentDriverVersion = 1
 
+// DriverVersion is the actual release version number
+const DriverVersion = "1.2.1"
+
 // CommonStorageDriverConfig holds settings in common across all StorageDrivers
 type CommonStorageDriverConfig struct {
 	Version           int             `json:"version"`

@@ -73,7 +73,7 @@ func (d *OntapNASStorageDriver) Initialize(configJSON string) error {
 	EmsInitialized(d.Name(), d.api)
 
 	d.initialized = true
-	log.Info("Successfully initialized Ontap NAS Docker driver")
+	log.Infof("Successfully initialized Ontap NAS Docker driver version %v", DriverVersion)
 	return nil
 }
 

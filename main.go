@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	debug      = flag.Bool("debug", true, "Enable debugging output")
-	configFile = flag.String("config", "config.json", "Path to configuration file")
-	driverID   = flag.String("volume-driver", "netapp", "Register as a docker volume plugin with this driver name")
-	port       = flag.String("port", "", "Listen on this port instead of using a bsd socket")
+	debug        = flag.Bool("debug", true, "Enable debugging output")
+	configFile   = flag.String("config", "config.json", "Path to configuration file")
+	driverID     = flag.String("volume-driver", "netapp", "Register as a docker volume plugin with this driver name")
+	port         = flag.String("port", "", "Listen on this port instead of using a bsd socket")
+	printVersion = flag.Bool("version", false, "Print version and exit")
 )
 
 func initLogging(logName string) *os.File {
@@ -78,6 +79,11 @@ func main() {
 
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	if *printVersion == true {
+		fmt.Print("NetApp Docker Volume Plugin version " + storage_drivers.DriverVersion)
+		os.Exit(0)
+	}
 
 	// open config file and read contents in to configJson
 	fileContents, fileErr := ioutil.ReadFile(*configFile)

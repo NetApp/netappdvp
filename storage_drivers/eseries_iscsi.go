@@ -81,7 +81,7 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	}
 
 	d.initialized = true
-	log.Info("Successfully initialized E-Series Docker driver")
+	log.Infof("Successfully initialized E-Series Docker driver version %v", DriverVersion)
 	return nil
 }
 

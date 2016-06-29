@@ -159,7 +159,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 	//EmsInitialized(d.Name(), d.api)
 
 	d.initialized = true
-	log.Info("Successfully initialized SolidFire Docker driver")
+	log.Infof("Successfully initialized SolidFire Docker driver version %v", DriverVersion)
 	return nil
 }
 
