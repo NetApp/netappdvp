@@ -57,14 +57,16 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 
 	d.config = *config
 	d.storage = eseries.NewDriver(eseries.DriverConfig{
-		WebProxy_Hostname: config.WebProxy_Hostname,
-		Username:          config.Username,
-		Password:          config.Password,
-		Controller_A:      config.Controller_A,
-		Controller_B:      config.Controller_B,
-		Password_Array:    config.Password_Array,
-		Array_Registered:  config.Array_Registered,
-		HostData_IP:       config.HostData_IP,
+		WebProxyHostname: config.WebProxyHostname,
+		WebProxyPort:     config.WebProxyPort,
+		WebProxyInsecure: config.WebProxyInsecure,
+		Username:         config.Username,
+		Password:         config.Password,
+		ControllerA:      config.ControllerA,
+		ControllerB:      config.ControllerB,
+		PasswordArray:    config.PasswordArray,
+		ArrayRegistered:  config.ArrayRegistered,
+		HostDataIP:       config.HostData_IP,
 	})
 
 	validationErr := d.Validate()
@@ -90,16 +92,16 @@ func (d *ESeriesStorageDriver) Validate() error {
 	log.Debugf("ESeriesStorageDriver#Validate()")
 
 	//Make sure the essential information was specified in the json config
-	if d.config.WebProxy_Hostname == "" {
-		return fmt.Errorf("WebProxy_Hostname is empty! You must specify the host/IP for the Web Services Proxy.")
+	if d.config.WebProxyHostname == "" {
+		return fmt.Errorf("WebProxyHostname is empty! You must specify the host/IP for the Web Services Proxy.")
 	}
 
-	if d.config.Controller_A == "" || d.config.Controller_B == "" {
-		return fmt.Errorf("Controller_A or Controller_B are empty! You must specify the host/IP for the E-Series storage array. If it is a simplex array just specify the same host/IP twice.")
+	if d.config.ControllerA == "" || d.config.ControllerB == "" {
+		return fmt.Errorf("ControllerA or ControllerB are empty! You must specify the host/IP for the E-Series storage array. If it is a simplex array just specify the same host/IP twice.")
 	}
 
 	if d.config.HostData_IP == "" {
-		return fmt.Errorf("HostData_IP is empty! You need to specify atleast one of the iSCSI interface IP addresses that is connected to the E-Series array.")
+		return fmt.Errorf("HostDataIP is empty! You need to specify atleast one of the iSCSI interface IP addresses that is connected to the E-Series array.")
 	}
 
 	//Make sure iSCSI is supported on system

@@ -296,13 +296,15 @@ In addition to the global configuration values above, when using E-Series, these
 | Option            | Description                                                               | Example       |
 | ----------------- | --------------------------------------------------------------------------| ------------- |
 | webProxyHostname  | Hostname or IP address of Web Services Proxy                              | localhost     |
+| webProxyPort      | Port number of the Web Services Proxy (optional)                          | 8443          |
+| webProxyInsecure  | Connect over http instead of https (optional, default = false)            | true          |
 | username          | Username for Web Services Proxy                                           | rw            |
 | password          | Password for Web Services Proxy                                           | rw            |
 | controllerA       | IP address of controller A                                                | 10.0.0.5      |
 | controllerB       | IP address of controller B                                                | 10.0.0.6      |
 | passwordArray     | Password for storage array if set                                         | blank/empty   |
 | hostData_IP       | Host iSCSI IP address (if multipathing just choose either one)            | 10.0.0.101    |
-
+ 
 ### Example E-Series Config File
 
 **Example for eseries-iscsi driver**
@@ -313,6 +315,8 @@ In addition to the global configuration values above, when using E-Series, these
 	"storageDriverName": "eseries-iscsi",    
 	"debug": true,    
 	"webProxyHostname": "localhost",    
+	"webProxyPort": "8443",
+	"webProxyInsecure": false,
 	"username": "rw",    
 	"password": "rw",    
 	"controllerA": "10.0.0.5",    
