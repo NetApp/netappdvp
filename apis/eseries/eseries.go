@@ -40,11 +40,12 @@ type VolumeInfo struct {
 // DriverConfig holds the configuration data for Driver objects
 type DriverConfig struct {
 	//Web Proxy Services Info
-	WebProxyHostname string
-	WebProxyPort     string
-	WebProxyInsecure bool
-	Username         string
-	Password         string
+	WebProxyHostname  string
+	WebProxyPort      string
+	WebProxyUseHTTP   bool
+	WebProxyVerifyTLS bool
+	Username          string
+	Password          string
 
 	//Array Info
 	ControllerA     string
@@ -93,7 +94,7 @@ func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Res
 	addressPrefix := "https"
 	addressPort := "8443"
 
-	if d.config.WebProxyInsecure {
+	if d.config.WebProxyUseHTTP {
 		addressPrefix = "http"
 		addressPort = "8080"
 	}
@@ -119,7 +120,7 @@ func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Res
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: d.config.WebProxyInsecure,
+			InsecureSkipVerify: !d.config.WebProxyVerifyTLS,
 		},
 	}
 
