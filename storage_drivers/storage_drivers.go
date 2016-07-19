@@ -64,18 +64,21 @@ type ESeriesStorageDriverConfig struct {
 	CommonStorageDriverConfig
 
 	//Web Proxy Services Info
-	WebProxy_Hostname string `json:"webProxyHostname"`
-	Username          string `json:"username"` //rw
-	Password          string `json:"password"` //rw
+	WebProxyHostname  string `json:"webProxyHostname"`
+	WebProxyPort      string `json:"webProxyPort"`      // optional
+	WebProxyUseHTTP   bool   `json:"webProxyUseHTTP"`   // optional
+	WebProxyVerifyTLS bool   `json:"webProxyVerifyTLS"` // optional
+	Username          string `json:"username"`          //rw
+	Password          string `json:"password"`          //rw
 
 	//Array Info
-	Controller_A     string `json:"controllerA"`
-	Controller_B     string `json:"controllerB"`
-	Password_Array   string `json:"passwordArray"`   //optional
-	Array_Registered bool   `json:"arrayRegistered"` //optional
+	ControllerA     string `json:"controllerA"`
+	ControllerB     string `json:"controllerB"`
+	PasswordArray   string `json:"passwordArray"`   //optional
+	ArrayRegistered bool   `json:"arrayRegistered"` //optional
 
 	//Host Networking
-	HostData_IP string `json:"hostData_IP"` //for iSCSI can be either port if multipathing is setup
+	HostDataIP string `json:"hostData_IP"` //for iSCSI can be either port if multipathing is setup
 }
 
 // SolidfireStorageDriverConfig holds settings for SolidfireStorageDrivers

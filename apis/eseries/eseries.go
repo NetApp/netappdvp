@@ -13,8 +13,9 @@ import (
 
 	"fmt"
 
-	"github.com/netapp/netappdvp/utils"
 	"strconv"
+
+	"github.com/netapp/netappdvp/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -39,18 +40,21 @@ type VolumeInfo struct {
 // DriverConfig holds the configuration data for Driver objects
 type DriverConfig struct {
 	//Web Proxy Services Info
-	WebProxy_Hostname string
+	WebProxyHostname  string
+	WebProxyPort      string
+	WebProxyUseHTTP   bool
+	WebProxyVerifyTLS bool
 	Username          string
 	Password          string
 
 	//Array Info
-	Controller_A     string
-	Controller_B     string
-	Password_Array   string
-	Array_Registered bool
+	ControllerA     string
+	ControllerB     string
+	PasswordArray   string
+	ArrayRegistered bool
 
 	//Host Connectivity
-	HostData_IP string //for iSCSI with multipathing this can be either IP on host
+	HostDataIP string //for iSCSI with multipathing this can be either IP on host
 
 	//Internal Config Variables
 	ArrayID string //Unique ID for array once added to web proxy services
@@ -77,28 +81,32 @@ func NewDriver(config DriverConfig) *Driver {
 	return d
 }
 
-//Pass in marshaled json byte array
+// SendMsg sends the marshaled json byte array to the web services proxy
 func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Response, error) {
 
 	if data == nil && d.config.ArrayID == "" {
 		panic("data is nil and no ArrayID set!")
 	}
 
-	log.Debugf("Sending data to web services proxy @ '%s' json: \n%s", d.config.WebProxy_Hostname, string(data))
+	log.Debugf("Sending data to web services proxy @ '%s' json: \n%s", d.config.WebProxyHostname, string(data))
 
-	//Do we want to use https?
-	secureConnect := false
+	// Default to secure connection
+	addressPrefix := "https"
+	addressPort := "8443"
 
-	addressPrefix := "http"
-	addressPort := "8080"
+	if d.config.WebProxyUseHTTP {
+		addressPrefix = "http"
+		addressPort = "8080"
+	}
 
-	if secureConnect {
-		addressPrefix = "https"
-		addressPort = "8443"
+	// Allow port override
+	if d.config.WebProxyPort != "" {
+		log.Debugf("Setting web services proxy port to %s", d.config.WebProxyPort)
+		addressPort = d.config.WebProxyPort
 	}
 
 	//Set up address to web services proxy
-	url := addressPrefix + "://" + d.config.WebProxy_Hostname + ":" + addressPort + "/devmgr/v2/storage-systems/" + d.config.ArrayID + msgType
+	url := addressPrefix + "://" + d.config.WebProxyHostname + ":" + addressPort + "/devmgr/v2/storage-systems/" + d.config.ArrayID + msgType
 	log.Debugf("URL:> %s", url)
 
 	//Check msg type
@@ -111,7 +119,9 @@ func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Res
 	req.SetBasicAuth(d.config.Username, d.config.Password)
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: !d.config.WebProxyVerifyTLS,
+		},
 	}
 
 	client := &http.Client{Transport: tr}
@@ -126,11 +136,11 @@ func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Res
 	return resp, err
 }
 
-// Add Arry to Web Services Proxy
+// Connect to the array's Web Services Proxy
 func (d Driver) Connect() (response string, err error) {
 
 	//Send a login/connect request for array to web services proxy
-	msgConnect := MsgConnect{[]string{d.config.Controller_A, d.config.Controller_B}, d.config.Password_Array}
+	msgConnect := MsgConnect{[]string{d.config.ControllerA, d.config.ControllerB}, d.config.PasswordArray}
 
 	jsonConnect, err := json.Marshal(msgConnect)
 	if err != nil {
@@ -157,9 +167,9 @@ func (d Driver) Connect() (response string, err error) {
 	}
 
 	d.config.ArrayID = responseData.ArrayID
-	d.config.Array_Registered = responseData.AlreadyExists
+	d.config.ArrayRegistered = responseData.AlreadyExists
 
-	log.Debugf("ArrayID=%s alreadyRegistered=%v", d.config.ArrayID, d.config.Array_Registered)
+	log.Debugf("ArrayID=%s alreadyRegistered=%v", d.config.ArrayID, d.config.ArrayRegistered)
 
 	return d.config.ArrayID, nil
 }

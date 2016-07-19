@@ -57,14 +57,17 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 
 	d.config = *config
 	d.storage = eseries.NewDriver(eseries.DriverConfig{
-		WebProxy_Hostname: config.WebProxy_Hostname,
+		WebProxyHostname:  config.WebProxyHostname,
+		WebProxyPort:      config.WebProxyPort,
+		WebProxyUseHTTP:   config.WebProxyUseHTTP,
+		WebProxyVerifyTLS: config.WebProxyVerifyTLS,
 		Username:          config.Username,
 		Password:          config.Password,
-		Controller_A:      config.Controller_A,
-		Controller_B:      config.Controller_B,
-		Password_Array:    config.Password_Array,
-		Array_Registered:  config.Array_Registered,
-		HostData_IP:       config.HostData_IP,
+		ControllerA:       config.ControllerA,
+		ControllerB:       config.ControllerB,
+		PasswordArray:     config.PasswordArray,
+		ArrayRegistered:   config.ArrayRegistered,
+		HostDataIP:        config.HostDataIP,
 	})
 
 	validationErr := d.Validate()
@@ -90,16 +93,16 @@ func (d *ESeriesStorageDriver) Validate() error {
 	log.Debugf("ESeriesStorageDriver#Validate()")
 
 	//Make sure the essential information was specified in the json config
-	if d.config.WebProxy_Hostname == "" {
-		return fmt.Errorf("WebProxy_Hostname is empty! You must specify the host/IP for the Web Services Proxy.")
+	if d.config.WebProxyHostname == "" {
+		return fmt.Errorf("WebProxyHostname is empty! You must specify the host/IP for the Web Services Proxy.")
 	}
 
-	if d.config.Controller_A == "" || d.config.Controller_B == "" {
-		return fmt.Errorf("Controller_A or Controller_B are empty! You must specify the host/IP for the E-Series storage array. If it is a simplex array just specify the same host/IP twice.")
+	if d.config.ControllerA == "" || d.config.ControllerB == "" {
+		return fmt.Errorf("ControllerA or ControllerB are empty! You must specify the host/IP for the E-Series storage array. If it is a simplex array just specify the same host/IP twice.")
 	}
 
-	if d.config.HostData_IP == "" {
-		return fmt.Errorf("HostData_IP is empty! You need to specify atleast one of the iSCSI interface IP addresses that is connected to the E-Series array.")
+	if d.config.HostDataIP == "" {
+		return fmt.Errorf("HostDataIP is empty! You need to specify atleast one of the iSCSI interface IP addresses that is connected to the E-Series array.")
 	}
 
 	//Make sure iSCSI is supported on system
@@ -109,13 +112,13 @@ func (d *ESeriesStorageDriver) Validate() error {
 	}
 
 	// error if no 'iscsi session' exsits for the specified iscsi portal
-	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.config.HostData_IP)
+	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.config.HostDataIP)
 	if sessionExistsErr != nil {
 		return fmt.Errorf("Unexpected iSCSI session error: %v", sessionExistsErr)
 	}
 	if !sessionExists {
 		// TODO automatically login for the user if no session detected?
-		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.config.HostData_IP)
+		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.config.HostDataIP)
 	}
 
 	return nil
@@ -277,7 +280,7 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 
 	sessionInfoToUse := utils.IscsiSessionInfo{}
 	for i, e := range sessionInfo {
-		if e.PortalIP == d.config.HostData_IP {
+		if e.PortalIP == d.config.HostDataIP {
 			sessionInfoToUse = sessionInfo[i]
 		}
 	}
