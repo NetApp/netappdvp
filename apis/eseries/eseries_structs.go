@@ -34,13 +34,20 @@ type VolumeGroupExResponse struct {
 
 //Create a volume
 type MsgVolumeEx struct {
-	VolumeGroupRef   string `json:"poolId"`
-	Name             string `json:"name"`
-	SizeUnit         string `json:"sizeUnit"` //bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
-	Size             int    `json:"size"`
-	SegmentSize      int    `json:"segSize"`
-	DataAssurance    bool   `json:"dataAssuranceEnabled,omitempty"`
-	OwningController string `json:"owningControllerId,omitempty"`
+	VolumeGroupRef   string      `json:"poolId"`
+	Name             string      `json:"name"`
+	SizeUnit         string      `json:"sizeUnit"` //bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
+	Size             int         `json:"size"`
+	SegmentSize      int         `json:"segSize"`
+	DataAssurance    bool        `json:"dataAssuranceEnabled,omitempty"`
+	OwningController string      `json:"owningControllerId,omitempty"`
+	VolumeTags       []VolumeTag `json:"metaTags,omitempty"`
+}
+
+//Volume Metadata Tag
+type VolumeTag struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type MsgVolumeExResponse struct {

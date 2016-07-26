@@ -35,10 +35,14 @@ func (d ESeriesStorageDriver) Name() string {
 	return "eseries-iscsi"
 }
 
+// Return the storage protocol that this driver uses
+func (d ESeriesStorageDriver) Protocol() string {
+	return "iscsi"
+}
+
 // Initialize from the provided config
 func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	log.Debugf("ESeriesStorageDriver#Initialize(...)")
-
 	config := &ESeriesStorageDriverConfig{}
 
 	// decode configJSON into ESeriesStorageDriverConfig object
@@ -69,6 +73,9 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 		PasswordArray:     config.PasswordArray,
 		ArrayRegistered:   config.ArrayRegistered,
 		HostDataIP:        config.HostDataIP,
+		Protocol:          d.Protocol(),
+		DriverName:        config.CommonStorageDriverConfig.StorageDriverName,
+		Version:           config.CommonStorageDriverConfig.Version,
 	})
 
 	validationErr := d.Validate()
