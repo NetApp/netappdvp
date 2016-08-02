@@ -3,6 +3,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -166,8 +167,9 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 		if os.IsNotExist(err) {
 			log.Debug("Skipping multipath check, /sbin/multipath doesn't exist")
 		} else {
-			log.Debugf("running 'multipath -ll -v 1 %v'", devFile)
-			out2, err2 := exec.Command("multipath", "-ll", "-v", "1", devFile).CombinedOutput()
+			lsblkCmd := fmt.Sprintf("lsblk %v -n -o name,type -r | grep mpath | cut -f1 -d\\ ", devFile)
+			log.Debugf("running 'sh -c %v'", lsblkCmd)
+			out2, err2 := exec.Command("sh", "-c", lsblkCmd).CombinedOutput()
 			if err2 != nil {
 				// this can be fine, for instance could be a floppy or cd-rom, later logic will error if we never find our device
 				log.Debugf("could not run multipath check against device: %v error: %v", devFile, err2)
@@ -405,7 +407,7 @@ func IscsiRescan() (err error) {
 	log.Debugf("Begin osutils.IscsiRescan")
 
 	// look for version of rescan-scsi-bus in known locations
-	var rescanCommands []string = []string{"/sbin/rescan-scsi-bus", "/bin/rescan-scsi-bus.sh", "/usr/bin/rescan-scsi-bus.sh"}
+	var rescanCommands []string = []string{"/sbin/rescan-scsi-bus", "/sbin/rescan-scsi-bus.sh", "/bin/rescan-scsi-bus.sh", "/usr/bin/rescan-scsi-bus.sh"}
 	for _, rescanCommand := range rescanCommands {
 		_, err = os.Lstat(rescanCommand)
 		// The command exists in this location
