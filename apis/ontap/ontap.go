@@ -162,7 +162,7 @@ func (d Driver) LunDestroy(lunPath string) (response azgo.LunDestroyResponse, er
 
 // VolumeCreate creates a volume with the specified options
 // equivalent to filer::> volume create -vserver iscsi_vs -volume v -aggregate aggr1 -size 1g -state online -type RW -policy default -unix-permissions ---rwxr-xr-x -space-guarantee none -snapshot-policy none
-func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPolicy, unixPermissions string) (response azgo.VolumeCreateResponse, err error) {
+func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy string) (response azgo.VolumeCreateResponse, err error) {
 	response, err = azgo.NewVolumeCreateRequest().
 		SetVolume(name).
 		SetContainingAggrName(aggregateName).
@@ -170,6 +170,7 @@ func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPo
 		SetSpaceReserve(spaceReserve).
 		SetSnapshotPolicy(snapshotPolicy).
 		SetUnixPermissions(unixPermissions).
+		SetExportPolicy(exportPolicy).
 		ExecuteUsing(d.zr)
 	return
 }

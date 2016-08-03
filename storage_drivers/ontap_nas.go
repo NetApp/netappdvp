@@ -157,6 +157,7 @@ func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) erro
 	snapshotPolicy := utils.GetV(opts, "snapshotPolicy", "none")
 	unixPermissions := utils.GetV(opts, "unixPermissions", "---rwxr-xr-x")
 	snapshotDir := utils.GetV(opts, "snapshotDir", "true")
+	exportPolicy := utils.GetV(opts, "exportPolicy", "default")
 
 	log.WithFields(log.Fields{
 		"name":            name,
@@ -164,10 +165,11 @@ func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) erro
 		"spaceReserve":    spaceReserve,
 		"snapshotPolicy":  snapshotPolicy,
 		"unixPermissions": unixPermissions,
+		"exportPolicy":    exportPolicy,
 	}).Debug("Creating volume with values")
 
 	// create the volume
-	response1, error1 := d.api.VolumeCreate(name, d.config.Aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions)
+	response1, error1 := d.api.VolumeCreate(name, d.config.Aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy)
 	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
 		return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
 	}
