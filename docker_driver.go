@@ -204,7 +204,7 @@ type nfsMount struct {
 }
 
 // Mount is part of the core Docker API and is called to mount a docker volume
-func (d ndvpDriver) Mount(r volume.Request) volume.Response {
+func (d ndvpDriver) Mount(r volume.MountRequest) volume.Response {
 	target := d.volumeName(r.Name)
 
 	d.m.Lock()
@@ -250,7 +250,7 @@ func (d ndvpDriver) Mount(r volume.Request) volume.Response {
 }
 
 // Unmount is part of the core Docker API and is called to unmount a docker volume
-func (d ndvpDriver) Unmount(r volume.Request) volume.Response {
+func (d ndvpDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	target := d.volumeName(r.Name)
 
 	d.m.Lock()
