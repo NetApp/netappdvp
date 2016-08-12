@@ -368,8 +368,8 @@ func TestLunMapping(t *testing.T) {
 	d.IgroupDestroy(initiatorGroupName)
 }
 
-func TestVolume(t *testing.T) {
-	log.Debug("Running TestVolume...")
+func TestVolumeAndSnapshot(t *testing.T) {
+	log.Debug("Running TestVolumeAndSnapshot...")
 
 	c := newConfig()
 	d := NewDriver(*c)
@@ -378,9 +378,10 @@ func TestVolume(t *testing.T) {
 	//aggr := tc.Aggregate
 	aggr := "VICE08_aggr1"
 	unixPerms := "---rwxr-xr-x"
+	exportPolicy := "default"
 
-	// check bad volue name fails
-	response, err := d.VolumeCreate("bad/bad", aggr, "1g", "none", "none", unixPerms)
+	// check bad volume name fails
+	response, err := d.VolumeCreate("bad/bad", aggr, "1g", "none", "none", unixPerms, exportPolicy)
 	if response.Result.ResultErrnoAttr != azgo.EAPIERROR {
 		t.Error("Expected to receive invalid api error for name 'bad/bad'")
 	}
@@ -389,7 +390,7 @@ func TestVolume(t *testing.T) {
 	}
 
 	// check bad unix permissions fails
-	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", "bad")
+	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", "bad", exportPolicy)
 	if response.Result.ResultErrnoAttr != azgo.EINVALIDINPUTERROR {
 		t.Error("Expected to receive invalid input error for invalid unix permissions 'bad'")
 	}
@@ -398,7 +399,7 @@ func TestVolume(t *testing.T) {
 	}
 
 	// check missing aggregate fails
-	response, err = d.VolumeCreate(volName, "missingAggrBad", "1g", "none", "none", unixPerms)
+	response, err = d.VolumeCreate(volName, "missingAggrBad", "1g", "none", "none", unixPerms, exportPolicy)
 	if response.Result.ResultErrnoAttr != azgo.EAGGRDOESNOTEXIST {
 		t.Error("Expected to receive aggr doesn't exist error for invalid aggregrate 'missingAggrBad'")
 	}
@@ -407,7 +408,7 @@ func TestVolume(t *testing.T) {
 	}
 
 	// check bad size fails
-	response, err = d.VolumeCreate(volName, aggr, "badSize", "none", "none", unixPerms)
+	response, err = d.VolumeCreate(volName, aggr, "badSize", "none", "none", unixPerms, exportPolicy)
 	if response.Result.ResultErrnoAttr != azgo.EINVALIDINPUTERROR {
 		t.Error("Expected to receive error for invalid size 'badSize'")
 	}
@@ -416,7 +417,7 @@ func TestVolume(t *testing.T) {
 	}
 
 	// check bad space reserve fails
-	response, err = d.VolumeCreate(volName, aggr, "1g", "badSpaceReserve", "none", unixPerms)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "badSpaceReserve", "none", unixPerms, exportPolicy)
 	if response.Result.ResultErrnoAttr != azgo.EINVALIDINPUTERROR {
 		t.Error("Expected to receive error for invalid space reserve 'badSpaceReserve'")
 	}
@@ -425,7 +426,7 @@ func TestVolume(t *testing.T) {
 	}
 
 	// check bad snapshotPolicy fails
-	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "badSnapshotPolicy", unixPerms)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "badSnapshotPolicy", unixPerms, exportPolicy)
 	if response.Result.ResultErrnoAttr != azgo.EAPIERROR {
 		t.Error("Expected to receive error for invalid snapshot policy 'badSnapshotPolicy'")
 	}
@@ -434,7 +435,7 @@ func TestVolume(t *testing.T) {
 	}
 
 	// check create passes
-	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", unixPerms)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", unixPerms, exportPolicy)
 	if response.Result.ResultStatusAttr != "passed" {
 		t.Error("Expected to create volume")
 	}
@@ -443,7 +444,7 @@ func TestVolume(t *testing.T) {
 	}
 
 	// check double create fails
-	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", unixPerms)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", unixPerms, exportPolicy)
 	if response.Result.ResultErrnoAttr != azgo.EONTAPI_EEXIST {
 		t.Error("Expected to receive error for creating an already existing volume")
 	}
@@ -493,6 +494,36 @@ func TestVolume(t *testing.T) {
 		t.Error("Expected to be able to lookup volume size")
 	}
 	if err3b != nil {
+		t.Error("Unexpected error found")
+	}
+
+	// check getting snapshots with missing volume fails
+	response3c, err3c := d.SnapshotGetByVolume("badVol")
+	if response3c.Result.ResultErrnoAttr != azgo.EOBJECTNOTFOUND {
+		t.Error("Expected EOBJECTNOTFOUND getting snapshots for non-existent volume")
+	}
+	if err3c != nil {
+		t.Error("Unexpected error found")
+	}
+
+	// check that a snapshot can be created on the existing volume
+	response3d, err3d := d.SnapshotCreate("mysnap", volName)
+	if response3d.Result.ResultStatusAttr != "passed" {
+		t.Error("Expected to create a snapshot")
+	}
+	if err3d != nil {
+		t.Error("Unexpected error found")
+	}
+
+	// check getting snapshots for existing volume succeeds
+	response3e, err3e := d.SnapshotGetByVolume(volName)
+	if response3e.Result.ResultErrnoAttr != "passed" {
+		t.Error("Expected to be able to get a list of snapshots")
+	}
+	if response3e.Result.AttributesList()[0].Name() != "mysnap" {
+		t.Error("Expected the only snapshot to be the one that was just created")
+	}
+	if err3e != nil {
 		t.Error("Unexpected error found")
 	}
 

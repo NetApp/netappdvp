@@ -175,6 +175,16 @@ func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPo
 	return
 }
 
+// VolumeCloneCreate clones a volume from a snapshot
+func (d Driver) VolumeCloneCreate(name, source, snapshot string) (response azgo.VolumeCloneCreateResponse, err error) {
+	response, err = azgo.NewVolumeCloneCreateRequest().
+		SetVolume(name).
+		SetParentVolume(source).
+		SetParentSnapshot(snapshot).
+		ExecuteUsing(d.zr)
+	return
+}
+
 // VolumeDisableSnapshotDirectoryAccess disables access to the ".snapshot" directory
 // Disable '.snapshot' to allow official mysql container's chmod-in-init to work
 func (d Driver) VolumeDisableSnapshotDirectoryAccess(name string) (response azgo.VolumeModifyIterResponse, err error) {
@@ -234,6 +244,31 @@ func (d Driver) VolumeDestroy(name string, force bool) (response azgo.VolumeDest
 }
 
 // VOLUME operations END
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// SNAPSHOT operations BEGIN
+
+// SnapshotCreate creates a snapshot of a volume
+func (d Driver) SnapshotCreate(name, volumeName string) (response azgo.SnapshotCreateResponse, err error) {
+	response, err = azgo.NewSnapshotCreateRequest().
+		SetSnapshot(name).
+		SetVolume(volumeName).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// SnapshotGetByVolume returns the list of snapshots associated with a volume
+func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGetIterResponse, err error) {
+	query := azgo.NewSnapshotInfoType().SetVolume(volumeName)
+
+	response, err = azgo.NewSnapshotGetIterRequest().
+		SetQuery(*query).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// SNAPSHOT operations END
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////

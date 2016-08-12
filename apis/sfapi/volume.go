@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/netapp/netappdvp/utils"
 
@@ -97,6 +98,28 @@ func (c *Client) ListActiveVolumes(listVolReq *ListActiveVolumesRequest) (volume
 	}
 	volumes = result.Result.Volumes
 	return volumes, err
+}
+
+func (c *Client) CloneVolume(req *CloneVolumeRequest) (vol Volume, err error) {
+	response, err := c.Request("CloneVolume", req, NewReqID())
+	var result CloneVolumeResult
+	if err := json.Unmarshal([]byte(response), &result); err != nil {
+		log.Fatal(err)
+		return Volume{}, err
+	}
+
+	wait := 0
+	multiplier := 1
+	for wait < 10 {
+		wait += wait
+		vol, err = c.GetVolumeByID(result.Result.VolumeID)
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Second * time.Duration(multiplier))
+		multiplier *= wait
+	}
+	return
 }
 
 // CreateVolume tbd

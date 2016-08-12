@@ -31,15 +31,15 @@ func (d *ndvpDriver) volumePrefix() string {
 		s := string(storagePrefixRaw)
 		if s == "\"\"" || s == "" {
 			prefixToUse = ""
-			log.Debugf("storagePrefix is specified as \"\", using no prefix")
+			//log.Debugf("storagePrefix is specified as \"\", using no prefix")
 		} else {
 			// trim quotes from start and end of string
 			prefixToUse = s[1 : len(s)-1]
-			log.Debugf("storagePrefix is specified, using prefix: %v", prefixToUse)
+			//log.Debugf("storagePrefix is specified, using prefix: %v", prefixToUse)
 		}
 	} else {
 		prefixToUse = defaultPrefix
-		log.Debugf("storagePrefix is unspecified, using default prefix: %v", prefixToUse)
+		//log.Debugf("storagePrefix is unspecified, using default prefix: %v", prefixToUse)
 	}
 
 	return prefixToUse
@@ -51,6 +51,28 @@ func (d *ndvpDriver) volumeName(name string) string {
 		return name
 	}
 	return prefixToUse + name
+}
+
+func (d *ndvpDriver) snapshotPrefix() string {
+	defaultPrefix := d.sd.DefaultSnapshotPrefix()
+	prefixToUse := defaultPrefix
+	snapshotPrefixRaw := d.config.SnapshotPrefixRaw // this is a raw version of the json value, we will get quotes in it
+	if len(snapshotPrefixRaw) >= 2 {
+		s := string(snapshotPrefixRaw)
+		if s == "\"\"" || s == "" {
+			prefixToUse = ""
+			//log.Debugf("snapshotPrefix is specified as \"\", using no prefix")
+		} else {
+			// trim quotes from start and end of string
+			prefixToUse = s[1 : len(s)-1]
+			//log.Debugf("snapshotPrefix is specified, using prefix: %v", prefixToUse)
+		}
+	} else {
+		prefixToUse = defaultPrefix
+		//log.Debugf("snapshotPrefix is unspecified, using default prefix: %v", prefixToUse)
+	}
+
+	return prefixToUse
 }
 
 func (d *ndvpDriver) mountpoint(name string) string {
@@ -84,6 +106,8 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 	d.m.Lock()
 	defer d.m.Unlock()
 
+	log.Debugf("Create(%v)", r)
+
 	opts := r.Options
 	target := d.volumeName(r.Name)
 	m := d.mountpoint(target)
@@ -101,8 +125,19 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 		return volume.Response{Err: fmt.Sprintf("%v already exists and it's not a directory", m)}
 	}
 
-	// use the StorageDriver to create the storage objects
-	createErr := d.sd.Create(target, opts)
+	var createErr error
+
+	// If 'from' is specified, create a snapshot and a clone rather than a new empty volume
+	if from, ok := opts["from"]; ok {
+		source := d.volumeName(from)
+
+		// If 'fromSnapshot' is specified, we use the existing snapshot instead
+		snapshot := opts["fromSnapshot"]
+		createErr = d.sd.CreateClone(target, source, snapshot, d.snapshotPrefix())
+	} else {
+		createErr = d.sd.Create(target, opts)
+	}
+
 	if createErr != nil {
 		os.Remove(m)
 		return volume.Response{Err: fmt.Sprintf("Error creating storage: %v", createErr)}
@@ -113,6 +148,11 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 
 // Remove is part of the core Docker API and is called to remove a docker volume
 func (d ndvpDriver) Remove(r volume.Request) volume.Response {
+	d.m.Lock()
+	defer d.m.Unlock()
+
+	log.Debugf("Remove(%v)", r)
+
 	target := d.volumeName(r.Name)
 
 	// allow user to completely disable volume deletion
@@ -123,8 +163,6 @@ func (d ndvpDriver) Remove(r volume.Request) volume.Response {
 
 	log.Debugf("Removing docker volume %s", target)
 
-	d.m.Lock()
-	defer d.m.Unlock()
 	m := d.mountpoint(target)
 
 	fi, err := os.Lstat(m)
@@ -174,6 +212,11 @@ func (d ndvpDriver) getPath(r volume.Request) (*volume.Volume, error) {
 
 // Path is part of the core Docker API and is called to return the filesystem path to a docker volume
 func (d ndvpDriver) Path(r volume.Request) volume.Response {
+	d.m.Lock()
+	defer d.m.Unlock()
+
+	log.Debugf("Path(%v)", r)
+
 	v, err := d.getPath(r)
 	if err != nil {
 		return volume.Response{Err: err.Error()}
@@ -184,15 +227,37 @@ func (d ndvpDriver) Path(r volume.Request) volume.Response {
 	}
 }
 
-// Get is part of the core Docker API and is called to return the filesystem path to a docker volume
+// Get is part of the core Docker API and is called to return details about a docker volume
 func (d ndvpDriver) Get(r volume.Request) volume.Response {
+	d.m.Lock()
+	defer d.m.Unlock()
+
+	log.Debugf("Get(%v)", r)
+
+	// Gather the target volume name as the storage sees it
+	target := d.volumeName(r.Name)
+
 	v, err := d.getPath(r)
 	if err != nil {
 		return volume.Response{Err: err.Error()}
 	}
 
+	// Ask the storage driver for the list of snapshots associated with the volume
+	snaps, err := d.sd.SnapshotList(target)
+
+	// If we don't get any snapshots, that's fine. We'll return an empty list.
+	status := map[string]interface{}{
+		"Snapshots": snaps,
+	}
+
+	v2 := &volume.Volume{
+		Name:       v.Name,
+		Mountpoint: v.Mountpoint,
+		Status:     status, // introduced in Docker 1.12, earlier versions ignore
+	}
+
 	return volume.Response{
-		Volume: v,
+		Volume: v2,
 	}
 }
 
@@ -205,10 +270,13 @@ type nfsMount struct {
 
 // Mount is part of the core Docker API and is called to mount a docker volume
 func (d ndvpDriver) Mount(r volume.MountRequest) volume.Response {
-	target := d.volumeName(r.Name)
-
 	d.m.Lock()
 	defer d.m.Unlock()
+
+	log.Debugf("Mount(%v)", r)
+
+	target := d.volumeName(r.Name)
+
 	m := d.mountpoint(target)
 	log.Debugf("Mounting volume %s on %s", target, m)
 
@@ -252,10 +320,13 @@ func (d ndvpDriver) Mount(r volume.MountRequest) volume.Response {
 
 // Unmount is part of the core Docker API and is called to unmount a docker volume
 func (d ndvpDriver) Unmount(r volume.UnmountRequest) volume.Response {
-	target := d.volumeName(r.Name)
-
 	d.m.Lock()
 	defer d.m.Unlock()
+
+	log.Debugf("Unmount(%v)", r)
+
+	target := d.volumeName(r.Name)
+
 	m := d.mountpoint(target)
 	log.Debugf("Unmounting docker volume %s", target)
 
@@ -270,10 +341,10 @@ func (d ndvpDriver) Unmount(r volume.UnmountRequest) volume.Response {
 
 // List is part of the core Docker API and is called to list all known docker volumes for this plugin
 func (d ndvpDriver) List(r volume.Request) volume.Response {
-
 	d.m.Lock()
 	defer d.m.Unlock()
-	log.Debugf("Listing volumes...")
+
+	log.Debugf("List(%v)", r)
 
 	// open directory ...
 	volumeDir := d.root
@@ -323,5 +394,10 @@ func (d ndvpDriver) List(r volume.Request) volume.Response {
 }
 
 func (d ndvpDriver) Capabilities(r volume.Request) volume.Response {
+	d.m.Lock()
+	defer d.m.Unlock()
+
+	log.Debugf("Capabilities(%v)", r)
+
 	return volume.Response{Capabilities: volume.Capability{Scope: "global"}}
 }

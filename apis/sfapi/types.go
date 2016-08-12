@@ -53,6 +53,18 @@ type Volume struct {
 	Attributes         interface{}  `json:"attributes"`
 }
 
+type Snapshot struct {
+	SnapshotID int64       `json:"snapshotID"`
+	VolumeID   int64       `json:"volumeID"`
+	Name       string      `json:"name"`
+	Checksum   string      `json:"checksum"`
+	Status     string      `json:"status"`
+	TotalSize  int64       `json:"totalSize"`
+	GroupID    int64       `json:"groupID"`
+	CreateTime string      `json:"createTime"`
+	Attributes interface{} `json:"attributes"`
+}
+
 // ListVolumesForAccountRequest tbd
 type ListVolumesForAccountRequest struct {
 	AccountID int64 `json:"accountID"`
@@ -93,6 +105,73 @@ type CreateVolumeResult struct {
 // DeleteVolumeRequest tbd
 type DeleteVolumeRequest struct {
 	VolumeID int64 `json:"volumeID"`
+}
+
+type CloneVolumeRequest struct {
+	VolumeID     int64       `json:"volumeID"`
+	Name         string      `json:"name"`
+	NewAccountID int64       `json:"newAccountID"`
+	NewSize      int64       `json:"newSize"`
+	Access       string      `json:"access"`
+	SnapshotID   int64       `json:"snapshotID"`
+	Attributes   interface{} `json:"attributes"`
+}
+
+type CloneVolumeResult struct {
+	Id     int `json:"id"`
+	Result struct {
+		CloneID     int64 `json:"cloneID"`
+		VolumeID    int64 `json:"volumeID"`
+		AsyncHandle int64 `json:"asyncHandle"`
+	} `json:"result"`
+}
+
+type CreateSnapshotRequest struct {
+	VolumeID                int64       `json:"volumeID"`
+	SnapshotID              int64       `json:"snapshotID"`
+	Name                    string      `json:"name"`
+	EnableRemoteReplication bool        `json:"enableRemoteReplication"`
+	Retention               string      `json:"retention"`
+	Attributes              interface{} `json:"attributes"`
+}
+
+type CreateSnapshotResult struct {
+	Id     int `json:"id"`
+	Result struct {
+		SnapshotID int64  `json:"snapshotID"`
+		Checksum   string `json:"checksum"`
+	} `json:"result"`
+}
+
+type ListSnapshotsRequest struct {
+	VolumeID int64 `json:"volumeID"`
+}
+
+type ListSnapshotsResult struct {
+	ID     int `json:"id"`
+	Result struct {
+		Snapshots []Snapshot `json:"snapshots"`
+	} `json:"result"`
+}
+
+type RollbackToSnapshotRequest struct {
+	VolumeID         int64       `json:"volumeID"`
+	SnapshotID       int64       `json:"snapshotID"`
+	SaveCurrentState bool        `json:"saveCurrentState"`
+	Name             string      `json:"name"`
+	Attributes       interface{} `json:"attributes"`
+}
+
+type RollbackToSnapshotResult struct {
+	ID     int `json:"id"`
+	Result struct {
+		Checksum   string `json:"checksum"`
+		SnapshotID int64  `json:"snapshotID"`
+	} `json:"result"`
+}
+
+type DeleteSnapshotRequest struct {
+	SnapshotID int64 `json:"snapshotID"`
 }
 
 // AddVolumesToVolumeAccessGroupRequest tbd

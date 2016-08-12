@@ -53,6 +53,7 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 		"Debug":             config.Debug,
 		"DisableDelete":     config.DisableDelete,
 		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
+		"SnapshotPrefixRaw": string(config.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into eseriesConfig")
 
 	d.config = *config
@@ -369,4 +370,19 @@ func (d *ESeriesStorageDriver) Detach(name, mountpoint string) error {
 // DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
 func (d *ESeriesStorageDriver) DefaultStoragePrefix() string {
 	return "netappdvp_"
+}
+
+// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
+func (d *ESeriesStorageDriver) DefaultSnapshotPrefix() string {
+	return "netappdvp_"
+}
+
+// Return the list of snapshots associated with the named volume
+func (d *ESeriesStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
+	return nil, nil
+}
+
+// Create a volume clone
+func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
+	return fmt.Errorf("Cloning with E-Series is not yet supported")
 }

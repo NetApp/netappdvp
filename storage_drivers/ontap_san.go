@@ -61,6 +61,7 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 		"Debug":             config.Debug,
 		"DisableDelete":     config.DisableDelete,
 		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
+		"SnapshotPrefixRaw": string(config.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into ontapConfig")
 
 	d.config = *config
@@ -216,6 +217,11 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 	}
 
 	return nil
+}
+
+// Create a volume clone
+func (d *OntapSANStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
+	return CreateOntapClone(name, source, snapshot, newSnapshotPrefix, d.api)
 }
 
 // Destroy the requested (volume,lun) storage tuple
@@ -414,4 +420,14 @@ func (d *OntapSANStorageDriver) Detach(name, mountpoint string) error {
 // DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
 func (d *OntapSANStorageDriver) DefaultStoragePrefix() string {
 	return "netappdvp_"
+}
+
+// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
+func (d *OntapSANStorageDriver) DefaultSnapshotPrefix() string {
+	return "netappdvp_"
+}
+
+// Return the list of snapshots associated with the named volume
+func (d *OntapSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
+	return GetSnapshotList(name, d.api)
 }

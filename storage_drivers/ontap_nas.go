@@ -56,6 +56,7 @@ func (d *OntapNASStorageDriver) Initialize(configJSON string) error {
 		"Debug":             config.Debug,
 		"DisableDelete":     config.DisableDelete,
 		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
+		"SnapshotPrefixRaw": string(config.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into ontapConfig")
 
 	d.config = *config
@@ -191,9 +192,21 @@ func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) erro
 	return nil
 }
 
+// Create a volume clone
+func (d *OntapNASStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
+	return CreateOntapClone(name, source, snapshot, newSnapshotPrefix, d.api)
+}
+
 // Destroy the volume
 func (d *OntapNASStorageDriver) Destroy(name string) error {
 	log.Debugf("OntapNASStorageDriver#Destroy(%v)", name)
+
+	// TODO: If this is the parent of one or more clones, those clones have to split from this
+	// volume before it can be deleted, which means separate copies of those volumes.
+	// If there are a lot of clones on this volume, that could seriously balloon the amount of
+	// utilized space. Is that what we want? Or should we just deny the delete, and force the
+	// user to keep the volume around until all of the clones are gone? If we do that, need a
+	// way to list the clones. Maybe volume inspect.
 
 	response, error := d.api.VolumeDestroy(name, true)
 	if !isPassed(response.Result.ResultStatusAttr) || error != nil {
@@ -249,4 +262,14 @@ func (d *OntapNASStorageDriver) Detach(name, mountpoint string) error {
 // DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
 func (d *OntapNASStorageDriver) DefaultStoragePrefix() string {
 	return "netappdvp_"
+}
+
+// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
+func (d *OntapNASStorageDriver) DefaultSnapshotPrefix() string {
+	return "netappdvp_"
+}
+
+// Return the list of snapshots associated with the named volume
+func (d *OntapNASStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
+	return GetSnapshotList(name, d.api)
 }

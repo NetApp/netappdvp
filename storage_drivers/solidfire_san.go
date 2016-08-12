@@ -75,6 +75,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 		"Debug":             c.Debug,
 		"DisableDelete":     c.DisableDelete,
 		"StoragePrefixRaw":  string(c.StoragePrefixRaw),
+		"SnapshotPrefixRaw": string(c.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into solidfireConfig")
 
 	c.DefaultVolSz = c.DefaultVolSz * int64(units.GiB)
@@ -252,6 +253,44 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 	return nil
 }
 
+// Create a volume clone
+func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
+	log.Debugf("SolidfireSANStorageDriver#CreateClone(%v, %v, %v, %v)", name, source, snapshot, newSnapshotPrefix)
+
+	var req sfapi.CloneVolumeRequest
+
+	// Check to see if the clone already exists
+	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	if err == nil && v.VolumeID != 0 {
+		// The clone already exists; skip and call it a success
+		return nil
+	}
+
+	// If a snapshot was specified, use that
+	if snapshot != "" {
+		s, err := d.Client.GetSnapshot(0, v.VolumeID, snapshot)
+		if err != nil || s.SnapshotID == 0 {
+			return fmt.Errorf("Failed to find snapshot specified: error: %v", err)
+		}
+		req.SnapshotID = s.SnapshotID
+	}
+
+	// Get the volume ID for the source volume
+	v, err = d.Client.GetVolumeByName(source, d.TenantID)
+	if err != nil || v.VolumeID == 0 {
+		return fmt.Errorf("Failed to find source volume: error: %v", err)
+	}
+
+	// Create the clone of the source volume with the name specified
+	req.VolumeID = v.VolumeID
+	req.Name = name
+	_, err = d.Client.CloneVolume(&req)
+	if err != nil {
+		return fmt.Errorf("Failed to create clone: error: %v", err)
+	}
+	return nil
+}
+
 // Destroy the requested docker volume
 func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	log.Debugf("SolidfireSANStorageDriver#Destroy(%v)", name)
@@ -325,4 +364,37 @@ func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 // DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
 func (d *SolidfireSANStorageDriver) DefaultStoragePrefix() string {
 	return "netappdvp-"
+}
+
+// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
+func (d *SolidfireSANStorageDriver) DefaultSnapshotPrefix() string {
+	return "netappdvp-"
+}
+
+// Return the list of snapshots associated with the named volume
+func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
+	log.Debugf("SolidfireSANStorageDriver#SnapshotList(%v)", name)
+
+	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve volume by name in snapshot list operation; name: %v error: %v", name, err)
+	}
+
+	var req sfapi.ListSnapshotsRequest
+	req.VolumeID = v.VolumeID
+
+	s, err := d.Client.ListSnapshots(&req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve snapshots for volume; name: %v error: %v", name, err)
+	}
+
+	log.Debugf("Returned %v snapshots", len(s))
+	var snapshots []CommonSnapshot
+
+	for _, snap := range s {
+		log.Debugf("Snapshot name: %v, date: %v", snap.Name, snap.CreateTime)
+		snapshots = append(snapshots, CommonSnapshot{snap.Name, snap.CreateTime})
+	}
+
+	return snapshots, nil
 }
