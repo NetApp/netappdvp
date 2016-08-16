@@ -243,6 +243,7 @@ func (d ndvpDriver) Mount(r volume.MountRequest) volume.Response {
 
 	attachErr := d.sd.Attach(target, m, attachOptions)
 	if attachErr != nil {
+		log.Error(attachErr)
 		return volume.Response{Err: fmt.Sprintf("Problem attaching docker volume: %v mountpoint: %v error: %v", target, m, attachErr)}
 	}
 
