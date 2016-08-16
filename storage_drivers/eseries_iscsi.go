@@ -264,7 +264,10 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 	log.Debugf("ESeriesStorageDriver#Attach(%v, %v, %v) - volumeLunNumber=%v", name, mountpoint, opts, volumeLunNumber)
 
 	//At this point we have our volume mapped to host so lets rescan the SCSI bus so host sees it
-	utils.IscsiRescan()
+	rescanErr := utils.IscsiRescan()
+	if rescanErr != nil {
+		return rescanErr
+	}
 
 	// lookup all the scsi device information
 	info, infoErr := utils.GetDeviceInfoForLuns()

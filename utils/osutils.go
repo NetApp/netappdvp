@@ -399,26 +399,27 @@ func IscsiSessionExists(portal string) (bool, error) {
 func IscsiRescan() (err error) {
 	log.Debugf("Begin osutils.IscsiRescan")
 
-	// look for version of rescan-scsi-bus
-	rescanCommand := "/sbin/rescan-scsi-bus"
-	_, err = os.Lstat(rescanCommand)
-	if os.IsNotExist(err) {
-		rescanCommand = "/bin/rescan-scsi-bus.sh"
+	// look for version of rescan-scsi-bus in known locations
+	var rescanCommands []string = []string{"/sbin/rescan-scsi-bus", "/bin/rescan-scsi-bus.sh", "/usr/bin/rescan-scsi-bus.sh"}
+	for _, rescanCommand := range rescanCommands {
 		_, err = os.Lstat(rescanCommand)
-		if os.IsNotExist(err) {
-			rescanCommand = "/sbin/rescan-scsi-bus.sh"
-			_, err = os.Lstat(rescanCommand)
-			if os.IsNotExist(err) {
-				return
+		if !os.IsNotExist(err) {
+			out, rescanErr := exec.Command(rescanCommand, "-a", "-r").CombinedOutput()
+			if rescanErr != nil {
+				log.Error("Error encountered in rescan-scsi-bus cmd: ", out)
+				return rescanErr
 			}
 		}
 	}
 
-	out, err := exec.Command(rescanCommand, "-a", "-r").CombinedOutput()
+	//Attempt to find the binary on the path
+	out, err := exec.Command("rescan-scsi-bus.sh", "-a", "-r").CombinedOutput()
 	if err != nil {
 		log.Error("Error encountered in rescan-scsi-bus cmd: ", out)
 		return
 	}
+
+	log.Warn("Unable to find rescan-scsi-bus command!")
 	return
 }
 
