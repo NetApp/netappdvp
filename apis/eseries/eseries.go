@@ -20,6 +20,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+const maxNameLength int = 30
+
 // VolumeInfo hold all the information about a constructed volume on E-Series array and Docker Host Mapping
 type VolumeInfo struct {
 	VolumeGroupRef string
@@ -405,6 +407,12 @@ func (d Driver) CreateVolume(name string, volumeGroupRef string, size string, me
 	//Verify we have a valid array id
 	if d.config.ArrayID == "" {
 		panic("ArrayID is invalid!")
+	}
+
+	// Ensure that we do not exceed the maximum allowed volume length
+	if len(name) > maxNameLength {
+		return "", fmt.Errorf("The volume name of %v exceeds the maximum allowed length of %d characters",
+			name, maxNameLength)
 	}
 
 	//Lets create a volume message structure
