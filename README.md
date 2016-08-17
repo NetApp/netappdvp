@@ -407,3 +407,9 @@ In addition to the global configuration values above, when using SolidFire, thes
 
 }
 ```
+
+##Known Issues and Limitations
+
+1. Volume names must be a minimum of 2 characters in length
+
+    This is a Docker client limitation. The client will interpret a single character name as being a Windows path. [Bug 25773]( https://github.com/docker/docker/issues/25773)
