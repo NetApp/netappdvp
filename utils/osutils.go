@@ -403,13 +403,19 @@ func IscsiRescan() (err error) {
 	var rescanCommands []string = []string{"/sbin/rescan-scsi-bus", "/bin/rescan-scsi-bus.sh", "/usr/bin/rescan-scsi-bus.sh"}
 	for _, rescanCommand := range rescanCommands {
 		_, err = os.Lstat(rescanCommand)
+		// The command exists in this location
 		if !os.IsNotExist(err) {
 			out, rescanErr := exec.Command(rescanCommand, "-a", "-r").CombinedOutput()
+			// We encountered an error condition
 			if rescanErr != nil {
 				log.Error("Error encountered in rescan-scsi-bus cmd: ", out)
 				return rescanErr
+				// The command was successful
+			} else {
+				return
 			}
 		}
+
 	}
 
 	//Attempt to find the binary on the path
