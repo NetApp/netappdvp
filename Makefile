@@ -3,7 +3,10 @@ GOOS=linux
 GOARCH=amd64
 GOGC=""
 
-GO_PATH_VOLUME=netappdvp_go_path
+# BUILD_TAG is intended to be an optional environment variable that uniquely
+# identifies the build instance. It is intended to enable concurrent builds
+# on the same machine.
+GO_PATH_VOLUME="netappdvp_go_path_$(BUILD_TAG)"
 GO=docker run --rm \
 	-e GOOS=$(GOOS) \
 	-e GOARCH=$(GOARCH) \
