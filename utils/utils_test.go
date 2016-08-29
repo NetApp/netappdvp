@@ -42,8 +42,18 @@ func TestConvertSizeToBytes(t *testing.T) {
 
 	for k, v := range d {
 		s, err := ConvertSizeToBytes(k)
-		if err != nil || s != v {
-			t.Errorf("Expected convertSizeToBytes('%v') == '%v' but was %v", k, v, s)
+		if err != nil {
+			t.Errorf("Encountered '%v' running ConvertSizeToBytes('%v')", err, k)
+		} else if s != v {
+			t.Errorf("Expected ConvertSizeToBytes('%v') == '%v' but was %v", k, v, s)
+		}
+	}
+	for k, v := range d {
+		s, err := ConvertSizeToBytes64(k)
+		if err != nil {
+			t.Errorf("Encountered '%v' running ConvertSizeToBytes64('%v')", err, k)
+		} else if s != v {
+			t.Errorf("Expected ConvertSizeToBytes64('%v') == '%v' but was %v", k, v, s)
 		}
 	}
 }

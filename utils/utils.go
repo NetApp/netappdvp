@@ -3,12 +3,26 @@
 package utils
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 )
 
 // lookupTable for suffixes up to power (1024 ^ n)
 var lookupTable = make(map[string]int)
+var units sizeUnit = sizeUnit{}
+
+type sizeUnit []string
+
+func (s sizeUnit) Len() int {
+	return len(s)
+}
+func (s sizeUnit) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s sizeUnit) Less(i, j int) bool {
+	return len(s[i]) > len(s[j])
+}
 
 func init() {
 	// populate the lookup table for suffixes up to power (1024 ^ n)
@@ -30,6 +44,12 @@ func init() {
 	lookupTable["zb"] = 7
 	lookupTable["y"] = 8
 	lookupTable["yb"] = 8
+
+	//The slice of units is used to ensure that they are accessed by suffix from the largest length to the shortest
+	for k, _ := range lookupTable {
+		units = append(units, k)
+	}
+	sort.Sort(units)
 }
 
 // Linux is a constant value for the runtime.GOOS that represents the Linux OS
@@ -59,7 +79,8 @@ func ConvertSizeToBytes(s string) (string, error) {
 	s = strings.TrimSpace(strings.ToLower(s))
 
 	// spin until we find a match, if no match return original string
-	for k, y := range lookupTable {
+	for _, k := range units {
+		var y int = lookupTable[k]
 		if strings.HasSuffix(s, k) {
 			s = s[:len(s)-len(k)]
 			i, err := strconv.Atoi(s)
@@ -93,7 +114,8 @@ func ConvertSizeToBytes64(s string) (string, error) {
 	s = strings.TrimSpace(strings.ToLower(s))
 
 	// spin until we find a match, if no match return original string
-	for k, y := range lookupTable {
+	for _, k := range units {
+		var y int = lookupTable[k]
 		if strings.HasSuffix(s, k) {
 			s = s[:len(s)-len(k)]
 			i, err := strconv.ParseInt(s, 10, 0)
