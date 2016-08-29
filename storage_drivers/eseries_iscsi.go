@@ -264,7 +264,10 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 	log.Debugf("ESeriesStorageDriver#Attach(%v, %v, %v) - volumeLunNumber=%v", name, mountpoint, opts, volumeLunNumber)
 
 	//At this point we have our volume mapped to host so lets rescan the SCSI bus so host sees it
-	utils.IscsiRescan()
+	rescanErr := utils.IscsiRescan()
+	if rescanErr != nil {
+		return rescanErr
+	}
 
 	// lookup all the scsi device information
 	info, infoErr := utils.GetDeviceInfoForLuns()
@@ -285,56 +288,63 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 		}
 	}
 
+	var deviceToUse = d.findDevice(volumeLunNumber, sessionInfoToUse, info)
+	if deviceToUse == nil {
+		return fmt.Errorf("Could not determine device to use for volume: %v ", name)
+	}
+
+	var deviceRef string = deviceToUse.Device
+	if deviceToUse.MultipathDevice != "" {
+		deviceRef = deviceToUse.MultipathDevice
+	}
+
+	// put a filesystem on it if there isn't one already there
+	if deviceToUse.Filesystem == "" {
+		// format it
+		err := utils.FormatVolume(deviceRef, "ext4") // TODO externalize fsType
+		if err != nil {
+			return fmt.Errorf("Problem formatting lun: %v device: %v error: %v", name, deviceToUse, err)
+		}
+	}
+
+	// make sure we use the proper device (multipath if in use)
+
+	// mount it
+	err := utils.Mount(deviceRef, mountpoint)
+	if err != nil {
+		return fmt.Errorf("Problem mounting lun: %v device: %v mountpoint: %v error: %v", name, deviceToUse, mountpoint, err)
+	}
+
+	return nil
+}
+
+func (d *ESeriesStorageDriver) findDevice(volumeLunNumber int, sessionInfo utils.IscsiSessionInfo, devices []utils.ScsiDeviceInfo) *utils.ScsiDeviceInfo {
+	log.Debugf("ESeriesStorageDriver#findDevice(%v,...)", volumeLunNumber)
 	// look for the expected mapped lun
-	for i, e := range info {
+	for i, device := range devices {
 
 		log.WithFields(log.Fields{
 			"i": i,
-			"e": e,
+			"device": device,
 		}).Debug("Checking")
 
-		if e.LUN != strconv.Itoa(volumeLunNumber) {
-			log.Debugf("Skipping... lun id %v != %v", e.LUN, volumeLunNumber)
+		if device.LUN != strconv.Itoa(volumeLunNumber) {
+			log.Debugf("Skipping... lun id %v != %v", device.LUN, volumeLunNumber)
 			continue
 		}
 
-		if !strings.HasPrefix(e.IQN, sessionInfoToUse.TargetName) {
-			log.Debugf("Skipping... %v doesn't start with %v", e.IQN, sessionInfoToUse.TargetName)
+		if !strings.HasPrefix(device.IQN, sessionInfo.TargetName) {
+			log.Debugf("Skipping... %v doesn't start with %v", device.IQN, sessionInfo.TargetName)
 			continue
 		}
 
 		// if we're here then, we should be on the right info element:
 		// *) we have the expected LUN ID
 		// *) we have the expected iscsi session target
-		log.Debugf("Using... %v", e)
+		log.Debugf("Using... %v", device)
 
-		// make sure we use the proper device (multipath if in use)
-		deviceToUse := e.Device
-		if e.MultipathDevice != "" {
-			deviceToUse = e.MultipathDevice
-		}
-
-		if deviceToUse == "" {
-			return fmt.Errorf("Could not determine device to use for: %v ", name)
-		}
-
-		// put a filesystem on it if there isn't one already there
-		if e.Filesystem == "" {
-			// format it
-			err := utils.FormatVolume(deviceToUse, "ext4") // TODO externalize fsType
-			if err != nil {
-				return fmt.Errorf("Problem formatting lun: %v device: %v error: %v", name, deviceToUse, err)
-			}
-		}
-
-		// mount it
-		err := utils.Mount(deviceToUse, mountpoint)
-		if err != nil {
-			return fmt.Errorf("Problem mounting lun: %v device: %v mountpoint: %v error: %v", name, deviceToUse, mountpoint, err)
-		}
-		return nil
+		return &device
 	}
-
 	return nil
 }
 
