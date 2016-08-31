@@ -10,8 +10,8 @@ import (
 	"sync"
 
 	"github.com/docker/go-plugins-helpers/volume"
-	"github.com/netapp/netappdvp/storage_drivers"
-	"github.com/netapp/netappdvp/utils"
+	"github.com/ebalduf/netappdvp/storage_drivers"
+	"github.com/ebalduf/netappdvp/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -103,6 +103,7 @@ func newNetAppDockerVolumePlugin(root string, config storage_drivers.CommonStora
 
 // Create is part of the core Docker API and is called to create a docker volume
 func (d ndvpDriver) Create(r volume.Request) volume.Response {
+	log.Debugf("Docker volume Create %s ", r.Name)
 	d.m.Lock()
 	defer d.m.Unlock()
 
@@ -161,20 +162,13 @@ func (d ndvpDriver) Remove(r volume.Request) volume.Response {
 		return volume.Response{}
 	}
 
+        // NOTE:  I choose to leave the mount points around instead of the
+        // problem of tryin to clean them and then error exiting before we delete
+
 	log.Debugf("Removing docker volume %s", target)
 
-	m := d.mountpoint(target)
-
-	fi, err := os.Lstat(m)
-	if os.IsNotExist(err) {
-		return volume.Response{} // nothing to do
-	} else if err != nil {
-		return volume.Response{Err: err.Error()}
-	}
-
-	if fi != nil && !fi.IsDir() {
-		return volume.Response{Err: fmt.Sprintf("%v is not a directory", m)}
-	}
+	d.m.Lock()
+	defer d.m.Unlock()
 
 	// use the StorageDriver to destroy the storage objects
 	destroyErr := d.sd.Destroy(target)
@@ -182,27 +176,11 @@ func (d ndvpDriver) Remove(r volume.Request) volume.Response {
 		return volume.Response{Err: fmt.Sprintf("Problem removing docker volume: %v error: %v", target, destroyErr)}
 	}
 
-	log.Debugf("rmdir(%s)", m)
-	err3 := os.Remove(m)
-	if err3 != nil {
-		return volume.Response{Err: err3.Error()}
-	}
-
 	return volume.Response{}
 }
 
 func (d ndvpDriver) getPath(r volume.Request) (*volume.Volume, error) {
 	target := d.volumeName(r.Name)
-	m := d.mountpoint(target)
-	log.Debugf("Getting path for volume '%s' as '%s'", target, m)
-
-	fi, err := os.Lstat(m)
-	if os.IsNotExist(err) {
-		return nil, err
-	}
-	if fi == nil {
-		return nil, fmt.Errorf("Could not stat %v", m)
-	}
 
 	volume := &volume.Volume{
 		Name:       r.Name,
@@ -238,6 +216,9 @@ func (d ndvpDriver) Get(r volume.Request) volume.Response {
 	target := d.volumeName(r.Name)
 
 	v, err := d.getPath(r)
+
+        // Check the array, is the volume still there, or just the path.
+	_, err := d.sd.VolGet(d.volumeName(r.Name))
 	if err != nil {
 		return volume.Response{Err: err.Error()}
 	}
@@ -278,7 +259,7 @@ func (d ndvpDriver) Mount(r volume.MountRequest) volume.Response {
 	target := d.volumeName(r.Name)
 
 	m := d.mountpoint(target)
-	log.Debugf("Mounting volume %s on %s", target, m)
+	log.Debugf("Docker volume Mount %s on %s", target, m)
 
 	fi, err := os.Lstat(m)
 
@@ -335,6 +316,12 @@ func (d ndvpDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	if detachErr != nil {
 		return volume.Response{Err: fmt.Sprintf("Problem unmounting docker volume: %v error: %v", target, detachErr)}
 	}
+	// Remove the mountpoint
+	log.Debugf("Removing mountpoint %s", m)
+	if err := os.Remove(m); err != nil {
+		log.Error("Failed to remove Mount directory: %v", err)
+		return volume.Response{Err: err.Error()}
+	}
 
 	return volume.Response{}
 }
@@ -346,51 +333,30 @@ func (d ndvpDriver) List(r volume.Request) volume.Response {
 
 	log.Debugf("List(%v)", r)
 
-	// open directory ...
 	volumeDir := d.root
-	dir, err := os.Open(volumeDir)
+	volumePrefix := d.volumePrefix()
+	var volumes []*volume.Volume
+	// get list of volumes from array
+	vols, err := d.sd.ListVolumes()
 	if err != nil {
-		return volume.Response{Err: fmt.Sprintf("Problem opening directory %v, error: %v", volumeDir, err)}
-	}
-	defer dir.Close()
-
-	// stat the directory
-	fi, err := dir.Stat()
-	if err != nil {
-		return volume.Response{Err: fmt.Sprintf("Problem stating directory %v, error: %v", volumeDir, err)}
-	}
-	if !fi.IsDir() {
-		return volume.Response{Err: fmt.Sprintf("%v is not a directory!", volumeDir)}
+		log.Error("Failed to List volumes: %v", err)
+		return volume.Response{Err: err.Error()}
 	}
 
-	// finally, we spin through all the subdirectories (if any) and return them in our List response
-	var vols []*volume.Volume
-	dirs := make([]string, 0)   // lint complains to switch to this, but it doens't work -> var dirs []string
-	fis, err := dir.Readdir(-1) // -1 means return all the FileInfos
-	if err != nil {
-		return volume.Response{Err: fmt.Sprintf("Problem reading directory %v, error: %v", volumeDir, err)}
-	}
-	for _, fileinfo := range fis {
-		if fileinfo.IsDir() {
-			dirs = append(dirs, fileinfo.Name())
+	// the list from the array doesn't have the mount point, so add it.
+	for _, vName := range vols {
+		// removes the prefix based on prefix length, only trim if it matches the prefix
+		if strings.HasPrefix(vName, volumePrefix) {
+			volumeName := vName[len(volumePrefix):]
+			log.Debugf("List() adding volume: %v ", volumeName)
 
-			// removes the prefix based on prefix length, for instance [10:] to remove 'netappdvp_' from start of name
-			volumePrefix := d.volumePrefix()
-
-			// only trim if it matches the prefix
-			if strings.HasPrefix(fileinfo.Name(), volumePrefix) {
-				volumeName := fileinfo.Name()[len(volumePrefix):]
-				log.Debugf("List() adding volume: %v from: %v", volumeName, filepath.Join(volumeDir, fileinfo.Name()))
-
-				v := &volume.Volume{Name: volumeName, Mountpoint: filepath.Join(volumeDir, fileinfo.Name())}
-				vols = append(vols, v)
-			} else {
-				log.Debugf("wrong prefix, skipping fileinfo.Name: %v", fileinfo.Name())
-			}
+			v := &volume.Volume{Name: volumeName, Mountpoint: filepath.Join(volumeDir, vName)}
+			volumes = append(volumes, v)
+		} else {
+			log.Debugf("wrong prefix, skipping Name: %v", vName)
 		}
 	}
-
-	return volume.Response{Volumes: vols}
+	return volume.Response{Volumes: volumes}
 }
 
 func (d ndvpDriver) Capabilities(r volume.Request) volume.Response {

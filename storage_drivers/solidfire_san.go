@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/alecthomas/units"
-	"github.com/netapp/netappdvp/apis/sfapi"
-	"github.com/netapp/netappdvp/utils"
+	"github.com/ebalduf/netappdvp/apis/sfapi"
+	"github.com/ebalduf/netappdvp/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -397,4 +397,33 @@ func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot,
 	}
 
 	return snapshots, nil
+
+// List volumes
+func (d *SolidfireSANStorageDriver) ListVolumes() (vols []string, err error) {
+	log.Debugf("SolidfireSANStorageDriver#ListVolumes")
+
+	var listReq sfapi.ListVolumesForAccountRequest
+
+	listReq.AccountID = d.TenantID
+	volList, err := d.Client.ListVolumesForAccount(&listReq)
+	if err != nil {
+		return nil, fmt.Errorf("Problem looking up volumes for TenantID: %v", d.TenantID)
+	}
+
+	for _, v := range volList {
+		if v.Status == "active" && v.AccountID == d.TenantID {
+			vols = append(vols, v.Name)
+		}
+	}
+	return vols, nil
+}
+
+// get a volume
+func (d *SolidfireSANStorageDriver) VolGet(name string) (volID int64, err error) {
+	log.Debugf("SolidfireSANStorageDriver#VolGet(%v)", name)
+	vol, err := d.Client.GetVolumeByName(name, d.TenantID)
+	if err != nil {
+		return 0, fmt.Errorf("Problem looking up volumes for TenantID: >%v", d.TenantID)
+	}
+	return vol.VolumeID, nil
 }

@@ -5,7 +5,7 @@ package ontap
 import (
 	"sync"
 
-	"github.com/netapp/netappdvp/azgo"
+	"github.com/ebalduf/netappdvp/azgo"
 )
 
 // DriverConfig holds the configuration data for Driver objects
