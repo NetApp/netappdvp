@@ -26,7 +26,7 @@ func GetDFOutput() ([]DFInfo, error) {
 		// df returns an error if there's a stale file handle that we can
 		// safely ignore. There may be other reasons. Consider it a warning if
 		// it printed anything to stdout.
-		if len(out) == 0 {	
+		if len(out) == 0 {
 			log.Error("Error encountered gathering df output: ", err)
 			return nil, err
 		}
