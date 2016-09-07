@@ -21,10 +21,15 @@ type DFInfo struct {
 func GetDFOutput() ([]DFInfo, error) {
 	log.Debug("Begin osutils.GetDFOutput")
 	var result []DFInfo
-	out, err := exec.Command("df", "--output=target,source").CombinedOutput()
+	out, err := exec.Command("df", "--output=target,source").Output()
 	if err != nil {
-		log.Error("Error encountered gathering df output: ", err)
-		return nil, err
+		// df returns an error if there's a stale file handle that we can
+		// safely ignore. There may be other reasons. Consider it a warning if
+		// it printed anything to stdout.
+		if len(out) == 0 {
+			log.Error("Error encountered gathering df output: ", err)
+			return nil, err
+		}
 	}
 	//log.Debugf("out==%v", string(out))
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
