@@ -1,6 +1,6 @@
 # Copyright 2016 NetApp, Inc. All Rights Reserved.
 GOOS=linux
-GOARCH=amd64
+GOARCH=amd64 d
 GOGC=""
 
 GO_PATH_VOLUME=netappdvp_go_path
