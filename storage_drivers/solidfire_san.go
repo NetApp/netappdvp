@@ -20,7 +20,7 @@ const SolidfireSANStorageDriverName = "solidfire-san"
 
 func init() {
 	san := &SolidfireSANStorageDriver{}
-	san.initialized = false
+	san.Initialized = false
 	Drivers[san.Name()] = san
 	log.Debugf("Registered driver '%v'", san.Name())
 }
@@ -43,8 +43,8 @@ func formatOpts(opts map[string]string) {
 
 // SolidfireSANStorageDriver is for iSCSI storage provisioning
 type SolidfireSANStorageDriver struct {
-	initialized    bool
-	config         SolidfireStorageDriverConfig
+	Initialized    bool
+	Config         SolidfireStorageDriverConfig
 	Client         *sfapi.Client
 	TenantID       int64
 	DefaultVolSz   int64
@@ -80,7 +80,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 
 	c.DefaultVolSz = c.DefaultVolSz * int64(units.GiB)
 	log.Debugf("Decoded to %v", c)
-	d.config = *c
+	d.Config = *c
 
 	var tenantID int64
 
@@ -159,7 +159,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 	// TODO how does solidfire do this?
 	//EmsInitialized(d.Name(), d.api)
 
-	d.initialized = true
+	d.Initialized = true
 	log.Infof("Successfully initialized SolidFire Docker driver version %v", DriverVersion)
 	return nil
 }
@@ -169,16 +169,16 @@ func (d *SolidfireSANStorageDriver) Validate() error {
 	log.Debugf("SolidfireSANStorageDriver#Validate()")
 
 	// We want to verify we have everything we need to run the Docker driver
-	if d.config.TenantName == "" {
+	if d.Config.TenantName == "" {
 		log.Fatal("TenantName required in SolidFire Docker config")
 	}
-	if d.config.EndPoint == "" {
+	if d.Config.EndPoint == "" {
 		log.Fatal("EndPoint required in SolidFire Docker config")
 	}
-	if d.config.DefaultVolSz == 0 {
+	if d.Config.DefaultVolSz == 0 {
 		log.Fatal("DefaultVolSz required in SolidFire Docker config")
 	}
-	if d.config.SVIP == "" {
+	if d.Config.SVIP == "" {
 		log.Fatal("SVIP required in SolidFire Docker config")
 	}
 
