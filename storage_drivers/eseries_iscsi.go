@@ -163,11 +163,15 @@ func (d *ESeriesStorageDriver) Destroy(name string) error {
 		return fmt.Errorf("Problem determining host initiator iqns error: %v", errIqn)
 	}
 
-	log.Debugf("ESeriesStorageDriver#Destroy(%v) - iqn=%s", name, iqns[0]) //Going to assume a single IQN name for our host right now
+	//Going to assume a single IQN name for our host right now
+	var iqn string = iqns[0]
 
-	hostRef, error := d.storage.VerifyHostIQN(iqns[0])
-	if error != nil {
-		return fmt.Errorf("Host IQN (%s) not found on target E-Series array! error=%s", errIqn, error)
+	log.Debugf("ESeriesStorageDriver#Destroy(%v) - iqn=%s", name, iqn)
+
+	//We don't want to fail the operation if we can't find a host matching the IQN, but we want to log a warning
+	hostRef, verifyIqnErr := d.storage.VerifyHostIQN(iqn)
+	if verifyIqnErr != nil {
+		log.Warnf("Host IQN (%s) not found on target E-Series array! error=%s", iqn, verifyIqnErr)
 	}
 
 	log.Debugf("ESeriesStorageDriver#Destroy(%v) - HostRef=%s", name, hostRef)
