@@ -99,7 +99,8 @@ func NewDriver(config DriverConfig) *Driver {
 var volumeTags []VolumeTag
 
 // SendMsg sends the marshaled json byte array to the web services proxy
-func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Response, error) {
+func (d Driver) SendMsg(data []byte, httpMethod string, msgType string) (*http.Response, error) {
+
 	if data == nil && d.config.ArrayID == "" {
 		panic("data is nil and no ArrayID set!")
 	}
@@ -125,12 +126,7 @@ func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Res
 	url := addressPrefix + "://" + d.config.WebProxyHostname + ":" + addressPort + "/devmgr/v2/storage-systems/" + d.config.ArrayID + msgType
 	log.Debugf("URL:> %s", url)
 
-	//Check msg type
-	if sendType != "POST" && sendType != "GET" && sendType != "DELETE" {
-		panic("invalid msgType!")
-	}
-
-	req, err := http.NewRequest(sendType, url, bytes.NewBuffer(data))
+	req, err := http.NewRequest(httpMethod, url, bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(d.config.Username, d.config.Password)
 
