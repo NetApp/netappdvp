@@ -258,7 +258,7 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 	response3, error3 := d.API.VolumeDestroy(name, true)
 	if !isPassed(response3.Result.ResultStatusAttr) || error3 != nil {
 		if response3.Result.ResultErrnoAttr != azgo.EVOLUMEDOESNOTEXIST {
-			return fmt.Errorf("Error destroying volume: %v error: %v", name, error3)
+			return fmt.Errorf("Error destroying volume: %v\n%verror: %v", name, response3.Result, error3)
 		} else {
 			log.Warnf("Volume already deleted while destroying volume: %v\n%verror: %v", name, response3.Result, error3)
 		}
