@@ -243,6 +243,11 @@ func GetDeviceInfoForLuns() ([]ScsiDeviceInfo, error) {
 		for k, e2 := range info2 {
 			if e1.MultipathDevice == "" || e2.MultipathDevice == "" {
 				// no multipath device info, skipping
+				if e1.Device == Device {
+					// no multipath device info, skipping multipath compare but we still need the IQN info
+					log.Debugf("Matched, setting IQN to: %v", e2.IQN)
+					info1[j].IQN = info2[k].IQN
+				}
 				continue
 			}
 
