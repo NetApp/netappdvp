@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
@@ -174,7 +175,16 @@ func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) erro
 	// create the volume
 	response1, error1 := d.API.VolumeCreate(name, aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy)
 	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
-		return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
+		if response1.Result.ResultErrnoAttr != azgo.EAPIERROR {
+			return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
+		} else {
+			if !strings.HasSuffix(strings.TrimSpace(response1.Result.ResultReasonAttr), "Job exists") {
+				return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
+			} else {
+				log.Warnf("%v volume create job already exists, skipping volume create on this node...", name)
+				return nil
+			}
+		}
 	}
 
 	// disable '.snapshot' to allow official mysql container's chmod-in-init to work
