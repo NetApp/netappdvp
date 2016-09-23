@@ -13,7 +13,7 @@ import (
 const CurrentDriverVersion = 1
 
 // DriverVersion is the actual release version number
-const DriverVersion = "1.2.1"
+const DriverVersion = "1.3"
 
 // CommonStorageDriverConfig holds settings in common across all StorageDrivers
 type CommonStorageDriverConfig struct {
