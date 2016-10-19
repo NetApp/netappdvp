@@ -191,6 +191,49 @@ func (d *SolidfireSANStorageDriver) Validate() error {
 	return nil
 }
 
+// Strip storage prefix name to simple Docker Name
+func (d *SolidfireSANStorageDriver) StripVolumePrefix(name string) string {
+	// Different backends supported by NDVP have different restrictions on
+	// what characters are supported in their Name field.  Some prohibit '-'
+	// while others (including SolidFire) prohibit '_'.  Rather than deal with
+	// making the translation of the prefix as well as possible conflicts in
+	// multi-node environments (ie prefix mismatch between nodes) we remvoe the
+	// reliance on the prefix in the name and the limitations by just stripping
+	// out the *real* Docker Name and using that in the attributes as the
+	// accesor.  This becomes even more annoying because we're allowed to have
+	// different prefixes for Volumes and Snapshots.
+	dockerName := name
+	prefix := string(d.Config.CommonStorageDriverConfig.StoragePrefixRaw)
+	if prefix != "" {
+		dockerName = strings.Replace(name, prefix, "", -1)
+	}
+	return dockerName
+}
+
+// Strip snapshot prefix name to simple Docker Name
+func (d *SolidfireSANStorageDriver) StripSnapshotPrefix(name string) string {
+	// Different backends supported by NDVP have different restrictions on
+	// what characters are supported in their Name field.  Some prohibit '-'
+	// while others (including SolidFire) prohibit '_'.  Rather than deal with
+	// making the translation of the prefix as well as possible conflicts in
+	// multi-node environments (ie prefix mismatch between nodes) we remvoe the
+	// reliance on the prefix in the name and the limitations by just stripping
+	// out the *real* Docker Name and using that in the attributes as the
+	// accesor.  This becomes even more annoying because we're allowed to have
+	// different prefixes for Volumes and Snapshots.
+	dockerName := name
+	prefix := string(d.Config.CommonStorageDriverConfig.SnapshotPrefixRaw)
+	if prefix != "" {
+		dockerName = strings.Replace(name, prefix, "", -1)
+	}
+	return dockerName
+}
+
+// Make SolidFire name
+func MakeSolidFireName(name string) string {
+	return strings.Replace(name, "_", "-", -1)
+}
+
 // Create a SolidFire volume
 func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) error {
 	log.Debugf("SolidfireSANStorageDriver#Create(%v)", name)
@@ -198,11 +241,13 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 	var req sfapi.CreateVolumeRequest
 	var qos sfapi.QoS
 	var vsz int64
-	var meta = map[string]string{"platform": "Docker-NDVP"}
+	var dName = d.StripVolumePrefix(name)
+	var meta = map[string]string{"platform": "Docker-NDVP",
+		"docker-name": dName}
 
-	log.Debugf("GetVolumeByName: %s, %d", name, d.TenantID)
+	log.Debugf("GetVolumeByDockerName: %s, %d", dName, d.TenantID)
 	log.Debugf("Options passed in to create: %+v", opts)
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	v, err := d.Client.GetVolumeByDockerName(dName, d.TenantID)
 	if err == nil && v.VolumeID != 0 {
 		log.Infof("Found existing Volume by name: %s", name)
 		return nil
@@ -244,7 +289,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 
 	req.TotalSize = vsz
 	req.AccountID = d.TenantID
-	req.Name = name
+	req.Name = MakeSolidFireName(name)
 	req.Attributes = meta
 	_, err = d.Client.CreateVolume(&req)
 	if err != nil {
@@ -258,9 +303,11 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	log.Debugf("SolidfireSANStorageDriver#CreateClone(%v, %v, %v, %v)", name, source, snapshot, newSnapshotPrefix)
 
 	var req sfapi.CloneVolumeRequest
+	var dName = d.StripVolumePrefix(name)
+	var dSrcName = d.StripVolumePrefix(source)
 
 	// Check to see if the clone already exists
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	v, err := d.Client.GetVolumeByDockerName(dName, d.TenantID)
 	if err == nil && v.VolumeID != 0 {
 		// The clone already exists; skip and call it a success
 		return nil
@@ -276,7 +323,7 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	}
 
 	// Get the volume ID for the source volume
-	v, err = d.Client.GetVolumeByName(source, d.TenantID)
+	v, err = d.Client.GetVolumeByDockerName(dSrcName, d.TenantID)
 	if err != nil || v.VolumeID == 0 {
 		return fmt.Errorf("Failed to find source volume: error: %v", err)
 	}
@@ -294,8 +341,9 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 // Destroy the requested docker volume
 func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	log.Debugf("SolidfireSANStorageDriver#Destroy(%v)", name)
+	var dName = d.StripVolumePrefix(name)
 
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	v, err := d.Client.GetVolumeByDockerName(dName, d.TenantID)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve volume named %s during Remove operation;  error: %v", name, err)
 	}
@@ -316,8 +364,9 @@ func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 // Attach the lun
 func (d *SolidfireSANStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
 	log.Debugf("SolidfireSANStorageDriver#Attach(%v, %v, %v)", name, mountpoint, opts)
+	var dName = d.StripVolumePrefix(name)
 
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	v, err := d.Client.GetVolumeByDockerName(dName, d.TenantID)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve volume by name in mount operation;  name: %v error: %v", name, err)
 	}
@@ -346,13 +395,14 @@ func (d *SolidfireSANStorageDriver) Attach(name, mountpoint string, opts map[str
 // Detach the volume
 func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 	log.Debugf("SolidfireSANStorageDriver#Detach(%v, %v)", name, mountpoint)
+	var dName = d.StripVolumePrefix(name)
 
 	umountErr := utils.Umount(mountpoint)
 	if umountErr != nil {
 		return fmt.Errorf("Problem unmounting docker volume: %v mountpoint: %v error: %v", name, mountpoint, umountErr)
 	}
 
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	v, err := d.Client.GetVolumeByDockerName(dName, d.TenantID)
 	if err != nil {
 		return fmt.Errorf("Problem looking up volume name: %v TenantID: %v error: %v", name, d.TenantID, err)
 	}
@@ -374,8 +424,9 @@ func (d *SolidfireSANStorageDriver) DefaultSnapshotPrefix() string {
 // Return the list of snapshots associated with the named volume
 func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
 	log.Debugf("SolidfireSANStorageDriver#SnapshotList(%v)", name)
+	var dName = d.StripVolumePrefix(name)
 
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	v, err := d.Client.GetVolumeByDockerName(dName, d.TenantID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve volume by name in snapshot list operation; name: %v error: %v", name, err)
 	}

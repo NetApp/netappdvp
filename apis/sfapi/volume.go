@@ -45,6 +45,47 @@ func (c *Client) GetVolumeByID(volID int64) (v Volume, err error) {
 	return volumes[0], nil
 }
 
+// GetVolumeByDockerName tbd
+func (c *Client) GetVolumeByDockerName(n string, acctID int64) (v Volume, err error) {
+	vols, err := c.GetVolumesByDockerName(n, acctID)
+	if err == nil && len(vols) == 1 {
+		return vols[0], nil
+	}
+
+	if len(vols) > 1 {
+		err = fmt.Errorf("Found more than one Volume with DockerName: %s for Account: %d", n, acctID)
+	} else if len(vols) < 1 {
+		err = fmt.Errorf("Failed to find any Volumes with DockerName: %s for Account: %d", n, acctID)
+	}
+	return v, err
+}
+
+// GetVolumesByDockerName tbd
+func (c *Client) GetVolumesByDockerName(dockerName string, acctID int64) (v []Volume, err error) {
+	var listReq ListVolumesForAccountRequest
+	var foundVolumes []Volume
+	listReq.AccountID = acctID
+	volumes, err := c.ListVolumesForAccount(&listReq)
+	if err != nil {
+		log.Error("Error retrieving volumes: ", err)
+		return foundVolumes, err
+	}
+	for _, vol := range volumes {
+		attrs, _ := vol.Attributes.(map[string]interface{})
+		log.Debugf("Looking for docker-name: %+v\n", attrs)
+		if attrs["docker-name"] == dockerName && vol.Status == "active" {
+			foundVolumes = append(foundVolumes, vol)
+		}
+	}
+	if len(foundVolumes) > 1 {
+		log.Warningf("Found more than one volume with the docker-name: %s\n%+v", dockerName, foundVolumes)
+	}
+	if len(foundVolumes) == 0 {
+		return foundVolumes, fmt.Errorf("Failed to find any volumes by the name of: %s for this account: %d", dockerName, acctID)
+	}
+	return foundVolumes, nil
+}
+
 // GetVolumeByName tbd
 func (c *Client) GetVolumeByName(n string, acctID int64) (v Volume, err error) {
 	vols, err := c.GetVolumesByName(n, acctID)
