@@ -21,7 +21,7 @@ const OntapSANStorageDriverName = "ontap-san"
 
 func init() {
 	san := &OntapSANStorageDriver{}
-	san.initialized = false
+	san.Initialized = false
 	Drivers[san.Name()] = san
 	log.Debugf("Registered driver '%v'", san.Name())
 }
@@ -32,9 +32,9 @@ func lunName(name string) string {
 
 // OntapSANStorageDriver is for iSCSI storage provisioning
 type OntapSANStorageDriver struct {
-	initialized bool
-	config      OntapStorageDriverConfig
-	api         *ontap.Driver
+	Initialized bool
+	Config      OntapStorageDriverConfig
+	API         *ontap.Driver
 }
 
 // Name is for returning the name of this driver
@@ -61,10 +61,11 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 		"Debug":             config.Debug,
 		"DisableDelete":     config.DisableDelete,
 		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
+		"SnapshotPrefixRaw": string(config.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into ontapConfig")
 
-	d.config = *config
-	d.api, err = InitializeOntapDriver(d.config)
+	d.Config = *config
+	d.API, err = InitializeOntapDriver(d.Config)
 	if err != nil {
 		return fmt.Errorf("Problem while initializing, error: %v", err)
 	}
@@ -75,9 +76,9 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 	}
 
 	// log an informational message when this plugin starts
-	EmsInitialized(d.Name(), d.api)
+	EmsInitialized(d.Name(), d.API)
 
-	d.initialized = true
+	d.Initialized = true
 	log.Infof("Successfully initialized Ontap SAN Docker driver version %v", DriverVersion)
 	return nil
 }
@@ -87,36 +88,36 @@ func (d *OntapSANStorageDriver) Validate() error {
 	log.Debugf("OntapSANStorageDriver#Validate()")
 
 	zr := &azgo.ZapiRunner{
-		ManagementLIF: d.config.ManagementLIF,
-		SVM:           d.config.SVM,
-		Username:      d.config.Username,
-		Password:      d.config.Password,
+		ManagementLIF: d.Config.ManagementLIF,
+		SVM:           d.Config.SVM,
+		Username:      d.Config.Username,
+		Password:      d.Config.Password,
 		Secure:        true,
 	}
 
 	r0, err0 := azgo.NewSystemGetVersionRequest().ExecuteUsing(zr)
 	if err0 != nil {
-		return fmt.Errorf("Could not validate credentials for %v@%v, error: %v", d.config.Username, d.config.SVM, err0)
+		return fmt.Errorf("Could not validate credentials for %v@%v, error: %v", d.Config.Username, d.Config.SVM, err0)
 	}
 
 	// Add system version validation, if needed, this is a sanity check right now
 	systemVersion := r0.Result
 	if systemVersion.VersionPtr == nil {
-		return fmt.Errorf("Could not determine system version for %v@%v", d.config.Username, d.config.SVM)
+		return fmt.Errorf("Could not determine system version for %v@%v", d.Config.Username, d.Config.SVM)
 	}
 
-	r1, err1 := d.api.NetInterfaceGet()
+	r1, err1 := d.API.NetInterfaceGet()
 	if err1 != nil {
 		return fmt.Errorf("Problem checking network interfaces; error: %v", err1)
 	}
 
 	// if they didn't set a lif to use in the config, we'll set it to the first iscsi lif we happen to find
-	if d.config.DataLIF == "" {
+	if d.Config.DataLIF == "" {
 		for _, attrs := range r1.Result.AttributesList() {
 			for _, protocol := range attrs.DataProtocols() {
 				if protocol == "iscsi" {
 					log.Debugf("Setting iSCSI protocol access to '%v'", attrs.Address())
-					d.config.DataLIF = string(attrs.Address())
+					d.Config.DataLIF = string(attrs.Address())
 				}
 			}
 		}
@@ -128,8 +129,8 @@ func (d *OntapSANStorageDriver) Validate() error {
 	for _, attrs := range r1.Result.AttributesList() {
 		for _, protocol := range attrs.DataProtocols() {
 			if protocol == "iscsi" {
-				log.Debugf("Comparing iSCSI protocol access on: '%v' vs: '%v'", attrs.Address(), d.config.DataLIF)
-				if string(attrs.Address()) == d.config.DataLIF {
+				log.Debugf("Comparing iSCSI protocol access on: '%v' vs: '%v'", attrs.Address(), d.Config.DataLIF)
+				if string(attrs.Address()) == d.Config.DataLIF {
 					foundIscsi = true
 					iscsiLifCount++
 				}
@@ -151,13 +152,13 @@ func (d *OntapSANStorageDriver) Validate() error {
 	}
 
 	// error if no 'iscsi session' exsits for the specified iscsi portal
-	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.config.DataLIF)
+	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.Config.DataLIF)
 	if sessionExistsErr != nil {
 		return fmt.Errorf("Unexpected iSCSI session error: %v", sessionExistsErr)
 	}
 	if !sessionExists {
 		// TODO automatically login for the user if no session detected?
-		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.config.DataLIF)
+		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.Config.DataLIF)
 	}
 
 	return nil
@@ -167,7 +168,7 @@ func (d *OntapSANStorageDriver) Validate() error {
 func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) error {
 	log.Debugf("OntapSANStorageDriver#Create(%v)", name)
 
-	response, _ := d.api.VolumeSize(name)
+	response, _ := d.API.VolumeSize(name)
 	if isPassed(response.Result.ResultStatusAttr) {
 		log.Debugf("%v already exists, skipping create...", name)
 		return nil
@@ -178,6 +179,8 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 	spaceReserve := utils.GetV(opts, "spaceReserve", "none")
 	snapshotPolicy := utils.GetV(opts, "snapshotPolicy", "none")
 	unixPermissions := utils.GetV(opts, "unixPermissions", "---rwxr-xr-x")
+	exportPolicy := utils.GetV(opts, "exportPolicy", "default")
+	aggregate := utils.GetV(opts, "aggregate", d.Config.Aggregate)
 
 	log.WithFields(log.Fields{
 		"name":            name,
@@ -185,12 +188,23 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 		"spaceReserve":    spaceReserve,
 		"snapshotPolicy":  snapshotPolicy,
 		"unixPermissions": unixPermissions,
+		"exportPolicy":    exportPolicy,
+		"aggregate":       aggregate,
 	}).Debug("Creating volume with values")
 
 	// create the volume
-	response1, error1 := d.api.VolumeCreate(name, d.config.Aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions)
+	response1, error1 := d.API.VolumeCreate(name, aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy)
 	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
-		return fmt.Errorf("Error creating volume:\n%verror: %v", response1.Result, error1)
+		if response1.Result.ResultErrnoAttr != azgo.EAPIERROR {
+			return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
+		} else {
+			if !strings.HasSuffix(strings.TrimSpace(response1.Result.ResultReasonAttr), "Job exists") {
+				return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
+			} else {
+				log.Warnf("%v volume create job already exists, skipping volume create on this node...", name)
+				return nil
+			}
+		}
 	}
 
 	lunPath := lunName(name)
@@ -208,12 +222,17 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 	}
 
 	// create the lun
-	response2, err2 := d.api.LunCreate(lunPath, lunSize, osType, spaceReserved)
+	response2, err2 := d.API.LunCreate(lunPath, lunSize, osType, spaceReserved)
 	if !isPassed(response2.Result.ResultStatusAttr) || err2 != nil {
 		return fmt.Errorf("Error creating LUN\n%verror: %v", response2.Result, err2)
 	}
 
 	return nil
+}
+
+// Create a volume clone
+func (d *OntapSANStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
+	return CreateOntapClone(name, source, snapshot, newSnapshotPrefix, d.API)
 }
 
 // Destroy the requested (volume,lun) storage tuple
@@ -223,20 +242,20 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 	lunPath := lunName(name)
 
 	// validate LUN+volume exists before trying to destroy
-	response0, _ := d.api.VolumeSize(name)
+	response0, _ := d.API.VolumeSize(name)
 	if !isPassed(response0.Result.ResultStatusAttr) {
 		log.Debugf("%v already deleted, skipping destroy", name)
 		return nil
 	}
 
 	// lun offline
-	response, err := d.api.LunOffline(lunPath)
+	response, err := d.API.LunOffline(lunPath)
 	if !isPassed(response.Result.ResultStatusAttr) || err != nil {
 		log.Warnf("Error attempting to offline lun: %v\n%verror: %v", lunPath, response.Result, err)
 	}
 
 	// lun destroy
-	response2, err2 := d.api.LunDestroy(lunPath)
+	response2, err2 := d.API.LunDestroy(lunPath)
 	if !isPassed(response2.Result.ResultStatusAttr) || err2 != nil {
 		log.Warnf("Error destroying lun: %v\n%verror: %v", lunPath, response2.Result, err2)
 	}
@@ -245,10 +264,10 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 	utils.MultipathFlush() // flush unused paths
 	utils.IscsiRescan()
 
-	response3, error3 := d.api.VolumeDestroy(name, true)
+	response3, error3 := d.API.VolumeDestroy(name, true)
 	if !isPassed(response3.Result.ResultStatusAttr) || error3 != nil {
 		if response3.Result.ResultErrnoAttr != azgo.EVOLUMEDOESNOTEXIST {
-			return fmt.Errorf("Error destroying volume: %v error: %v", name, error3)
+			return fmt.Errorf("Error destroying volume: %v\n%verror: %v", name, response3.Result, error3)
 		} else {
 			log.Warnf("Volume already deleted while destroying volume: %v\n%verror: %v", name, response3.Result, error3)
 		}
@@ -261,11 +280,11 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
 	log.Debugf("OntapSANStorageDriver#Attach(%v, %v, %v)", name, mountpoint, opts)
 
-	igroupName := d.config.IgroupName
+	igroupName := d.Config.IgroupName
 	lunPath := lunName(name)
 
 	// igroup create
-	response, err := d.api.IgroupCreate(igroupName, "iscsi", "linux")
+	response, err := d.API.IgroupCreate(igroupName, "iscsi", "linux")
 	if !isPassed(response.Result.ResultStatusAttr) {
 		if response.Result.ResultErrnoAttr != azgo.EVDISK_ERROR_INITGROUP_EXISTS {
 			return fmt.Errorf("Problem creating igroup: %v\n%verror: %v", igroupName, response.Result, err)
@@ -280,7 +299,7 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 
 	// igroup add each iqn we found
 	for _, iqn := range iqns {
-		response2, err2 := d.api.IgroupAdd(igroupName, iqn)
+		response2, err2 := d.API.IgroupAdd(igroupName, iqn)
 		if !isPassed(response2.Result.ResultStatusAttr) {
 			if response2.Result.ResultErrnoAttr != azgo.EVDISK_ERROR_INITGROUP_HAS_NODE {
 				return fmt.Errorf("Problem adding iqn: %v to igroup: %v\n%verror: %v", iqn, igroupName, response2.Result, err2)
@@ -291,7 +310,7 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 	// check if already mapped, so we don't map again
 	lunID := 0
 	alreadyMapped := false
-	response5, _ := d.api.LunMapListInfo(lunPath)
+	response5, _ := d.API.LunMapListInfo(lunPath)
 	if response5.Result.ResultStatusAttr == "passed" {
 		if response5.Result.InitiatorGroups() != nil {
 			if len(response5.Result.InitiatorGroups()) > 0 {
@@ -307,7 +326,7 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 		// spin until we get a lunId that works
 		// TODO find one directly instead of spinning-and-looking for one?
 		for i := 0; i < 4096; i++ {
-			response4, err4 := d.api.LunMap(igroupName, lunPath, i)
+			response4, err4 := d.API.LunMap(igroupName, lunPath, i)
 			if response4.Result.ResultStatusAttr == "passed" {
 				lunID = i
 				break
@@ -337,7 +356,7 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 
 	sessionInfoToUse := utils.IscsiSessionInfo{}
 	for i, e := range sessionInfo {
-		if e.PortalIP == d.config.DataLIF {
+		if e.PortalIP == d.Config.DataLIF {
 			sessionInfoToUse = sessionInfo[i]
 		}
 	}
@@ -412,4 +431,14 @@ func (d *OntapSANStorageDriver) Detach(name, mountpoint string) error {
 // DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
 func (d *OntapSANStorageDriver) DefaultStoragePrefix() string {
 	return "netappdvp_"
+}
+
+// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
+func (d *OntapSANStorageDriver) DefaultSnapshotPrefix() string {
+	return "netappdvp_"
+}
+
+// Return the list of snapshots associated with the named volume
+func (d *OntapSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
+	return GetSnapshotList(name, d.API)
 }

@@ -18,16 +18,16 @@ import (
 
 func init() {
 	san := &ESeriesStorageDriver{}
-	san.initialized = false
+	san.Initialized = false
 	Drivers[san.Name()] = san
 	log.Debugf("Registered driver '%v'", san.Name())
 }
 
 // ESeriesStorageDriver is for storage provisioning via Web Services Proxy RESTful interface that communicates with E-Series controller via SYMbol API
 type ESeriesStorageDriver struct {
-	initialized bool
-	config      ESeriesStorageDriverConfig
-	storage     *eseries.Driver
+	Initialized bool
+	Config      ESeriesStorageDriverConfig
+	Storage     *eseries.Driver
 }
 
 // Name is for returning the name of this driver
@@ -53,10 +53,11 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 		"Debug":             config.Debug,
 		"DisableDelete":     config.DisableDelete,
 		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
+		"SnapshotPrefixRaw": string(config.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into eseriesConfig")
 
-	d.config = *config
-	d.storage = eseries.NewDriver(eseries.DriverConfig{
+	d.Config = *config
+	d.Storage = eseries.NewDriver(eseries.DriverConfig{
 		WebProxyHostname:  config.WebProxyHostname,
 		WebProxyPort:      config.WebProxyPort,
 		WebProxyUseHTTP:   config.WebProxyUseHTTP,
@@ -76,14 +77,14 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	}
 
 	//Connect to web services proxy
-	response, error := d.storage.Connect()
+	response, error := d.Storage.Connect()
 	if error != nil {
 		return fmt.Errorf("Problem connecting to Web Services Proxy - ESeriesStorageDriver error: %v", error)
 	} else {
 		log.Debugf("Connect to Web Services Proxy Success! response=%v", response)
 	}
 
-	d.initialized = true
+	d.Initialized = true
 	log.Infof("Successfully initialized E-Series Docker driver version %v", DriverVersion)
 	return nil
 }
@@ -93,15 +94,15 @@ func (d *ESeriesStorageDriver) Validate() error {
 	log.Debugf("ESeriesStorageDriver#Validate()")
 
 	//Make sure the essential information was specified in the json config
-	if d.config.WebProxyHostname == "" {
+	if d.Config.WebProxyHostname == "" {
 		return fmt.Errorf("WebProxyHostname is empty! You must specify the host/IP for the Web Services Proxy.")
 	}
 
-	if d.config.ControllerA == "" || d.config.ControllerB == "" {
+	if d.Config.ControllerA == "" || d.Config.ControllerB == "" {
 		return fmt.Errorf("ControllerA or ControllerB are empty! You must specify the host/IP for the E-Series storage array. If it is a simplex array just specify the same host/IP twice.")
 	}
 
-	if d.config.HostDataIP == "" {
+	if d.Config.HostDataIP == "" {
 		return fmt.Errorf("HostDataIP is empty! You need to specify atleast one of the iSCSI interface IP addresses that is connected to the E-Series array.")
 	}
 
@@ -112,13 +113,13 @@ func (d *ESeriesStorageDriver) Validate() error {
 	}
 
 	// error if no 'iscsi session' exsits for the specified iscsi portal
-	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.config.HostDataIP)
+	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.Config.HostDataIP)
 	if sessionExistsErr != nil {
 		return fmt.Errorf("Unexpected iSCSI session error: %v", sessionExistsErr)
 	}
 	if !sessionExists {
 		// TODO automatically login for the user if no session detected?
-		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.config.HostDataIP)
+		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.Config.HostDataIP)
 	}
 
 	return nil
@@ -135,7 +136,7 @@ func (d *ESeriesStorageDriver) Create(name string, opts map[string]string) error
 	mediaType := utils.GetV(opts, "mediaType", "hdd")
 	//mediaSecure := utils.GetV(opts, "mediaSecure", "false")
 
-	volumeGroupRef, error := d.storage.VerifyVolumePools(mediaType, volumeSize)
+	volumeGroupRef, error := d.Storage.VerifyVolumePools(mediaType, volumeSize)
 	if error != nil {
 		return error
 	} else {
@@ -143,7 +144,7 @@ func (d *ESeriesStorageDriver) Create(name string, opts map[string]string) error
 	}
 
 	//Create the volume
-	volumeRef, error1 := d.storage.CreateVolume(name, volumeGroupRef, volumeSize, mediaType)
+	volumeRef, error1 := d.Storage.CreateVolume(name, volumeGroupRef, volumeSize, mediaType)
 	if error1 != nil {
 		return error1
 	} else {
@@ -163,23 +164,27 @@ func (d *ESeriesStorageDriver) Destroy(name string) error {
 		return fmt.Errorf("Problem determining host initiator iqns error: %v", errIqn)
 	}
 
-	log.Debugf("ESeriesStorageDriver#Destroy(%v) - iqn=%s", name, iqns[0]) //Going to assume a single IQN name for our host right now
+	//Going to assume a single IQN name for our host right now
+	var iqn string = iqns[0]
 
-	hostRef, error := d.storage.VerifyHostIQN(iqns[0])
-	if error != nil {
-		return fmt.Errorf("Host IQN (%s) not found on target E-Series array! error=%s", errIqn, error)
+	log.Debugf("ESeriesStorageDriver#Destroy(%v) - iqn=%s", name, iqn)
+
+	//We don't want to fail the operation if we can't find a host matching the IQN, but we want to log a warning
+	hostRef, verifyIqnErr := d.Storage.VerifyHostIQN(iqn)
+	if verifyIqnErr != nil {
+		log.Warnf("Host IQN (%s) not found on target E-Series array! error=%s", iqn, verifyIqnErr)
 	}
 
 	log.Debugf("ESeriesStorageDriver#Destroy(%v) - HostRef=%s", name, hostRef)
 
 	//Now we need to verify the this instance of netappdvp is aware of this volume, and if it isn't then we need to make it aware
-	error1 := d.storage.VerifyVolumeExists(name)
+	error1 := d.Storage.VerifyVolumeExists(name)
 	if error1 != nil {
 		return fmt.Errorf("Error - volume with name %s doesn't exist on array! error1=%s", name, error1)
 	}
 
 	//Verify that volume is mapped to this host already
-	isMapped, _, error2 := d.storage.IsVolumeAlreadyMappedToHost(name, hostRef)
+	isMapped, _, error2 := d.Storage.IsVolumeAlreadyMappedToHost(name, hostRef)
 	if error2 != nil {
 		return fmt.Errorf("IsVolumeAlreadyMappedToHost returned an error meaning the volume %s is already mapped to a different host! error2=%s", name, error2)
 	}
@@ -191,7 +196,7 @@ func (d *ESeriesStorageDriver) Destroy(name string) error {
 		//TODO - make sure no running Docker container is currently using the volume we are about to destroy (perhaps Docker already does this check for us?)
 
 		//It is mapped to host so we need to unmap it!
-		errUnmap := d.storage.UnmapVolume(name)
+		errUnmap := d.Storage.UnmapVolume(name)
 		if errUnmap != nil {
 			return fmt.Errorf("UnmapVolume returned an error for volume %s! errUnmap=%s", name, errUnmap)
 		}
@@ -202,7 +207,7 @@ func (d *ESeriesStorageDriver) Destroy(name string) error {
 	}
 
 	//Destroy volume on storage array
-	errDestroy := d.storage.DestroyVolume(name)
+	errDestroy := d.Storage.DestroyVolume(name)
 	if errDestroy != nil {
 		return fmt.Errorf("DestroyVolume returned an error for volume %s! errDestroy=%s", name, errDestroy)
 	}
@@ -222,14 +227,14 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 
 	log.Debugf("ESeriesStorageDriver#Attach(%v, %v, %v) - iqn=%s", name, mountpoint, opts, iqns[0]) //Going to assume a single IQN name for our host right now
 
-	hostRef, error := d.storage.VerifyHostIQN(iqns[0])
+	hostRef, error := d.Storage.VerifyHostIQN(iqns[0])
 	if error != nil {
 		return fmt.Errorf("Host IQN (%s) not found on target E-Series array! error=%s", errIqn, error)
 	}
 
 	log.Debugf("ESeriesStorageDriver#Attach(%v, %v, %v) - HostRef=%s", name, mountpoint, opts, hostRef)
 
-	error1 := d.storage.VerifyVolumeExists(name)
+	error1 := d.Storage.VerifyVolumeExists(name)
 	if error1 != nil {
 		return fmt.Errorf("Error - volume with name %s doesn't exist on array! error1=%s", name, error1)
 	}
@@ -237,7 +242,7 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 	//Variable that will hold the LUN number that our volume is mapped to on this host
 	var volumeLunNumber int = -1
 
-	isMapped, lunNumber, error2 := d.storage.IsVolumeAlreadyMappedToHost(name, hostRef)
+	isMapped, lunNumber, error2 := d.Storage.IsVolumeAlreadyMappedToHost(name, hostRef)
 	if error2 != nil {
 		return fmt.Errorf("IsVolumeAlreadyMappedToHost returned an error meaning the volume %s is already mapped to a different host! error2=%s", name, error2)
 	}
@@ -248,7 +253,7 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 	//Map the volume to host only if it isn't already mapped to host as well as no other hosts
 	if !isMapped {
 		//Now that we have verified that the host exists on the array we are ready to map the volume to the host only if the volume is not already mapped to host
-		tmpLunNumber, error3 := d.storage.MapVolume(name, hostRef)
+		tmpLunNumber, error3 := d.Storage.MapVolume(name, hostRef)
 		if error3 != nil {
 			return fmt.Errorf("Error while mapping volume to host! name=%s hostRef=%s iqn=%s error2=%s", name, hostRef, iqns[0], error3)
 		}
@@ -283,7 +288,7 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 
 	sessionInfoToUse := utils.IscsiSessionInfo{}
 	for i, e := range sessionInfo {
-		if e.PortalIP == d.config.HostDataIP {
+		if e.PortalIP == d.Config.HostDataIP {
 			sessionInfoToUse = sessionInfo[i]
 		}
 	}
@@ -324,7 +329,7 @@ func (d *ESeriesStorageDriver) findDevice(volumeLunNumber int, sessionInfo utils
 	for i, device := range devices {
 
 		log.WithFields(log.Fields{
-			"i": i,
+			"i":      i,
 			"device": device,
 		}).Debug("Checking")
 
@@ -365,4 +370,19 @@ func (d *ESeriesStorageDriver) Detach(name, mountpoint string) error {
 // DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
 func (d *ESeriesStorageDriver) DefaultStoragePrefix() string {
 	return "netappdvp_"
+}
+
+// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
+func (d *ESeriesStorageDriver) DefaultSnapshotPrefix() string {
+	return "netappdvp_"
+}
+
+// Return the list of snapshots associated with the named volume
+func (d *ESeriesStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
+	return nil, nil
+}
+
+// Create a volume clone
+func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
+	return fmt.Errorf("Cloning with E-Series is not yet supported")
 }

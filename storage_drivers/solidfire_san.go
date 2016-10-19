@@ -20,7 +20,7 @@ const SolidfireSANStorageDriverName = "solidfire-san"
 
 func init() {
 	san := &SolidfireSANStorageDriver{}
-	san.initialized = false
+	san.Initialized = false
 	Drivers[san.Name()] = san
 	log.Debugf("Registered driver '%v'", san.Name())
 }
@@ -43,8 +43,8 @@ func formatOpts(opts map[string]string) {
 
 // SolidfireSANStorageDriver is for iSCSI storage provisioning
 type SolidfireSANStorageDriver struct {
-	initialized    bool
-	config         SolidfireStorageDriverConfig
+	Initialized    bool
+	Config         SolidfireStorageDriverConfig
 	Client         *sfapi.Client
 	TenantID       int64
 	DefaultVolSz   int64
@@ -75,11 +75,12 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 		"Debug":             c.Debug,
 		"DisableDelete":     c.DisableDelete,
 		"StoragePrefixRaw":  string(c.StoragePrefixRaw),
+		"SnapshotPrefixRaw": string(c.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into solidfireConfig")
 
 	c.DefaultVolSz = c.DefaultVolSz * int64(units.GiB)
 	log.Debugf("Decoded to %v", c)
-	d.config = *c
+	d.Config = *c
 
 	var tenantID int64
 
@@ -158,7 +159,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 	// TODO how does solidfire do this?
 	//EmsInitialized(d.Name(), d.api)
 
-	d.initialized = true
+	d.Initialized = true
 	log.Infof("Successfully initialized SolidFire Docker driver version %v", DriverVersion)
 	return nil
 }
@@ -168,16 +169,16 @@ func (d *SolidfireSANStorageDriver) Validate() error {
 	log.Debugf("SolidfireSANStorageDriver#Validate()")
 
 	// We want to verify we have everything we need to run the Docker driver
-	if d.config.TenantName == "" {
+	if d.Config.TenantName == "" {
 		log.Fatal("TenantName required in SolidFire Docker config")
 	}
-	if d.config.EndPoint == "" {
+	if d.Config.EndPoint == "" {
 		log.Fatal("EndPoint required in SolidFire Docker config")
 	}
-	if d.config.DefaultVolSz == 0 {
+	if d.Config.DefaultVolSz == 0 {
 		log.Fatal("DefaultVolSz required in SolidFire Docker config")
 	}
-	if d.config.SVIP == "" {
+	if d.Config.SVIP == "" {
 		log.Fatal("SVIP required in SolidFire Docker config")
 	}
 
@@ -248,6 +249,44 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 	_, err = d.Client.CreateVolume(&req)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+// Create a volume clone
+func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
+	log.Debugf("SolidfireSANStorageDriver#CreateClone(%v, %v, %v, %v)", name, source, snapshot, newSnapshotPrefix)
+
+	var req sfapi.CloneVolumeRequest
+
+	// Check to see if the clone already exists
+	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	if err == nil && v.VolumeID != 0 {
+		// The clone already exists; skip and call it a success
+		return nil
+	}
+
+	// If a snapshot was specified, use that
+	if snapshot != "" {
+		s, err := d.Client.GetSnapshot(0, v.VolumeID, snapshot)
+		if err != nil || s.SnapshotID == 0 {
+			return fmt.Errorf("Failed to find snapshot specified: error: %v", err)
+		}
+		req.SnapshotID = s.SnapshotID
+	}
+
+	// Get the volume ID for the source volume
+	v, err = d.Client.GetVolumeByName(source, d.TenantID)
+	if err != nil || v.VolumeID == 0 {
+		return fmt.Errorf("Failed to find source volume: error: %v", err)
+	}
+
+	// Create the clone of the source volume with the name specified
+	req.VolumeID = v.VolumeID
+	req.Name = name
+	_, err = d.Client.CloneVolume(&req)
+	if err != nil {
+		return fmt.Errorf("Failed to create clone: error: %v", err)
 	}
 	return nil
 }
@@ -325,4 +364,37 @@ func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 // DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
 func (d *SolidfireSANStorageDriver) DefaultStoragePrefix() string {
 	return "netappdvp-"
+}
+
+// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
+func (d *SolidfireSANStorageDriver) DefaultSnapshotPrefix() string {
+	return "netappdvp-"
+}
+
+// Return the list of snapshots associated with the named volume
+func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
+	log.Debugf("SolidfireSANStorageDriver#SnapshotList(%v)", name)
+
+	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve volume by name in snapshot list operation; name: %v error: %v", name, err)
+	}
+
+	var req sfapi.ListSnapshotsRequest
+	req.VolumeID = v.VolumeID
+
+	s, err := d.Client.ListSnapshots(&req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve snapshots for volume; name: %v error: %v", name, err)
+	}
+
+	log.Debugf("Returned %v snapshots", len(s))
+	var snapshots []CommonSnapshot
+
+	for _, snap := range s {
+		log.Debugf("Snapshot name: %v, date: %v", snap.Name, snap.CreateTime)
+		snapshots = append(snapshots, CommonSnapshot{snap.Name, snap.CreateTime})
+	}
+
+	return snapshots, nil
 }

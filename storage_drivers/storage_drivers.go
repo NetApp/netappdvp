@@ -13,7 +13,7 @@ import (
 const CurrentDriverVersion = 1
 
 // DriverVersion is the actual release version number
-const DriverVersion = "1.2.1"
+const DriverVersion = "1.3"
 
 // CommonStorageDriverConfig holds settings in common across all StorageDrivers
 type CommonStorageDriverConfig struct {
@@ -22,6 +22,7 @@ type CommonStorageDriverConfig struct {
 	Debug             bool            `json:"debug"`
 	DisableDelete     bool            `json:"disableDelete"`
 	StoragePrefixRaw  json.RawMessage `json:"storagePrefix,string"`
+	SnapshotPrefixRaw json.RawMessage `json:"snapshotPrefix,string"`
 }
 
 // ValidateCommonSettings attempts to "partially" decode the JSON into just the settings in CommonStorageDriverConfig
@@ -92,6 +93,12 @@ type SolidfireStorageDriverConfig struct {
 	Types                     *[]sfapi.VolType
 }
 
+// CommonSnapshot contains the normalized volume snapshot format we report to Docker
+type CommonSnapshot struct {
+	Name    string // The snapshot name or other identifier you would use to reference it
+	Created string // The UTC time that the snapshot was created, in RFC3339 format
+}
+
 // Drivers is a map of driver names -> object
 var Drivers = make(map[string]StorageDriver)
 
@@ -101,8 +108,11 @@ type StorageDriver interface {
 	Initialize(string) error
 	Validate() error
 	Create(name string, opts map[string]string) error
+	CreateClone(name, source, snapshot, newSnapshotPrefix string) error
 	Destroy(name string) error
 	Attach(name, mountpoint string, opts map[string]string) error
 	Detach(name, mountpoint string) error
 	DefaultStoragePrefix() string
+	DefaultSnapshotPrefix() string
+	SnapshotList(name string) ([]CommonSnapshot, error)
 }

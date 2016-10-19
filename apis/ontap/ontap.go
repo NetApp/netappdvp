@@ -162,7 +162,7 @@ func (d Driver) LunDestroy(lunPath string) (response azgo.LunDestroyResponse, er
 
 // VolumeCreate creates a volume with the specified options
 // equivalent to filer::> volume create -vserver iscsi_vs -volume v -aggregate aggr1 -size 1g -state online -type RW -policy default -unix-permissions ---rwxr-xr-x -space-guarantee none -snapshot-policy none
-func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPolicy, unixPermissions string) (response azgo.VolumeCreateResponse, err error) {
+func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy string) (response azgo.VolumeCreateResponse, err error) {
 	response, err = azgo.NewVolumeCreateRequest().
 		SetVolume(name).
 		SetContainingAggrName(aggregateName).
@@ -170,6 +170,17 @@ func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPo
 		SetSpaceReserve(spaceReserve).
 		SetSnapshotPolicy(snapshotPolicy).
 		SetUnixPermissions(unixPermissions).
+		SetExportPolicy(exportPolicy).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// VolumeCloneCreate clones a volume from a snapshot
+func (d Driver) VolumeCloneCreate(name, source, snapshot string) (response azgo.VolumeCloneCreateResponse, err error) {
+	response, err = azgo.NewVolumeCloneCreateRequest().
+		SetVolume(name).
+		SetParentVolume(source).
+		SetParentSnapshot(snapshot).
 		ExecuteUsing(d.zr)
 	return
 }
@@ -233,6 +244,31 @@ func (d Driver) VolumeDestroy(name string, force bool) (response azgo.VolumeDest
 }
 
 // VOLUME operations END
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// SNAPSHOT operations BEGIN
+
+// SnapshotCreate creates a snapshot of a volume
+func (d Driver) SnapshotCreate(name, volumeName string) (response azgo.SnapshotCreateResponse, err error) {
+	response, err = azgo.NewSnapshotCreateRequest().
+		SetSnapshot(name).
+		SetVolume(volumeName).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// SnapshotGetByVolume returns the list of snapshots associated with a volume
+func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGetIterResponse, err error) {
+	query := azgo.NewSnapshotInfoType().SetVolume(volumeName)
+
+	response, err = azgo.NewSnapshotGetIterRequest().
+		SetQuery(*query).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// SNAPSHOT operations END
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
