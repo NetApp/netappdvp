@@ -202,7 +202,9 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 
 	log.Debugf("GetVolumeByName: %s, %d", name, d.TenantID)
 	log.Debugf("Options passed in to create: %+v", opts)
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+        // SolidFire can only handle letters, numbers and - in volume name
+        theName := strings.Replace(name, "_", "-",-1)
+	v, err := d.Client.GetVolumeByName(theName, d.TenantID)
 	if err == nil && v.VolumeID != 0 {
 		log.Infof("Found existing Volume by name: %s", name)
 		return nil
@@ -244,7 +246,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 
 	req.TotalSize = vsz
 	req.AccountID = d.TenantID
-	req.Name = name
+	req.Name = theName
 	req.Attributes = meta
 	_, err = d.Client.CreateVolume(&req)
 	if err != nil {
@@ -259,8 +261,9 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 
 	var req sfapi.CloneVolumeRequest
 
+        theName := strings.Replace(name, "_", "-",-1)
 	// Check to see if the clone already exists
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	v, err := d.Client.GetVolumeByName(theName, d.TenantID)
 	if err == nil && v.VolumeID != 0 {
 		// The clone already exists; skip and call it a success
 		return nil
@@ -276,14 +279,15 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	}
 
 	// Get the volume ID for the source volume
-	v, err = d.Client.GetVolumeByName(source, d.TenantID)
+        theSource := strings.Replace(source, "_", "-",-1)
+	v, err = d.Client.GetVolumeByName(theSource, d.TenantID)
 	if err != nil || v.VolumeID == 0 {
 		return fmt.Errorf("Failed to find source volume: error: %v", err)
 	}
 
 	// Create the clone of the source volume with the name specified
 	req.VolumeID = v.VolumeID
-	req.Name = name
+	req.Name = theName
 	_, err = d.Client.CloneVolume(&req)
 	if err != nil {
 		return fmt.Errorf("Failed to create clone: error: %v", err)
@@ -295,7 +299,8 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	log.Debugf("SolidfireSANStorageDriver#Destroy(%v)", name)
 
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+        theName := strings.Replace(name, "_", "-",-1)
+	v, err := d.Client.GetVolumeByName(theName, d.TenantID)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve volume named %s during Remove operation;  error: %v", name, err)
 	}
@@ -317,7 +322,8 @@ func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 func (d *SolidfireSANStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
 	log.Debugf("SolidfireSANStorageDriver#Attach(%v, %v, %v)", name, mountpoint, opts)
 
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+        theName := strings.Replace(name, "_", "-",-1)
+	v, err := d.Client.GetVolumeByName(theName, d.TenantID)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve volume by name in mount operation;  name: %v error: %v", name, err)
 	}
@@ -352,7 +358,8 @@ func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 		return fmt.Errorf("Problem unmounting docker volume: %v mountpoint: %v error: %v", name, mountpoint, umountErr)
 	}
 
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+        theName := strings.Replace(name, "_", "-",-1)
+	v, err := d.Client.GetVolumeByName(theName, d.TenantID)
 	if err != nil {
 		return fmt.Errorf("Problem looking up volume name: %v TenantID: %v error: %v", name, d.TenantID, err)
 	}
@@ -375,7 +382,8 @@ func (d *SolidfireSANStorageDriver) DefaultSnapshotPrefix() string {
 func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
 	log.Debugf("SolidfireSANStorageDriver#SnapshotList(%v)", name)
 
-	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+        theName := strings.Replace(name, "_", "-",-1)
+	v, err := d.Client.GetVolumeByName(theName, d.TenantID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve volume by name in snapshot list operation; name: %v error: %v", name, err)
 	}
