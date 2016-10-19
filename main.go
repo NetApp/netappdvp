@@ -141,7 +141,7 @@ func main() {
 	}
 	h := volume.NewHandler(d)
 	if *port != "" {
-		log.Info(h.ServeTCP(*driverID, ":"+*port))
+		log.Info(h.ServeTCP(*driverID, ":"+*port, nil))
 	} else {
 		log.Info(h.ServeUnix("root", *driverID)) // 'root' here is the unix group to start as
 	}
