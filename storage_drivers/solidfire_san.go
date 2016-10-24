@@ -204,6 +204,7 @@ func (d *SolidfireSANStorageDriver) StripVolumePrefix(name string) string {
 	// different prefixes for Volumes and Snapshots.
 	dockerName := name
 	prefix := string(d.Config.CommonStorageDriverConfig.StoragePrefixRaw)
+	prefix = strings.Replace(prefix, "\"", "", -1)
 	if prefix != "" {
 		dockerName = strings.Replace(name, prefix, "", -1)
 	}
@@ -223,6 +224,7 @@ func (d *SolidfireSANStorageDriver) StripSnapshotPrefix(name string) string {
 	// different prefixes for Volumes and Snapshots.
 	dockerName := name
 	prefix := string(d.Config.CommonStorageDriverConfig.SnapshotPrefixRaw)
+	prefix = strings.Replace(prefix, "\"", "", -1)
 	if prefix != "" {
 		dockerName = strings.Replace(name, prefix, "", -1)
 	}
