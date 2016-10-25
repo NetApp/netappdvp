@@ -61,6 +61,12 @@ type DriverConfig struct {
 	//Internal Config Variables
 	ArrayID string //Unique ID for array once added to web proxy services
 	Volumes map[string]*VolumeInfo
+
+	//Storage protocol of the driver (iSCSI, FC, etc)
+	Protocol string
+
+	DriverName string
+	Version    int
 }
 
 // Driver is the object to use for interacting with the Array
@@ -80,12 +86,20 @@ func NewDriver(config DriverConfig) *Driver {
 	d.config.ArrayID = ""
 	d.config.Volumes = make(map[string]*VolumeInfo)
 
+	volumeTags = []VolumeTag{
+		{Key: "API", Value: "netappdvp-" + strconv.Itoa(config.Version)},
+		{Key: "eBI", Value: "Containers-Docker"},
+		{Key: "IF", Value: d.config.Protocol},
+		{Key: "netappdvp", Value: config.DriverName},
+	}
+
 	return d
 }
 
+var volumeTags []VolumeTag
+
 // SendMsg sends the marshaled json byte array to the web services proxy
 func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Response, error) {
-
 	if data == nil && d.config.ArrayID == "" {
 		panic("data is nil and no ArrayID set!")
 	}
@@ -136,6 +150,9 @@ func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Res
 	log.Debugf("response Headers: %s", resp.Header)
 
 	return resp, err
+}
+
+func (d Driver) init() {
 }
 
 // Connect to the array's Web Services Proxy
@@ -421,6 +438,7 @@ func (d Driver) CreateVolume(name string, volumeGroupRef string, size string, me
 	msgCreateVolume.Name = name
 	msgCreateVolume.SizeUnit = "kb" //bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
 	msgCreateVolume.SegmentSize = 128
+	msgCreateVolume.VolumeTags = volumeTags
 
 	//Convert size string to int64
 	convertedSize, convertErr := utils.ConvertSizeToBytes64(size)
