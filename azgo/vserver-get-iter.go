@@ -33,13 +33,18 @@ func NewVserverGetIterRequest() *VserverGetIterRequest { return &VserverGetIterR
 func (r *VserverGetIterRequest) ExecuteUsing(zr *ZapiRunner) (VserverGetIterResponse, error) {
 	resp, err := zr.SendZapi(r)
 	defer resp.Body.Close()
+	if err != nil {
+		log.Errorf("err: %v", err.Error())
+	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	log.Debugf("response Body:\n%s", string(body))
 
 	var n VserverGetIterResponse
-	xml.Unmarshal(body, &n)
+	err = xml.Unmarshal(body, &n)
 	if err != nil {
-		log.Errorf("err: %v", err.Error())
+		log.WithFields(log.Fields{
+			"zapi": "VserverGetIter",
+		}).Errorf("err: %v", err.Error())
 	}
 	log.Debugf("vserver-get-iter result:\n%s", n.Result)
 

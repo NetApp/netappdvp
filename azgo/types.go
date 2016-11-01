@@ -6,15 +6,20 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 )
 
+type NullableSizeType string
+
 type VserverAggrInfoType struct {
 	XMLName xml.Name `xml:"vserver-aggr-info"`
 
-	AggrAvailsizePtr *SizeType     `xml:"aggr-availsize"`
-	AggrNamePtr      *AggrNameType `xml:"aggr-name"`
+	// We need to use this for compatibility with ONTAP 9.
+	//AggrAvailsizePtr *SizeType     `xml:"aggr-availsize"`
+	AggrAvailsizePtr *NullableSizeType `xml:"aggr-availsize"`
+	AggrNamePtr      *AggrNameType     `xml:"aggr-name"`
 }
 
 func (o *VserverAggrInfoType) ToXML() (string, error) {
@@ -42,13 +47,18 @@ func (o VserverAggrInfoType) String() string {
 	return buffer.String()
 }
 
-func (o *VserverAggrInfoType) AggrAvailsize() SizeType {
+func (o *VserverAggrInfoType) AggrAvailsize() (SizeType, error) {
 	r := *o.AggrAvailsizePtr
-	return r
+	if r == "" {
+		return 0, nil
+	}
+	ret, err := strconv.Atoi(string(r))
+	return SizeType(ret), err
 }
 
 func (o *VserverAggrInfoType) SetAggrAvailsize(newValue SizeType) *VserverAggrInfoType {
-	o.AggrAvailsizePtr = &newValue
+	n := NullableSizeType(strconv.Itoa(int(newValue)))
+	o.AggrAvailsizePtr = &n
 	return o
 }
 
@@ -576,6 +586,37 @@ func (o *VserverInfoType) VserverType() string {
 func (o *VserverInfoType) SetVserverType(newValue string) *VserverInfoType {
 	o.VserverTypePtr = &newValue
 	return o
+}
+
+type AggrAttributesType struct {
+	XMLName               xml.Name                `xml:"aggr-attributes"`
+	AggrRaidAttributesPtr *AggrRaidAttributesType `xml:"aggr-raid-attributes"`
+	AggregateNamePtr      *string                 `xml:"aggregate-name"`
+}
+
+func (o *AggrAttributesType) AggrRaidAttributes() AggrRaidAttributesType {
+	r := *o.AggrRaidAttributesPtr
+	return r
+}
+
+func (o *AggrAttributesType) AggregateName() string {
+	r := *o.AggregateNamePtr
+	return r
+}
+
+type AggrRaidAttributesType struct {
+	AggregateTypePtr *string `xml:"aggregate-type"`
+	RaidTypePtr      *string `xml:"raid-type"`
+}
+
+func (o *AggrRaidAttributesType) AggregateType() string {
+	r := *o.AggregateTypePtr
+	return r
+}
+
+func (o *AggrRaidAttributesType) RaidType() string {
+	r := *o.RaidTypePtr
+	return r
 }
 
 type VolumeModifyIterInfoType struct {
