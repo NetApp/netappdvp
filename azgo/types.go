@@ -4917,429 +4917,579 @@ func (o *NetInterfaceInfoType) SetWwpn(newValue string) *NetInterfaceInfoType {
 type SnapshotIdType string
 
 type SnapshotInfoType struct {
-    XMLName xml.Name `xml:"snapshot-info"`
+	XMLName xml.Name `xml:"snapshot-info"`
 
-    AccessTimePtr *int `xml:"access-time"`
-    BusyPtr *bool `xml:"busy"`
-    ContainsLunClonesPtr *bool `xml:"contains-lun-clones"`
-    CumulativePercentageOfTotalBlocksPtr *int `xml:"cumulative-percentage-of-total-blocks"`
-    CumulativePercentageOfUsedBlocksPtr *int `xml:"cumulative-percentage-of-used-blocks"`
-    CumulativeTotalPtr *int `xml:"cumulative-total"`
-    DependencyPtr *string `xml:"dependency"`
-    Is7ModeSnapshotPtr *bool `xml:"is-7-mode-snapshot"`
-    IsConstituentSnapshotPtr *bool `xml:"is-constituent-snapshot"`
-    NamePtr *string `xml:"name"`
-    PercentageOfTotalBlocksPtr *int `xml:"percentage-of-total-blocks"`
-    PercentageOfUsedBlocksPtr *int `xml:"percentage-of-used-blocks"`
-    SnapmirrorLabelPtr *string `xml:"snapmirror-label"`
-    SnapshotInstanceUuidPtr *UUIDType `xml:"snapshot-instance-uuid"`
-    SnapshotOwnersListPtr []SnapshotOwnerType `xml:"snapshot-owners-list>snapshot-owner"`
-    SnapshotVersionUuidPtr *UUIDType `xml:"snapshot-version-uuid"`
-    StatePtr *string `xml:"state"`
-    TotalPtr *int `xml:"total"`
-    VolumePtr *string `xml:"volume"`
-    VolumeProvenanceUuidPtr *UUIDType `xml:"volume-provenance-uuid"`
-    VserverPtr *string `xml:"vserver"`
+	AccessTimePtr                        *int                `xml:"access-time"`
+	BusyPtr                              *bool               `xml:"busy"`
+	ContainsLunClonesPtr                 *bool               `xml:"contains-lun-clones"`
+	CumulativePercentageOfTotalBlocksPtr *int                `xml:"cumulative-percentage-of-total-blocks"`
+	CumulativePercentageOfUsedBlocksPtr  *int                `xml:"cumulative-percentage-of-used-blocks"`
+	CumulativeTotalPtr                   *int                `xml:"cumulative-total"`
+	DependencyPtr                        *string             `xml:"dependency"`
+	Is7ModeSnapshotPtr                   *bool               `xml:"is-7-mode-snapshot"`
+	IsConstituentSnapshotPtr             *bool               `xml:"is-constituent-snapshot"`
+	NamePtr                              *string             `xml:"name"`
+	PercentageOfTotalBlocksPtr           *int                `xml:"percentage-of-total-blocks"`
+	PercentageOfUsedBlocksPtr            *int                `xml:"percentage-of-used-blocks"`
+	SnapmirrorLabelPtr                   *string             `xml:"snapmirror-label"`
+	SnapshotInstanceUuidPtr              *UUIDType           `xml:"snapshot-instance-uuid"`
+	SnapshotOwnersListPtr                []SnapshotOwnerType `xml:"snapshot-owners-list>snapshot-owner"`
+	SnapshotVersionUuidPtr               *UUIDType           `xml:"snapshot-version-uuid"`
+	StatePtr                             *string             `xml:"state"`
+	TotalPtr                             *int                `xml:"total"`
+	VolumePtr                            *string             `xml:"volume"`
+	VolumeProvenanceUuidPtr              *UUIDType           `xml:"volume-provenance-uuid"`
+	VserverPtr                           *string             `xml:"vserver"`
 }
 
 func (o *SnapshotInfoType) ToXML() (string, error) {
-    output, err := xml.MarshalIndent(o, " ", "    ")
-    if err != nil { fmt.Printf("error: %v\n", err) } // TODO: handle better
-    //fmt.Println(string(output))
-    return string(output), err
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	} // TODO: handle better
+	//fmt.Println(string(output))
+	return string(output), err
 }
 
 func NewSnapshotInfoType() *SnapshotInfoType { return &SnapshotInfoType{} }
 
 func (o SnapshotInfoType) String() string {
-    var buffer bytes.Buffer
-    if o.AccessTimePtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "access-time", *o.AccessTimePtr)) } else { buffer.WriteString(fmt.Sprintf("access-time: nil\n")) } 
-    if o.BusyPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "busy", *o.BusyPtr)) } else { buffer.WriteString(fmt.Sprintf("busy: nil\n")) } 
-    if o.ContainsLunClonesPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "contains-lun-clones", *o.ContainsLunClonesPtr)) } else { buffer.WriteString(fmt.Sprintf("contains-lun-clones: nil\n")) } 
-    if o.CumulativePercentageOfTotalBlocksPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "cumulative-percentage-of-total-blocks", *o.CumulativePercentageOfTotalBlocksPtr)) } else { buffer.WriteString(fmt.Sprintf("cumulative-percentage-of-total-blocks: nil\n")) } 
-    if o.CumulativePercentageOfUsedBlocksPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "cumulative-percentage-of-used-blocks", *o.CumulativePercentageOfUsedBlocksPtr)) } else { buffer.WriteString(fmt.Sprintf("cumulative-percentage-of-used-blocks: nil\n")) } 
-    if o.CumulativeTotalPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "cumulative-total", *o.CumulativeTotalPtr)) } else { buffer.WriteString(fmt.Sprintf("cumulative-total: nil\n")) } 
-    if o.DependencyPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "dependency", *o.DependencyPtr)) } else { buffer.WriteString(fmt.Sprintf("dependency: nil\n")) } 
-    if o.Is7ModeSnapshotPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-7-mode-snapshot", *o.Is7ModeSnapshotPtr)) } else { buffer.WriteString(fmt.Sprintf("is-7-mode-snapshot: nil\n")) } 
-    if o.IsConstituentSnapshotPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-constituent-snapshot", *o.IsConstituentSnapshotPtr)) } else { buffer.WriteString(fmt.Sprintf("is-constituent-snapshot: nil\n")) } 
-    if o.NamePtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "name", *o.NamePtr)) } else { buffer.WriteString(fmt.Sprintf("name: nil\n")) } 
-    if o.PercentageOfTotalBlocksPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "percentage-of-total-blocks", *o.PercentageOfTotalBlocksPtr)) } else { buffer.WriteString(fmt.Sprintf("percentage-of-total-blocks: nil\n")) } 
-    if o.PercentageOfUsedBlocksPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "percentage-of-used-blocks", *o.PercentageOfUsedBlocksPtr)) } else { buffer.WriteString(fmt.Sprintf("percentage-of-used-blocks: nil\n")) } 
-    if o.SnapmirrorLabelPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapmirror-label", *o.SnapmirrorLabelPtr)) } else { buffer.WriteString(fmt.Sprintf("snapmirror-label: nil\n")) } 
-    if o.SnapshotInstanceUuidPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapshot-instance-uuid", *o.SnapshotInstanceUuidPtr)) } else { buffer.WriteString(fmt.Sprintf("snapshot-instance-uuid: nil\n")) } 
-    if o.SnapshotOwnersListPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapshot-owners-list", o.SnapshotOwnersListPtr)) } else { buffer.WriteString(fmt.Sprintf("snapshot-owners-list: nil\n")) } 
-    if o.SnapshotVersionUuidPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapshot-version-uuid", *o.SnapshotVersionUuidPtr)) } else { buffer.WriteString(fmt.Sprintf("snapshot-version-uuid: nil\n")) } 
-    if o.StatePtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "state", *o.StatePtr)) } else { buffer.WriteString(fmt.Sprintf("state: nil\n")) } 
-    if o.TotalPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "total", *o.TotalPtr)) } else { buffer.WriteString(fmt.Sprintf("total: nil\n")) } 
-    if o.VolumePtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume", *o.VolumePtr)) } else { buffer.WriteString(fmt.Sprintf("volume: nil\n")) } 
-    if o.VolumeProvenanceUuidPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume-provenance-uuid", *o.VolumeProvenanceUuidPtr)) } else { buffer.WriteString(fmt.Sprintf("volume-provenance-uuid: nil\n")) } 
-    if o.VserverPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr)) } else { buffer.WriteString(fmt.Sprintf("vserver: nil\n")) } 
-    return buffer.String()
+	var buffer bytes.Buffer
+	if o.AccessTimePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "access-time", *o.AccessTimePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("access-time: nil\n"))
+	}
+	if o.BusyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "busy", *o.BusyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("busy: nil\n"))
+	}
+	if o.ContainsLunClonesPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "contains-lun-clones", *o.ContainsLunClonesPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("contains-lun-clones: nil\n"))
+	}
+	if o.CumulativePercentageOfTotalBlocksPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "cumulative-percentage-of-total-blocks", *o.CumulativePercentageOfTotalBlocksPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("cumulative-percentage-of-total-blocks: nil\n"))
+	}
+	if o.CumulativePercentageOfUsedBlocksPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "cumulative-percentage-of-used-blocks", *o.CumulativePercentageOfUsedBlocksPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("cumulative-percentage-of-used-blocks: nil\n"))
+	}
+	if o.CumulativeTotalPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "cumulative-total", *o.CumulativeTotalPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("cumulative-total: nil\n"))
+	}
+	if o.DependencyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "dependency", *o.DependencyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("dependency: nil\n"))
+	}
+	if o.Is7ModeSnapshotPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-7-mode-snapshot", *o.Is7ModeSnapshotPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-7-mode-snapshot: nil\n"))
+	}
+	if o.IsConstituentSnapshotPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-constituent-snapshot", *o.IsConstituentSnapshotPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-constituent-snapshot: nil\n"))
+	}
+	if o.NamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "name", *o.NamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("name: nil\n"))
+	}
+	if o.PercentageOfTotalBlocksPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "percentage-of-total-blocks", *o.PercentageOfTotalBlocksPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("percentage-of-total-blocks: nil\n"))
+	}
+	if o.PercentageOfUsedBlocksPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "percentage-of-used-blocks", *o.PercentageOfUsedBlocksPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("percentage-of-used-blocks: nil\n"))
+	}
+	if o.SnapmirrorLabelPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapmirror-label", *o.SnapmirrorLabelPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("snapmirror-label: nil\n"))
+	}
+	if o.SnapshotInstanceUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapshot-instance-uuid", *o.SnapshotInstanceUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("snapshot-instance-uuid: nil\n"))
+	}
+	if o.SnapshotOwnersListPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapshot-owners-list", o.SnapshotOwnersListPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("snapshot-owners-list: nil\n"))
+	}
+	if o.SnapshotVersionUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapshot-version-uuid", *o.SnapshotVersionUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("snapshot-version-uuid: nil\n"))
+	}
+	if o.StatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "state", *o.StatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("state: nil\n"))
+	}
+	if o.TotalPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "total", *o.TotalPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("total: nil\n"))
+	}
+	if o.VolumePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume", *o.VolumePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("volume: nil\n"))
+	}
+	if o.VolumeProvenanceUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume-provenance-uuid", *o.VolumeProvenanceUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("volume-provenance-uuid: nil\n"))
+	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
+	return buffer.String()
 }
 
 func (o *SnapshotInfoType) AccessTime() int {
-    r := *o.AccessTimePtr
-    return r
+	r := *o.AccessTimePtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetAccessTime(newValue int) *SnapshotInfoType {
-    o.AccessTimePtr = &newValue
-    return o
+	o.AccessTimePtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) Busy() bool {
-    r := *o.BusyPtr
-    return r
+	r := *o.BusyPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetBusy(newValue bool) *SnapshotInfoType {
-    o.BusyPtr = &newValue
-    return o
+	o.BusyPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) ContainsLunClones() bool {
-    r := *o.ContainsLunClonesPtr
-    return r
+	r := *o.ContainsLunClonesPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetContainsLunClones(newValue bool) *SnapshotInfoType {
-    o.ContainsLunClonesPtr = &newValue
-    return o
+	o.ContainsLunClonesPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) CumulativePercentageOfTotalBlocks() int {
-    r := *o.CumulativePercentageOfTotalBlocksPtr
-    return r
+	r := *o.CumulativePercentageOfTotalBlocksPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetCumulativePercentageOfTotalBlocks(newValue int) *SnapshotInfoType {
-    o.CumulativePercentageOfTotalBlocksPtr = &newValue
-    return o
+	o.CumulativePercentageOfTotalBlocksPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) CumulativePercentageOfUsedBlocks() int {
-    r := *o.CumulativePercentageOfUsedBlocksPtr
-    return r
+	r := *o.CumulativePercentageOfUsedBlocksPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetCumulativePercentageOfUsedBlocks(newValue int) *SnapshotInfoType {
-    o.CumulativePercentageOfUsedBlocksPtr = &newValue
-    return o
+	o.CumulativePercentageOfUsedBlocksPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) CumulativeTotal() int {
-    r := *o.CumulativeTotalPtr
-    return r
+	r := *o.CumulativeTotalPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetCumulativeTotal(newValue int) *SnapshotInfoType {
-    o.CumulativeTotalPtr = &newValue
-    return o
+	o.CumulativeTotalPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) Dependency() string {
-    r := *o.DependencyPtr
-    return r
+	r := *o.DependencyPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetDependency(newValue string) *SnapshotInfoType {
-    o.DependencyPtr = &newValue
-    return o
+	o.DependencyPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) Is7ModeSnapshot() bool {
-    r := *o.Is7ModeSnapshotPtr
-    return r
+	r := *o.Is7ModeSnapshotPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetIs7ModeSnapshot(newValue bool) *SnapshotInfoType {
-    o.Is7ModeSnapshotPtr = &newValue
-    return o
+	o.Is7ModeSnapshotPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) IsConstituentSnapshot() bool {
-    r := *o.IsConstituentSnapshotPtr
-    return r
+	r := *o.IsConstituentSnapshotPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetIsConstituentSnapshot(newValue bool) *SnapshotInfoType {
-    o.IsConstituentSnapshotPtr = &newValue
-    return o
+	o.IsConstituentSnapshotPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) Name() string {
-    r := *o.NamePtr
-    return r
+	r := *o.NamePtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetName(newValue string) *SnapshotInfoType {
-    o.NamePtr = &newValue
-    return o
+	o.NamePtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) PercentageOfTotalBlocks() int {
-    r := *o.PercentageOfTotalBlocksPtr
-    return r
+	r := *o.PercentageOfTotalBlocksPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetPercentageOfTotalBlocks(newValue int) *SnapshotInfoType {
-    o.PercentageOfTotalBlocksPtr = &newValue
-    return o
+	o.PercentageOfTotalBlocksPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) PercentageOfUsedBlocks() int {
-    r := *o.PercentageOfUsedBlocksPtr
-    return r
+	r := *o.PercentageOfUsedBlocksPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetPercentageOfUsedBlocks(newValue int) *SnapshotInfoType {
-    o.PercentageOfUsedBlocksPtr = &newValue
-    return o
+	o.PercentageOfUsedBlocksPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) SnapmirrorLabel() string {
-    r := *o.SnapmirrorLabelPtr
-    return r
+	r := *o.SnapmirrorLabelPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetSnapmirrorLabel(newValue string) *SnapshotInfoType {
-    o.SnapmirrorLabelPtr = &newValue
-    return o
+	o.SnapmirrorLabelPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) SnapshotInstanceUuid() UUIDType {
-    r := *o.SnapshotInstanceUuidPtr
-    return r
+	r := *o.SnapshotInstanceUuidPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetSnapshotInstanceUuid(newValue UUIDType) *SnapshotInfoType {
-    o.SnapshotInstanceUuidPtr = &newValue
-    return o
+	o.SnapshotInstanceUuidPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) SnapshotOwnersList() []SnapshotOwnerType {
-    r := o.SnapshotOwnersListPtr
-    return r
+	r := o.SnapshotOwnersListPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetSnapshotOwnersList(newValue []SnapshotOwnerType) *SnapshotInfoType {
-    newSlice := make([]SnapshotOwnerType, len(newValue))
-    copy(newSlice, newValue)
-    o.SnapshotOwnersListPtr = newSlice
-    return o
+	newSlice := make([]SnapshotOwnerType, len(newValue))
+	copy(newSlice, newValue)
+	o.SnapshotOwnersListPtr = newSlice
+	return o
 }
 
 func (o *SnapshotInfoType) SnapshotVersionUuid() UUIDType {
-    r := *o.SnapshotVersionUuidPtr
-    return r
+	r := *o.SnapshotVersionUuidPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetSnapshotVersionUuid(newValue UUIDType) *SnapshotInfoType {
-    o.SnapshotVersionUuidPtr = &newValue
-    return o
+	o.SnapshotVersionUuidPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) State() string {
-    r := *o.StatePtr
-    return r
+	r := *o.StatePtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetState(newValue string) *SnapshotInfoType {
-    o.StatePtr = &newValue
-    return o
+	o.StatePtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) Total() int {
-    r := *o.TotalPtr
-    return r
+	r := *o.TotalPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetTotal(newValue int) *SnapshotInfoType {
-    o.TotalPtr = &newValue
-    return o
+	o.TotalPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) Volume() string {
-    r := *o.VolumePtr
-    return r
+	r := *o.VolumePtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetVolume(newValue string) *SnapshotInfoType {
-    o.VolumePtr = &newValue
-    return o
+	o.VolumePtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) VolumeProvenanceUuid() UUIDType {
-    r := *o.VolumeProvenanceUuidPtr
-    return r
+	r := *o.VolumeProvenanceUuidPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetVolumeProvenanceUuid(newValue UUIDType) *SnapshotInfoType {
-    o.VolumeProvenanceUuidPtr = &newValue
-    return o
+	o.VolumeProvenanceUuidPtr = &newValue
+	return o
 }
 
 func (o *SnapshotInfoType) Vserver() string {
-    r := *o.VserverPtr
-    return r
+	r := *o.VserverPtr
+	return r
 }
 
 func (o *SnapshotInfoType) SetVserver(newValue string) *SnapshotInfoType {
-    o.VserverPtr = &newValue
-    return o
+	o.VserverPtr = &newValue
+	return o
 }
 
 type SnapshotOwnerType struct {
-    XMLName xml.Name `xml:"snapshot-owner"`
+	XMLName xml.Name `xml:"snapshot-owner"`
 
-    OwnerPtr *string `xml:"owner"`
+	OwnerPtr *string `xml:"owner"`
 }
 
 func (o *SnapshotOwnerType) ToXML() (string, error) {
-    output, err := xml.MarshalIndent(o, " ", "    ")
-    if err != nil { fmt.Printf("error: %v\n", err) } // TODO: handle better
-    //fmt.Println(string(output))
-    return string(output), err
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	} // TODO: handle better
+	//fmt.Println(string(output))
+	return string(output), err
 }
 
 func NewSnapshotOwnerType() *SnapshotOwnerType { return &SnapshotOwnerType{} }
 
 func (o SnapshotOwnerType) String() string {
-    var buffer bytes.Buffer
-    if o.OwnerPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "owner", *o.OwnerPtr)) } else { buffer.WriteString(fmt.Sprintf("owner: nil\n")) }
-    return buffer.String()
+	var buffer bytes.Buffer
+	if o.OwnerPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "owner", *o.OwnerPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("owner: nil\n"))
+	}
+	return buffer.String()
 }
 
 func (o *SnapshotOwnerType) Owner() string {
-    r := *o.OwnerPtr
-    return r
+	r := *o.OwnerPtr
+	return r
 }
 
 func (o *SnapshotOwnerType) SetOwner(newValue string) *SnapshotOwnerType {
-    o.OwnerPtr = &newValue
-    return o
+	o.OwnerPtr = &newValue
+	return o
 }
 
 type UUIDType string
 
 type VolumeErrorType struct {
-    XMLName xml.Name `xml:"volume-error"`
+	XMLName xml.Name `xml:"volume-error"`
 
-    ErrnoPtr *int `xml:"errno"`
-    NamePtr *VolumeNameType `xml:"name"`
-    ReasonPtr *string `xml:"reason"`
-    VserverPtr *string `xml:"vserver"`
+	ErrnoPtr   *int            `xml:"errno"`
+	NamePtr    *VolumeNameType `xml:"name"`
+	ReasonPtr  *string         `xml:"reason"`
+	VserverPtr *string         `xml:"vserver"`
 }
 
 func (o *VolumeErrorType) ToXML() (string, error) {
-    output, err := xml.MarshalIndent(o, " ", "    ")
-    if err != nil { fmt.Printf("error: %v\n", err) } // TODO: handle better
-    //fmt.Println(string(output))
-    return string(output), err
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	} // TODO: handle better
+	//fmt.Println(string(output))
+	return string(output), err
 }
 
 func NewVolumeErrorType() *VolumeErrorType { return &VolumeErrorType{} }
 
 func (o VolumeErrorType) String() string {
-    var buffer bytes.Buffer
-    if o.ErrnoPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "errno", *o.ErrnoPtr)) } else { buffer.WriteString(fmt.Sprintf("errno: nil\n")) }
-    if o.NamePtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "name", *o.NamePtr)) } else { buffer.WriteString(fmt.Sprintf("name: nil\n")) }
-    if o.ReasonPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "reason", *o.ReasonPtr)) } else { buffer.WriteString(fmt.Sprintf("reason: nil\n")) }
-    if o.VserverPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr)) } else { buffer.WriteString(fmt.Sprintf("vserver: nil\n")) }
-    return buffer.String()
+	var buffer bytes.Buffer
+	if o.ErrnoPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "errno", *o.ErrnoPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("errno: nil\n"))
+	}
+	if o.NamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "name", *o.NamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("name: nil\n"))
+	}
+	if o.ReasonPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "reason", *o.ReasonPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("reason: nil\n"))
+	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
+	return buffer.String()
 }
 
 func (o *VolumeErrorType) Errno() int {
-    r := *o.ErrnoPtr
-    return r
+	r := *o.ErrnoPtr
+	return r
 }
 
 func (o *VolumeErrorType) SetErrno(newValue int) *VolumeErrorType {
-    o.ErrnoPtr = &newValue
-    return o
+	o.ErrnoPtr = &newValue
+	return o
 }
 
 func (o *VolumeErrorType) Name() VolumeNameType {
-    r := *o.NamePtr
-    return r
+	r := *o.NamePtr
+	return r
 }
 
 func (o *VolumeErrorType) SetName(newValue VolumeNameType) *VolumeErrorType {
-    o.NamePtr = &newValue
-    return o
+	o.NamePtr = &newValue
+	return o
 }
 
 func (o *VolumeErrorType) Reason() string {
-    r := *o.ReasonPtr
-    return r
+	r := *o.ReasonPtr
+	return r
 }
 
 func (o *VolumeErrorType) SetReason(newValue string) *VolumeErrorType {
-    o.ReasonPtr = &newValue
-    return o
+	o.ReasonPtr = &newValue
+	return o
 }
 
 func (o *VolumeErrorType) Vserver() string {
-    r := *o.VserverPtr
-    return r
+	r := *o.VserverPtr
+	return r
 }
 
 func (o *VolumeErrorType) SetVserver(newValue string) *VolumeErrorType {
-    o.VserverPtr = &newValue
-    return o
+	o.VserverPtr = &newValue
+	return o
 }
 
 type BlockRangeType struct {
-    XMLName xml.Name `xml:"block-range"`
+	XMLName xml.Name `xml:"block-range"`
 
-    BlockCountPtr *int `xml:"block-count"`
-    DestinationBlockNumberPtr *int `xml:"destination-block-number"`
-    SourceBlockNumberPtr *int `xml:"source-block-number"`
+	BlockCountPtr             *int `xml:"block-count"`
+	DestinationBlockNumberPtr *int `xml:"destination-block-number"`
+	SourceBlockNumberPtr      *int `xml:"source-block-number"`
 }
 
 func (o *BlockRangeType) ToXML() (string, error) {
-    output, err := xml.MarshalIndent(o, " ", "    ")
-    if err != nil { fmt.Printf("error: %v\n", err) } // TODO: handle better
-    //fmt.Println(string(output))
-    return string(output), err
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	} // TODO: handle better
+	//fmt.Println(string(output))
+	return string(output), err
 }
 
 func NewBlockRangeType() *BlockRangeType { return &BlockRangeType{} }
 
 func (o BlockRangeType) String() string {
-    var buffer bytes.Buffer
-    if o.BlockCountPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "block-count", *o.BlockCountPtr)) } else { buffer.WriteString(fmt.Sprintf("block-count: nil\n")) }
-    if o.DestinationBlockNumberPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "destination-block-number", *o.DestinationBlockNumberPtr)) } else { buffer.WriteString(fmt.Sprintf("destination-block-number: nil\n")) }
-    if o.SourceBlockNumberPtr != nil { buffer.WriteString(fmt.Sprintf("%s: %v\n", "source-block-number", *o.SourceBlockNumberPtr)) } else { buffer.WriteString(fmt.Sprintf("source-block-number: nil\n")) }
-    return buffer.String()
+	var buffer bytes.Buffer
+	if o.BlockCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "block-count", *o.BlockCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("block-count: nil\n"))
+	}
+	if o.DestinationBlockNumberPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "destination-block-number", *o.DestinationBlockNumberPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("destination-block-number: nil\n"))
+	}
+	if o.SourceBlockNumberPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "source-block-number", *o.SourceBlockNumberPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("source-block-number: nil\n"))
+	}
+	return buffer.String()
 }
 
 func (o *BlockRangeType) BlockCount() int {
-    r := *o.BlockCountPtr
-    return r
+	r := *o.BlockCountPtr
+	return r
 }
 
 func (o *BlockRangeType) SetBlockCount(newValue int) *BlockRangeType {
-    o.BlockCountPtr = &newValue
-    return o
+	o.BlockCountPtr = &newValue
+	return o
 }
 
 func (o *BlockRangeType) DestinationBlockNumber() int {
-    r := *o.DestinationBlockNumberPtr
-    return r
+	r := *o.DestinationBlockNumberPtr
+	return r
 }
 
 func (o *BlockRangeType) SetDestinationBlockNumber(newValue int) *BlockRangeType {
-    o.DestinationBlockNumberPtr = &newValue
-    return o
+	o.DestinationBlockNumberPtr = &newValue
+	return o
 }
 
 func (o *BlockRangeType) SourceBlockNumber() int {
-    r := *o.SourceBlockNumberPtr
-    return r
+	r := *o.SourceBlockNumberPtr
+	return r
 }
 
 func (o *BlockRangeType) SetSourceBlockNumber(newValue int) *BlockRangeType {
-    o.SourceBlockNumberPtr = &newValue
-    return o
+	o.SourceBlockNumberPtr = &newValue
+	return o
+}
+
+// IscsiServiceInfoType is a structure to represent a iscsi-service-info ZAPI object
+type IscsiServiceInfoType struct {
+	XMLName xml.Name `xml:"iscsi-service-info"`
+
+	AliasNamePtr             *string `xml:"alias-name"`
+	IsAvailablePtr           *bool   `xml:"is-available"`
+	LoginTimeoutPtr          *int    `xml:"login-timeout"`
+	MaxCmdsPerSessionPtr     *int    `xml:"max-cmds-per-session"`
+	MaxConnPerSessionPtr     *int    `xml:"max-conn-per-session"`
+	MaxErrorRecoveryLevelPtr *int    `xml:"max-error-recovery-level"`
+	NodeNamePtr              *string `xml:"node-name"`
+	RetainTimeoutPtr         *int    `xml:"retain-timeout"`
+	TcpWindowSizePtr         *int    `xml:"tcp-window-size"`
+	VserverPtr               *string `xml:"vserver"`
+}
+
+func (o *IscsiServiceInfoType) NodeName() string {
+	r := *o.NodeNamePtr
+	return r
+}
+
+func (o *IscsiServiceInfoType) Vserver() string {
+	r := *o.VserverPtr
+	return r
 }

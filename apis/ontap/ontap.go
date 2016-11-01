@@ -81,6 +81,12 @@ func (d Driver) IgroupDestroy(initiatorGroupName string) (response azgo.IgroupDe
 	return
 }
 
+// IgroupList lists initiator groups
+func (d Driver) IgroupList() (response azgo.IgroupGetIterResponse, err error) {
+	response, err = azgo.NewIgroupGetIterRequest().ExecuteUsing(d.zr)
+	return
+}
+
 // IGROUP operations END
 /////////////////////////////////////////////////////////////////////////////
 
@@ -269,6 +275,18 @@ func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGe
 }
 
 // SNAPSHOT operations END
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// ISCSI operations BEGIN
+
+// IscsiServiceGetIterRequest returns information about an iSCSI target
+func (d Driver) IscsiServiceGetIterRequest() (response azgo.IscsiServiceGetIterResponse, err error) {
+	response, err = azgo.NewIscsiServiceGetIterRequest().ExecuteUsing(d.zr)
+	return
+}
+
+// ISCSI operations END
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////

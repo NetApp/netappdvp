@@ -151,16 +151,6 @@ func (d *OntapSANStorageDriver) Validate() error {
 		return fmt.Errorf("iSCSI support not detected")
 	}
 
-	// error if no 'iscsi session' exsits for the specified iscsi portal
-	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.Config.DataLIF)
-	if sessionExistsErr != nil {
-		return fmt.Errorf("Unexpected iSCSI session error: %v", sessionExistsErr)
-	}
-	if !sessionExists {
-		// TODO automatically login for the user if no session detected?
-		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.Config.DataLIF)
-	}
-
 	return nil
 }
 
@@ -279,6 +269,16 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 // Attach the lun
 func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
 	log.Debugf("OntapSANStorageDriver#Attach(%v, %v, %v)", name, mountpoint, opts)
+
+	// error if no 'iscsi session' exsits for the specified iscsi portal
+	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.Config.DataLIF)
+	if sessionExistsErr != nil {
+		return fmt.Errorf("Unexpected iSCSI session error: %v", sessionExistsErr)
+	}
+	if !sessionExists {
+		// TODO automatically login for the user if no session detected?
+		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.Config.DataLIF)
+	}
 
 	igroupName := d.Config.IgroupName
 	lunPath := lunName(name)

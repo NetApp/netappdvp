@@ -78,7 +78,6 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 		"SnapshotPrefixRaw": string(c.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into solidfireConfig")
 
-	c.DefaultVolSz = c.DefaultVolSz * int64(units.GiB)
 	log.Debugf("Decoded to %v", c)
 	d.Config = *c
 
@@ -86,12 +85,12 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 
 	// create a new sfapi.Config object from the read in json config file
 	endpoint := c.EndPoint
-	defaultSizeGiB := c.DefaultVolSz
+	defaultSizeGiB := c.DefaultVolSz * int64(units.GiB)
 	svip := c.SVIP
 	cfg := sfapi.Config{
 		TenantName:     c.TenantName,
 		EndPoint:       c.EndPoint,
-		DefaultVolSz:   c.DefaultVolSz,
+		DefaultVolSz:   defaultSizeGiB,
 		SVIP:           c.SVIP,
 		InitiatorIFace: c.InitiatorIFace,
 		Types:          c.Types,
@@ -137,7 +136,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 
 	defaultVolSize := int64(1)
 	if c.DefaultVolSz != 0 {
-		defaultVolSize = c.DefaultVolSz
+		defaultVolSize = defaultSizeGiB
 	}
 
 	d.TenantID = tenantID

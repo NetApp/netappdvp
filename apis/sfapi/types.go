@@ -276,3 +276,38 @@ type AddAccountResult struct {
 		AccountID int64 `json:"accountID"`
 	} `json:"result"`
 }
+
+type ClusterCapacity struct {
+	ActiveBlockSpace             int64  `json:"activeBlockSpace"`
+	ActiveSessions               int64  `json:"activeSessions"`
+	AverageIOPS                  int64  `json:"averageIOPS"`
+	ClusterRecentIOSize          int64  `json:"clusterRecentIOSize"`
+	CurrentIOPS                  int64  `json:"currentIOPS"`
+	MaxIOPS                      int64  `json:"maxIOPS"`
+	MaxOverProvisionableSpace    int64  `json:"maxOverProvisionableSpace"`
+	MaxProvisionedSpace          int64  `json:"maxProvisionedSpace"`
+	MaxUsedMetadataSpace         int64  `json:"maxUsedMetadataSpace"`
+	MaxUsedSpace                 int64  `json:"maxUsedSpace"`
+	NonZeroBlocks                int64  `json:"nonZeroBlocks"`
+	PeakActiveSessions           int64  `json:"peakActiveSessions"`
+	PeakIOPS                     int64  `json:"peakIOPS"`
+	ProvisionedSpace             int64  `json:"provisionedSpace"`
+	Timestamp                    string `json:"timestamp"`
+	TotalOps                     int64  `json:"totalOps"`
+	UniqueBlocks                 int64  `json:"uniqueBlocks"`
+	UniqueBlocksUsedSpace        int64  `json:"uniqueBlocksUsedSpace"`
+	UsedMetadataSpace            int64  `json:"usedMetadataSpace"`
+	UsedMetadataSpaceInSnapshots int64  `json:"usedMetadataSpaceInSnapshots"`
+	UsedSpace                    int64  `json:"usedSpace"`
+	ZeroBlocks                   int64  `json:"zeroBlocks"`
+}
+
+type GetClusterCapacityRequest struct {
+}
+
+type GetClusterCapacityResult struct {
+	Id     int `json:"id"`
+	Result struct {
+		ClusterCapacity ClusterCapacity `json:"clusterCapacity"`
+	} `json:"result"`
+}
