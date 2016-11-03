@@ -61,6 +61,12 @@ type DriverConfig struct {
 	//Internal Config Variables
 	ArrayID string //Unique ID for array once added to web proxy services
 	Volumes map[string]*VolumeInfo
+
+	//Storage protocol of the driver (iSCSI, FC, etc)
+	Protocol string
+
+	DriverName string
+	Version    int
 }
 
 // Driver is the object to use for interacting with the Array
@@ -80,14 +86,23 @@ func NewDriver(config DriverConfig) *Driver {
 	d.config.ArrayID = ""
 	d.config.Volumes = make(map[string]*VolumeInfo)
 
+	volumeTags = []VolumeTag{
+		{Key: "API", Value: "netappdvp-" + strconv.Itoa(config.Version)},
+		{Key: "eBI", Value: "Containers-Docker"},
+		{Key: "IF", Value: d.config.Protocol},
+		{Key: "netappdvp", Value: config.DriverName},
+	}
+
 	return d
 }
 
+var volumeTags []VolumeTag
+
 // SendMsg sends the marshaled json byte array to the web services proxy
-func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Response, error) {
+func (d Driver) SendMsg(data []byte, httpMethod string, msgType string) (*http.Response, error) {
 
 	if data == nil && d.config.ArrayID == "" {
-		panic("data is nil and no ArrayID set!")
+		return nil, fmt.Errorf("Data is nil and no ArrayID set!")
 	}
 
 	log.Debugf("Sending data to web services proxy @ '%s' json: \n%s", d.config.WebProxyHostname, string(data))
@@ -111,12 +126,7 @@ func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Res
 	url := addressPrefix + "://" + d.config.WebProxyHostname + ":" + addressPort + "/devmgr/v2/storage-systems/" + d.config.ArrayID + msgType
 	log.Debugf("URL:> %s", url)
 
-	//Check msg type
-	if sendType != "POST" && sendType != "GET" && sendType != "DELETE" {
-		panic("invalid msgType!")
-	}
-
-	req, err := http.NewRequest(sendType, url, bytes.NewBuffer(data))
+	req, err := http.NewRequest(httpMethod, url, bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(d.config.Username, d.config.Password)
 
@@ -128,14 +138,21 @@ func (d Driver) SendMsg(data []byte, sendType string, msgType string) (*http.Res
 
 	client := &http.Client{Transport: tr}
 	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
+
+	//At this point either the resp or the err could be nil
+	if resp != nil {
+		log.Debugf("Response Status: %s", resp.Status)
+		log.Debugf("Response Headers: %s", resp.Header)
 	}
 
-	log.Debugf("response Status: %s", resp.Status)
-	log.Debugf("response Headers: %s", resp.Header)
+	if err != nil {
+		log.Warnf("Error communicating with Web Services: %v!", err)
+	}
 
 	return resp, err
+}
+
+func (d Driver) init() {
 }
 
 // Connect to the array's Web Services Proxy
@@ -146,17 +163,22 @@ func (d Driver) Connect() (response string, err error) {
 
 	jsonConnect, err := json.Marshal(msgConnect)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("Error defining JSON body: %v", err)
 	}
 
 	log.Debugf("jsonConnect=%s", string(jsonConnect))
 
 	//Send off the message
 	resp, err := d.SendMsg(jsonConnect, "POST", "")
+
+	if err != nil {
+		return "", fmt.Errorf("Error logging into the Web Services Proxy: %v", err)
+	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != GenericResponseSuccess && resp.StatusCode != GenericResponseOkay {
-		panic("Couldn't add storage array to web services proxy!")
+		return "", fmt.Errorf("Couldn't add storage array to web services proxy!")
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -165,7 +187,11 @@ func (d Driver) Connect() (response string, err error) {
 	//Next need to demarshal json data
 	responseData := MsgConnectResponse{}
 	if err := json.Unmarshal(body, &responseData); err != nil {
-		panic(err)
+		return "", fmt.Errorf("Unable to deserialize login JSON response: %v", err)
+	}
+
+	if responseData.ArrayID == "" {
+		return "", fmt.Errorf("We received an invalid ArrayID!")
 	}
 
 	d.config.ArrayID = responseData.ArrayID
@@ -421,6 +447,7 @@ func (d Driver) CreateVolume(name string, volumeGroupRef string, size string, me
 	msgCreateVolume.Name = name
 	msgCreateVolume.SizeUnit = "kb" //bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
 	msgCreateVolume.SegmentSize = 128
+	msgCreateVolume.VolumeTags = volumeTags
 
 	//Convert size string to int64
 	convertedSize, convertErr := utils.ConvertSizeToBytes64(size)
