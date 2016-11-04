@@ -212,6 +212,11 @@ func (d ndvpDriver) Get(r volume.Request) volume.Response {
 	// Gather the target volume name as the storage sees it
 	target := d.volumeName(r.Name)
 
+<<<<<<< HEAD
+=======
+	v, err := d.getPath(r)
+
+>>>>>>> c051164d477c8b41dff596e2ef825cd1649aed6a
         // Check the array, is the volume still there, or just the path.
 	_, err := d.sd.VolGet(d.volumeName(r.Name))
 	if err != nil {

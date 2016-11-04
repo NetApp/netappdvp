@@ -441,6 +441,14 @@ func (d *OntapSANStorageDriver) DefaultSnapshotPrefix() string {
 // Return the list of snapshots associated with the named volume
 func (d *OntapSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
 	return GetSnapshotList(name, d.API)
+// ListVolumes
+func (d *OntapSANStorageDriver) ListVolumes() (vols []string, err error) {
+	return nil, nil
+}
+
+// get a volume
+func (d *OntapSANStorageDriver) VolGet(name string) (volID int64, err error) {
+	return 0, fmt.Errorf("Not Found")
 }
 
 // ListVolumes
