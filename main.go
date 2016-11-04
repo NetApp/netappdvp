@@ -11,8 +11,8 @@ import (
 	"runtime"
 
 	"github.com/docker/go-plugins-helpers/volume"
-	"github.com/netapp/netappdvp/storage_drivers"
-	"github.com/netapp/netappdvp/utils"
+	"github.com/ebalduf/netappdvp/storage_drivers"
+	"github.com/ebalduf/netappdvp/utils"
 
 	log "github.com/Sirupsen/logrus"
 )

@@ -15,7 +15,7 @@ import (
 
 	"strconv"
 
-	"github.com/netapp/netappdvp/utils"
+	"github.com/ebalduf/netappdvp/utils"
 
 	log "github.com/Sirupsen/logrus"
 )

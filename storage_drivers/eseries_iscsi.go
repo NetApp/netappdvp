@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/netapp/netappdvp/apis/eseries"
-	"github.com/netapp/netappdvp/utils"
+	"github.com/ebalduf/netappdvp/apis/eseries"
+	"github.com/ebalduf/netappdvp/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -392,4 +392,14 @@ func (d *ESeriesStorageDriver) SnapshotList(name string) ([]CommonSnapshot, erro
 // Create a volume clone
 func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
 	return fmt.Errorf("Cloning with E-Series is not yet supported")
+}
+
+// ListVolumes
+func (d *ESeriesStorageDriver) ListVolumes() (vols []string, err error) {
+	return nil, nil
+}
+
+// get a volume
+func (d *ESeriesStorageDriver) VolGet(name string) (volID int64, err error) {
+	return 0, fmt.Errorf("Not Found")
 }
