@@ -68,5 +68,11 @@ func (o *ZapiRunner) SendZapi(r ZAPIRequest) (*http.Response, error) {
 	log.Debugf("response Status: %s", resp.Status)
 	log.Debugf("response Headers: %s", resp.Header)
 
+	if resp.StatusCode != http.StatusOK {
+		http_response := http.StatusText(resp.StatusCode)
+		err := fmt.Errorf("%v (%v)", resp.StatusCode, http_response)
+		return resp, err
+	}
+
 	return resp, err
 }
