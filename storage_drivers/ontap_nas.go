@@ -159,7 +159,7 @@ func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) erro
 	snapshotPolicy := utils.GetV(opts, "snapshotPolicy", "none")
 	unixPermissions := utils.GetV(opts, "unixPermissions", "---rwxr-xr-x")
 	snapshotDir := utils.GetV(opts, "snapshotDir", "true")
-	exportPolicy := utils.GetV(opts, "exportPolicy", "default")
+	exportPolicy := utils.GetV(opts, "exportPolicy", d.Config.ExportPolicy)
 	aggregate := utils.GetV(opts, "aggregate", d.Config.Aggregate)
 
 	log.WithFields(log.Fields{
