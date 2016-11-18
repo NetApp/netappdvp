@@ -296,13 +296,20 @@ func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	log.Debugf("SolidfireSANStorageDriver#Destroy(%v)", name)
 
 	v, err := d.Client.GetVolumeByName(name, d.TenantID)
+	if err != nil && err.Error() == "Volume not found" {
+		// NOTE(jdg): We try do so some cleanup here just in case, ie user
+		// removed an attached volume from the SF UI, clean up a bit if we can
+		d.Client.DetachVolume(v)
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve volume named %s during Remove operation;  error: %v", name, err)
 	}
+
 	d.Client.DetachVolume(v)
 	err = d.Client.DeleteVolume(v.VolumeID)
 	if err != nil {
-		// FIXME(jdg): Check if it's a "DNE" error in that case we're golden
 		log.Error("Error encountered during delete: ", err)
 	}
 
