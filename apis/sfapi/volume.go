@@ -53,9 +53,12 @@ func (c *Client) GetVolumeByDockerName(n string, acctID int64) (v Volume, err er
 	}
 
 	if len(vols) > 1 {
-		err = fmt.Errorf("Found more than one Volume with DockerName: %s for Account: %d", n, acctID)
+		log.Errorf("Found more than one Volume with DockerName: %s for Account: %d", n, acctID)
+		err = errors.New("duplicate named volumes")
 	} else if len(vols) < 1 {
-		err = fmt.Errorf("Failed to find any Volumes with DockerName: %s for Account: %d", n, acctID)
+		log.Errorf("Failed to find any Volumes with DockerName: %s for Account: %d", n, acctID)
+		err = errors.New("volume not found")
+
 	}
 	return v, err
 }
@@ -94,9 +97,11 @@ func (c *Client) GetVolumeByName(n string, acctID int64) (v Volume, err error) {
 	}
 
 	if len(vols) > 1 {
-		err = fmt.Errorf("Found more than one Volume with Name: %s for Account: %d", n, acctID)
+		log.Errorf("Multiple volumes detected with the same name: %s", n)
+		err = errors.New("Multiple Volumes found")
 	} else if len(vols) < 1 {
-		err = fmt.Errorf("Failed to find any Volumes with Name: %s for Account: %d", n, acctID)
+		log.Errorf("No volumes detected with the name: %s", n)
+		err = errors.New("Volume not found")
 	}
 	return v, err
 }

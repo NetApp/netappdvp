@@ -346,13 +346,20 @@ func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	var dName = d.StripVolumePrefix(name)
 
 	v, err := d.Client.GetVolumeByDockerName(dName, d.TenantID)
+	if err != nil && err.Error() == "volume not found" {
+		// FIXME(jdg): this is a bad case, we could potentially have a
+		// connection on the host that we're going to leave dangling here, we
+		// need to add something to go in and try and clean up that case
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve volume named %s during Remove operation;  error: %v", name, err)
 	}
+
 	d.Client.DetachVolume(v)
 	err = d.Client.DeleteVolume(v.VolumeID)
 	if err != nil {
-		// FIXME(jdg): Check if it's a "DNE" error in that case we're golden
 		log.Error("Error encountered during delete: ", err)
 	}
 
