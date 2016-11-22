@@ -174,9 +174,6 @@ func (d *SolidfireSANStorageDriver) Validate() error {
 	if d.Config.EndPoint == "" {
 		log.Fatal("EndPoint required in SolidFire Docker config")
 	}
-	if d.Config.DefaultVolSz == 0 {
-		log.Fatal("DefaultVolSz required in SolidFire Docker config")
-	}
 	if d.Config.SVIP == "" {
 		log.Fatal("SVIP required in SolidFire Docker config")
 	}
