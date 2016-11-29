@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+#echo "Connect via:  git://10.0.207.1/community-catalog"
+echo "Connect via:  git://$(hostname)/community-catalog"
+git daemon --base-path=. --export-all --reuseaddr --informative-errors --verbose

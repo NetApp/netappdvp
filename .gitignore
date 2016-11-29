@@ -6,6 +6,7 @@ bin/
 .vscode/
 update
 netappdvp
+contrib/rancher/netappdvp
 
 ###############################################################################
 # Go

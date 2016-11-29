@@ -50,6 +50,19 @@ func GetDFOutput() ([]DFInfo, error) {
 	return result, nil
 }
 
+func Stat(fileName string) (string, error) {
+	statCmd := fmt.Sprintf("stat %v", fileName)
+	log.Debugf("running 'sh -c %v'", statCmd)
+	out, err := exec.Command("sh", "-c", statCmd).CombinedOutput()
+	log.Debugf("out==%v", string(out))
+	if err == nil {
+		return string(out), err
+	} else {
+		log.Errorf("Problem encountered stating file: %v error: %v", fileName, err)
+		return string(out), err
+	}
+}
+
 // GetInitiatorIqns returns parsed contents of /etc/iscsi/initiatorname.iscsi
 func GetInitiatorIqns() ([]string, error) {
 	log.Debug("Begin osutils.GetInitiatorIqns")
@@ -72,13 +85,10 @@ func GetInitiatorIqns() ([]string, error) {
 func WaitForPathToExist(fileName string, numTries int) bool {
 	log.Debugf("Begin osutils.waitForPathToExist fileName: %v", fileName)
 	for i := 0; i < numTries; i++ {
-		_, err := os.Stat(fileName)
+		_, err := Stat(fileName)
 		if err == nil {
 			log.Debugf("path found for fileName: %v", fileName)
 			return true
-		}
-		if err != nil && !os.IsNotExist(err) {
-			return false
 		}
 		time.Sleep(time.Second)
 	}
@@ -163,8 +173,8 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 
 		// check to see if there's a multipath device
 		multipathDevFile := ""
-		_, err := os.Lstat("/sbin/multipath")
-		if os.IsNotExist(err) {
+		_, err := Stat("/sbin/multipath")
+		if err != nil {
 			log.Debug("Skipping multipath check, /sbin/multipath doesn't exist")
 		} else {
 			lsblkCmd := fmt.Sprintf("lsblk %v -n -o name,type -r | grep mpath | cut -f1 -d\\ ", devFile)
@@ -177,9 +187,10 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 				md := strings.Split(strings.TrimSpace(string(out2)), " ")
 				if md != nil && len(md) > 0 && len(md[0]) > 0 {
 					log.Debug("Found md: ", md)
+
 					multipathDevFileToCheck := "/dev/mapper/" + md[0]
-					_, err := os.Lstat(multipathDevFileToCheck)
-					if !os.IsNotExist(err) {
+					_, err3 := Stat(multipathDevFileToCheck)
+					if err3 == nil {
 						multipathDevFile = multipathDevFileToCheck
 					}
 				}
