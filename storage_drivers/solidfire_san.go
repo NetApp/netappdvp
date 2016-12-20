@@ -159,7 +159,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 	//EmsInitialized(d.Name(), d.api)
 
 	d.Initialized = true
-	log.Infof("Successfully initialized SolidFire Docker driver version %v", DriverVersion)
+	log.Infof("Successfully initialized SolidFire Docker driver version %v [%v]", DriverVersion, ExtendedDriverVersion)
 	return nil
 }
 
@@ -241,6 +241,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 	var vsz int64
 	var dName = d.StripVolumePrefix(name)
 	var meta = map[string]string{"platform": "Docker-NDVP",
+		"ndvp-version": DriverVersion + " ["+ExtendedDriverVersion+"]",
 		"docker-name": dName}
 
 	log.Debugf("GetVolumeByDockerName: %s, %d", dName, d.TenantID)

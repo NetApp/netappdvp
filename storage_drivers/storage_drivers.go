@@ -14,6 +14,8 @@ const CurrentDriverVersion = 1
 
 // DriverVersion is the actual release version number
 const DriverVersion = "1.3"
+// ExtendedDriverVersion can be overridden by embeddors such as Trident to uniquify the version string
+var ExtendedDriverVersion = "native"
 
 // CommonStorageDriverConfig holds settings in common across all StorageDrivers
 type CommonStorageDriverConfig struct {
