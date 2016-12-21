@@ -9,11 +9,11 @@ import (
 	"github.com/netapp/netappdvp/apis/sfapi"
 )
 
-// CurrentDriverVersion is the expected version in the config file
-const CurrentDriverVersion = 1
+// ConfigVersion is the expected version specified in the config file
+const ConfigVersion = 1
 
 // DriverVersion is the actual release version number
-const DriverVersion = "1.3"
+const DriverVersion = "1.3.1"
 // ExtendedDriverVersion can be overridden by embeddors such as Trident to uniquify the version string
 var ExtendedDriverVersion = "native"
 
@@ -43,8 +43,8 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 	}
 
 	// validate config file version information
-	if config.Version != CurrentDriverVersion {
-		return nil, fmt.Errorf("Unexpected config file version;  found %v expected %v", config.Version, CurrentDriverVersion)
+	if config.Version != ConfigVersion {
+		return nil, fmt.Errorf("Unexpected config file version;  found %v expected %v", config.Version, ConfigVersion)
 	}
 
 	return config, nil

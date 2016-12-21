@@ -63,7 +63,7 @@ func TestOntap_ValidateCommonSettings(t *testing.T) {
 
 	// test with an expcted good config version
 	config := &CommonStorageDriverConfig{
-		Version:           CurrentDriverVersion,
+		Version:           ConfigVersion,
 		StorageDriverName: OntapNASStorageDriverName,
 		Debug:             false,
 		DisableDelete:     false,
@@ -77,7 +77,7 @@ func TestOntap_ValidateCommonSettings(t *testing.T) {
 		t.Errorf("Expected to have a good config object, unexpected error: %v", err)
 	}
 
-	if config.Version != CurrentDriverVersion {
+	if config.Version != ConfigVersion {
 		t.Errorf("Unexpcted config version found: %v", config.Version)
 	}
 }

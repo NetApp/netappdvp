@@ -60,7 +60,7 @@ func EmsInitialized(driverName string, api *ontap.Driver) {
 		myHostname = "unknown"
 	}
 
-	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(CurrentDriverVersion), false, "initialized", myHostname, driverName+" docker volume plugin initialized, version "+DriverVersion+" ["+ExtendedDriverVersion+"]", 1, "netappdvp", 6)
+	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "initialized", myHostname, driverName+" docker volume plugin initialized, version "+DriverVersion+" ["+ExtendedDriverVersion+"]", 1, "netappdvp", 6)
 	if emsErr != nil {
 		log.Warnf("problem while logging ems message, error: %v", emsErr)
 	}
