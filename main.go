@@ -146,6 +146,6 @@ func main() {
 	if *port != "" {
 		log.Info(h.ServeTCP(*driverID, ":"+*port, nil))
 	} else {
-		log.Info(h.ServeUnix("root", *driverID)) // 'root' here is the unix group to start as
+		log.Info(h.ServeUnix(*driverID, 0)) // 0  is the unix group to start as (root gid)
 	}
 }
