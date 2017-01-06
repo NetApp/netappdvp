@@ -206,6 +206,14 @@ func (d Driver) VolumeDisableSnapshotDirectoryAccess(name string) (response azgo
 	return
 }
 
+// VolumeCloneGet returns information about a flexclone volume
+func (d Driver) VolumeCloneGet(name string) (response azgo.VolumeCloneGetResponse, err error) {
+	response, err = azgo.NewVolumeCloneGetRequest().
+		SetVolume(name).
+		ExecuteUsing(d.zr)
+	return
+}
+
 // VolumeSize retrieves the size of the specified volume
 func (d Driver) VolumeSize(name string) (response azgo.VolumeSizeResponse, err error) {
 	response, err = azgo.NewVolumeSizeRequest().

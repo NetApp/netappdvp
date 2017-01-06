@@ -11,6 +11,439 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+type VolumeCloneInfoType struct {
+	XMLName xml.Name `xml:"volume-clone-info"`
+
+	AggregatePtr               *string           `xml:"aggregate"`
+	BlockPercentageCompletePtr *int              `xml:"block-percentage-complete"`
+	BlocksScannedPtr           *int              `xml:"blocks-scanned"`
+	BlocksUpdatedPtr           *int              `xml:"blocks-updated"`
+	DsidPtr                    *int              `xml:"dsid"`
+	FlexCloneUsedPercentPtr    *int              `xml:"flexclone-used-percent"`
+	InodePercentageCompletePtr *int              `xml:"inode-percentage-complete"`
+	InodesProcessedPtr         *int              `xml:"inodes-processed"`
+	InodesTotalPtr             *int              `xml:"inodes-total"`
+	JunctionActivePtr	   *bool             `xml:"junction-active"`
+	JunctionPathPtr            *JunctionPathType `xml:"junction-path"`
+	MsidPtr                    *int              `xml:"msid"`
+	ParentSnapshotPtr          *string           `xml:"parent-snapshot"`
+	ParentVolumePtr            *string           `xml:"parent-volume"`
+        ParentVserverPtr           *string           `xml:"parent-vserver"`
+	QosPolicyGroupNamePtr      *string           `xml:"qos-policy-group-name"`
+	SizePtr                    *int              `xml:"size"`
+	SpaceGuaranteeEnabledPtr   *bool             `xml:"space-guarantee-enabled"`
+	SpaceReservePtr            *string           `xml:"space-reserve"`
+	SplitEstimatePtr           *int              `xml:"split-estimate"`
+	StatePtr                   *string           `xml:"state"`
+	UsedPtr                    *int              `xml:"used"`
+	VolumePtr                  *string           `xml:"volume"`	
+	VolumeTypePtr              *string           `xml:"volume-type"`
+	VserverPtr                 *string           `xml:"vserver"`	
+	VserverDrProtectionPtr     *string           `xml:"vserver-dr-protection"`
+}
+
+func (o *VolumeCloneInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+	} // TODO: handle better
+	//fmt.Println(string(output))
+	return string(output), err
+}
+
+func NewVolumeCloneInfoType() *VolumeCloneInfoType { return &VolumeCloneInfoType{} }
+
+func (o VolumeCloneInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.AggregatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "aggregate", *o.AggregatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("aggregate: nil\n"))
+	}
+	if o.BlockPercentageCompletePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "block-percentage-complete", *o.BlockPercentageCompletePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("block-percentage-complete: nil\n"))
+	}
+	if o.BlocksScannedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "blocks-scanned", *o.BlocksScannedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("blocks-scanned: nil\n"))
+	}
+	if o.BlocksUpdatedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "blocks-updated", *o.BlocksUpdatedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("blocks-updated: nil\n"))
+	}
+	if o.DsidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "dsid", *o.DsidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("dsid: nil\n"))
+	}
+	if o.FlexCloneUsedPercentPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "flexclone-used-percent", *o.FlexCloneUsedPercentPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("flexclone-used-percent: nil\n"))
+	}
+	if o.InodePercentageCompletePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "inode-percentage-complete", *o.InodePercentageCompletePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("inode-percentage-complete: nil\n"))
+	}
+	if o.InodesProcessedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "inodes-processed", *o.InodesProcessedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("inodes-processed: nil\n"))
+	}
+	if o.InodesTotalPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "inodes-total", *o.InodesTotalPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("inodes-total: nil\n"))
+	}
+	if o.JunctionActivePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "junction-active", *o.JunctionActivePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("junction-active: nil\n"))
+	}
+	if o.JunctionPathPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "junction-path", *o.JunctionPathPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("junction-path: nil\n"))
+	}
+	if o.MsidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "msid", *o.MsidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("msid: nil\n"))
+	}
+	if o.ParentSnapshotPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "parent-snapshot", *o.ParentSnapshotPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("parent-snapshot: nil\n"))
+	}
+	if o.ParentVolumePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "parent-volume", *o.ParentVolumePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("parent-volume: nil\n"))
+	}
+	if o.QosPolicyGroupNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "qos-policy-group-name", o.QosPolicyGroupNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("qos-policy-group-name: nil\n"))
+	}
+	if o.SizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "size", *o.SizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("size: nil\n"))
+	}
+	if o.SpaceGuaranteeEnabledPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "space-guarantee-enabled", *o.SpaceGuaranteeEnabledPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("space-guarantee-enabled: nil\n"))
+	}
+	if o.SpaceReservePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "space-reserve", *o.SpaceReservePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("space-reserve: nil\n"))
+	}
+	if o.SplitEstimatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "split-estimate", *o.SplitEstimatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("split-estimate: nil\n"))
+	}
+	if o.StatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "state", *o.StatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("state: nil\n"))
+	}
+	if o.UsedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "used", *o.UsedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("used: nil\n"))
+	}
+	if o.VolumePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume", *o.VolumePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("volume: nil\n"))
+	}
+	if o.VolumeTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume-type", *o.VolumeTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("volume-type: nil\n"))
+	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
+	if o.VserverDrProtectionPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver-dr-protection", *o.VserverDrProtectionPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver-dr-protection: nil\n"))
+	}
+	return buffer.String()
+}
+
+func (o *VolumeCloneInfoType) Aggregate() string {
+	r := *o.AggregatePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetAggregate(newValue string) *VolumeCloneInfoType {
+	o.AggregatePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) BlockPercentageComplete() int {
+	r := *o.BlockPercentageCompletePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetBlockPercentageComplete(newValue int) *VolumeCloneInfoType {
+	o.BlockPercentageCompletePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) BlocksScanned() int {
+	r := *o.BlocksScannedPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetBlocksScanned(newValue int) *VolumeCloneInfoType {
+	o.BlocksScannedPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) BlocksUpdated() int {
+	r := *o.BlocksUpdatedPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetBlocksUpdated(newValue int) *VolumeCloneInfoType {
+	o.BlocksUpdatedPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) Dsid() int {
+	r := *o.DsidPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetDsid(newValue int) *VolumeCloneInfoType {
+	o.DsidPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) FlexCloneUsedPercent() int {
+	r := *o.FlexCloneUsedPercentPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetFlexCloneUsedPercent(newValue int) *VolumeCloneInfoType {
+	o.FlexCloneUsedPercentPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) InodePercentageComplete() int {
+	r := *o.InodePercentageCompletePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetInodePercentageComplete(newValue int) *VolumeCloneInfoType {
+	o.InodePercentageCompletePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) InodesProcessed() int {
+	r := *o.InodesProcessedPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetInodesProcessed(newValue int) *VolumeCloneInfoType {
+	o.InodesProcessedPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) InodesTotal() int {
+	r := *o.InodesTotalPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetInodesTotal(newValue int) *VolumeCloneInfoType {
+	o.InodesTotalPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) JunctionActive() bool {
+	r := *o.JunctionActivePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetJunctionActive(newValue bool) *VolumeCloneInfoType {
+	o.JunctionActivePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) JunctionPath() JunctionPathType {
+	r := *o.JunctionPathPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetJunctionPath(newValue JunctionPathType) *VolumeCloneInfoType {
+	o.JunctionPathPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) Msid() int {
+	r := *o.MsidPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetMsid(newValue int) *VolumeCloneInfoType {
+	o.MsidPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) ParentSnapshot() string {
+	r := *o.ParentSnapshotPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetParentSnapshot(newValue string) *VolumeCloneInfoType {
+	o.ParentSnapshotPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) ParentVolume() string {
+	r := *o.ParentVolumePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetParentVolume(newValue string) *VolumeCloneInfoType {
+	o.ParentVolumePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) ParentVserver() string {
+	r := *o.ParentVserverPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetParentVserver(newValue string) *VolumeCloneInfoType {
+	o.ParentVserverPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) QosPolicyGroupName() string {
+	r := *o.QosPolicyGroupNamePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetQosPolicyGroupName(newValue string) *VolumeCloneInfoType {
+	o.QosPolicyGroupNamePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) Size() int {
+	r := *o.SizePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetSize(newValue int) *VolumeCloneInfoType {
+	o.SizePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) SpaceGuaranteeEnabled() bool {
+	r := *o.SpaceGuaranteeEnabledPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetSpaceGuaranteeEnabled(newValue bool) *VolumeCloneInfoType {
+	o.SpaceGuaranteeEnabledPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) SpaceReserve() string {
+	r := *o.SpaceReservePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetSpaceReserve(newValue string) *VolumeCloneInfoType {
+	o.SpaceReservePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) SplitEstimate() int {
+	r := *o.SplitEstimatePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetSplitEstimate(newValue int) *VolumeCloneInfoType {
+	o.SplitEstimatePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) State() string {
+	r := *o.StatePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetState(newValue string) *VolumeCloneInfoType {
+	o.StatePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) Used() int {
+	r := *o.UsedPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetUsed(newValue int) *VolumeCloneInfoType {
+	o.UsedPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) Volume() string {
+	r := *o.VolumePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetVolume(newValue string) *VolumeCloneInfoType {
+	o.VolumePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) VolumeType() string {
+	r := *o.VolumeTypePtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetVolumeType(newValue string) *VolumeCloneInfoType {
+	o.VolumeTypePtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) Vserver() string {
+	r := *o.VserverPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetVserver(newValue string) *VolumeCloneInfoType {
+	o.VserverPtr = &newValue
+	return o
+}
+
+func (o *VolumeCloneInfoType) VserverDrProtection() string {
+	r := *o.VserverDrProtectionPtr
+	return r
+}
+
+func (o *VolumeCloneInfoType) SetVserverDrProtection(newValue string) *VolumeCloneInfoType {
+	o.VserverDrProtectionPtr = &newValue
+	return o
+}
+
+
 type NullableSizeType string
 
 type VserverAggrInfoType struct {
