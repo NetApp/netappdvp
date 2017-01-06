@@ -264,6 +264,15 @@ func (d Driver) SnapshotCreate(name, volumeName string) (response azgo.SnapshotC
 	return
 }
 
+// SnapshotDelete removes a snapshot in a volume
+func (d Driver) SnapshotDelete(name, volumeName string) (response azgo.SnapshotDeleteResponse, err error) {
+	response, err = azgo.NewSnapshotDeleteRequest().
+		SetSnapshot(name).
+		SetVolume(volumeName).
+		ExecuteUsing(d.zr)
+	return
+}
+
 // SnapshotGetByVolume returns the list of snapshots associated with a volume
 func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGetIterResponse, err error) {
 	query := azgo.NewSnapshotInfoType().SetVolume(volumeName)
