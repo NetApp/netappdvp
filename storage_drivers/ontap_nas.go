@@ -213,6 +213,20 @@ func (d *OntapNASStorageDriver) CreateClone(name, source, snapshot, newSnapshotP
 func (d *OntapNASStorageDriver) Destroy(name string) error {
 	log.Debugf("OntapNASStorageDriver#Destroy(%v)", name)
 
+	response1, error1 := d.API.VolumeCloneGet(name)
+	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
+		switch result := response1.Result.ResultErrnoAttr; result {
+			case azgo.EOBJECTNOTFOUND:
+				fallthrough
+			case azgo.EVOLUMEDOESNOTEXIST:
+				log.Infof("Ignoring removal of parent snapshot for due to unknown clone status.\n%verror: %v", name, response1.Result, error1)
+			case azgo.EVOLNOTCLONE:
+				break
+			default:
+				log.Errorf("Error occured while querying clone information for volume: %v\n%verror: %v", response1.Result, error1)
+		}
+	}
+
 	// TODO: If this is the parent of one or more clones, those clones have to split from this
 	// volume before it can be deleted, which means separate copies of those volumes.
 	// If there are a lot of clones on this volume, that could seriously balloon the amount of
@@ -220,15 +234,31 @@ func (d *OntapNASStorageDriver) Destroy(name string) error {
 	// user to keep the volume around until all of the clones are gone? If we do that, need a
 	// way to list the clones. Maybe volume inspect.
 
-	response, error := d.API.VolumeDestroy(name, true)
-	if !isPassed(response.Result.ResultStatusAttr) || error != nil {
-		if response.Result.ResultErrnoAttr != azgo.EVOLUMEDOESNOTEXIST {
-			return fmt.Errorf("Error destroying volume: %v\n%verror: %v", name, response.Result, error)
+	response2, error2 := d.API.VolumeDestroy(name, true)
+	if !isPassed(response2.Result.ResultStatusAttr) || error2 != nil {
+		if response2.Result.ResultErrnoAttr != azgo.EVOLUMEDOESNOTEXIST {
+			return fmt.Errorf("Error destroying volume: %v\n%verror: %v", name, response2.Result, error2)
 		} else {
-			log.Warnf("Volume already deleted while destroying volume: %v\n%verror: %v", name, response.Result, error)
+			log.Warnf("Volume already deleted while destroying volume: %v\n%verror: %v", name, response2.Result, error2)
 		}
 
 	}
+
+	// If we succeeded in getting the volume clone information,
+	// remove the parent snapshot since the volume is now destroyed
+	if isPassed(response1.Result.ResultStatusAttr) {
+		attributes := response1.Result.Attributes()
+		parentVolume := attributes.ParentVolume()
+		parentSnapshot := attributes.ParentSnapshot()
+
+		response3, error3 := d.API.SnapshotDelete( parentSnapshot, parentVolume )
+		if !isPassed(response3.Result.ResultStatusAttr) || error3 != nil {
+			// At this point we've already offlined and destroyed the volume
+			// No point in returning an error and aborting since the volume is already gone
+			log.Errorf("Error removing parent snapshot %v for volume %v\n%verror: %v", parentSnapshot, parentVolume, response3.Result, error3)
+		}
+	}
+
 	return nil
 }
 
