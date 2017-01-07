@@ -251,6 +251,7 @@ func (d *OntapNASStorageDriver) Destroy(name string) error {
 		parentVolume := attributes.ParentVolume()
 		parentSnapshot := attributes.ParentSnapshot()
 
+		//TODO: Make this honor the snapshot prefix
 		response3, error3 := d.API.SnapshotDelete( parentSnapshot, parentVolume )
 		if !isPassed(response3.Result.ResultStatusAttr) || error3 != nil {
 			// At this point we've already offlined and destroyed the volume
