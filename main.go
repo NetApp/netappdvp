@@ -84,7 +84,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	if *printVersion == true {
-		fmt.Print("NetApp Docker Volume Plugin version " + storage_drivers.DriverVersion)
+		fmt.Printf("NetApp Docker Volume Plugin version %v\n", storage_drivers.DriverVersion)
 		os.Exit(0)
 	}
 
