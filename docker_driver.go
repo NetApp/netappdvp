@@ -21,6 +21,7 @@ type ndvpDriver struct {
 	root   string
 	config storage_drivers.CommonStorageDriverConfig
 	sd     storage_drivers.StorageDriver
+	isSF   bool
 }
 
 func (d *ndvpDriver) volumePrefix() string {
@@ -46,6 +47,9 @@ func (d *ndvpDriver) volumePrefix() string {
 }
 
 func (d *ndvpDriver) volumeName(name string) string {
+	if d.isSF == true {
+		return name
+	}
 	prefixToUse := d.volumePrefix()
 	if strings.HasPrefix(name, prefixToUse) {
 		return name
@@ -97,6 +101,12 @@ func newNetAppDockerVolumePlugin(root string, config storage_drivers.CommonStora
 		config: config,
 		m:      &sync.Mutex{},
 		sd:     storage_drivers.Drivers[config.StorageDriverName],
+		isSF:   false,
+	}
+
+	if config.StorageDriverName == "solidfire-san" {
+		log.Debug("Setting is SolidFire to true")
+		d.isSF = true
 	}
 	return d, nil
 }
