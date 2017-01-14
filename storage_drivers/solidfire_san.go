@@ -43,13 +43,14 @@ func formatOpts(opts map[string]string) {
 
 // SolidfireSANStorageDriver is for iSCSI storage provisioning
 type SolidfireSANStorageDriver struct {
-	Initialized    bool
-	Config         SolidfireStorageDriverConfig
-	Client         *sfapi.Client
-	TenantID       int64
-	DefaultVolSz   int64
-	VagID          int64
-	InitiatorIFace string
+	Initialized      bool
+	Config           SolidfireStorageDriverConfig
+	Client           *sfapi.Client
+	TenantID         int64
+	DefaultVolSz     int64
+	VagID            int64
+	LegacyNamePrefix string
+	InitiatorIFace   string
 }
 
 // Name is for returning the name of this driver
@@ -210,7 +211,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 		"ndvp-version": DriverVersion + " [" + ExtendedDriverVersion + "]",
 		"docker-name":  name}
 
-	v, err := d.getVolume(name, d.TenantID)
+	v, err := d.getVolume(name)
 	if err == nil && v.VolumeID != 0 {
 		log.Infof("Found existing Volume by name: %s", name)
 		return nil
@@ -267,7 +268,7 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 
 	var req sfapi.CloneVolumeRequest
 	// Check to see if the clone already exists
-	v, err := d.getVolume(name, d.TenantID)
+	v, err := d.getVolume(name)
 	if err == nil && v.VolumeID != 0 {
 		// The clone already exists; skip and call it a success
 		return nil
@@ -283,7 +284,7 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	}
 
 	// Get the volume ID for the source volume
-	v, err = d.getVolumeByDockerName(source, d.TenantID)
+	v, err = d.getVolume(source)
 	if err != nil || v.VolumeID == 0 {
 		return fmt.Errorf("Failed to find source volume: error: %v", err)
 	}
@@ -302,7 +303,7 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	log.Debugf("SolidfireSANStorageDriver#Destroy(%v)", name)
 
-	v, err := d.getVolume(name, d.TenantID)
+	v, err := d.getVolume(name)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve volume named %s during Remove operation;  error: %v", name, err)
 	}
@@ -323,7 +324,7 @@ func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 // Attach the lun
 func (d *SolidfireSANStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
 	log.Debugf("SolidfireSANStorageDriver#Attach(%v, %v, %v)", name, mountpoint, opts)
-	v, err := d.getVolume(name, d.TenantID)
+	v, err := d.getVolume(name)
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve volume by name in mount operation;  name: %v error: %v", name, err)
 	}
@@ -357,7 +358,7 @@ func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 		return fmt.Errorf("Problem unmounting docker volume: %v mountpoint: %v error: %v", name, mountpoint, umountErr)
 	}
 
-	v, err := d.getVolume(name, d.TenantID)
+	v, err := d.getVolume(name)
 	if err != nil {
 		return fmt.Errorf("Problem looking up volume name: %v TenantID: %v error: %v", name, d.TenantID, err)
 	}
@@ -379,7 +380,7 @@ func (d *SolidfireSANStorageDriver) DefaultSnapshotPrefix() string {
 // Return the list of snapshots associated with the named volume
 func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
 	log.Debugf("SolidfireSANStorageDriver#SnapshotList(%v)", name)
-	v, err := d.getVolume(name, d.TenantID)
+	v, err := d.getVolume(name)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrieve volume by name in snapshot list operation; name: %v error: %v", name, err)
 	}
