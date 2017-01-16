@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
+	"github.com/ebalduf/netappdvp/apis/ontap"
 
 	log "github.com/Sirupsen/logrus"
 )

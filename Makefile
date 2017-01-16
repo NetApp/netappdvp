@@ -12,8 +12,8 @@ GO=docker run --rm \
 	-e GOARCH=$(GOARCH) \
 	-e GOGC=$(GOGC) \
 	-v $(GO_PATH_VOLUME):/go \
-	-v "$(PWD)":/go/src/github.com/netapp/netappdvp \
-	-w /go/src/github.com/netapp/netappdvp \
+	-v "$(PWD)":/go/src/github.com/ebalduf/netappdvp \
+	-w /go/src/github.com/ebalduf/netappdvp \
 	golang:1.6 go
 
 .PHONY=clean default fmt get install test
@@ -32,10 +32,10 @@ get:
 
 build: get *.go
 	@mkdir -p $(PWD)/bin
-	@$(GO) build -x -o /go/src/github.com/netapp/netappdvp/bin/netappdvp
+	@$(GO) build -x -o /go/src/github.com/ebalduf/netappdvp/bin/netappdvp
 
 install: build
 	@$(GO) install
 
 test:
-	@$(GO) test github.com/netapp/netappdvp/...
+	@$(GO) test github.com/ebalduf/netappdvp/...

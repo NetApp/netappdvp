@@ -5,7 +5,7 @@ package ontap
 import (
 	"testing"
 
-	"github.com/netapp/netappdvp/azgo"
+	"github.com/ebalduf/netappdvp/azgo"
 
 	log "github.com/Sirupsen/logrus"
 )

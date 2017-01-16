@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/netapp/netappdvp/apis/ontap"
-	"github.com/netapp/netappdvp/azgo"
-	"github.com/netapp/netappdvp/utils"
+	"github.com/ebalduf/netappdvp/apis/ontap"
+	"github.com/ebalduf/netappdvp/azgo"
+	"github.com/ebalduf/netappdvp/utils"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -284,4 +284,22 @@ func (d *OntapNASStorageDriver) DefaultSnapshotPrefix() string {
 // Return the list of snapshots associated with the named volume
 func (d *OntapNASStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
 	return GetSnapshotList(name, d.API)
+// ListVolumes
+func (d *OntapNASStorageDriver) ListVolumes() (vols []string, err error) {
+	return nil, nil
+}
+
+// get a volume
+func (d *OntapNASStorageDriver) VolGet(name string) ( volID int64, err error) {
+	return 0, fmt.Errorf("Not Found")
+}
+
+// ListVolumes
+func (d *OntapNASStorageDriver) ListVolumes() (vols []string, err error) {
+	return nil, nil
+}
+
+// get a volume
+func (d *OntapNASStorageDriver) VolGet(name string) ( volID int64, err error) {
+	return 0, fmt.Errorf("Not Found")
 }

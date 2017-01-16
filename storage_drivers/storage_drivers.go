@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/netapp/netappdvp/apis/sfapi"
+	"github.com/ebalduf/netappdvp/apis/sfapi"
 )
 
 // ConfigVersion is the expected version specified in the config file
@@ -117,4 +117,6 @@ type StorageDriver interface {
 	DefaultStoragePrefix() string
 	DefaultSnapshotPrefix() string
 	SnapshotList(name string) ([]CommonSnapshot, error)
+	ListVolumes() ([]string, error)
+	VolGet(name string) (int64, error)
 }
