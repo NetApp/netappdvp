@@ -1,43 +1,37 @@
 // Copyright 2016 NetApp, Inc. All Rights Reserved.
 
+// This package provides a high-level interface to the E-series Web Services Proxy REST API.
 package eseries
 
 import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/utils"
 )
 
-const maxNameLength int = 30
+const MAX_NAME_LENGTH int = 30
+const HTTP_TIMEOUT_SECONDS = 10
+const NULL_REF string = "0000000000000000000000000000000000000000"
+const HOST_MAPPING_TYPE = "host"
+const HOST_GROUP_MAPPING_TYPE = "cluster"
+const DEFAULT_POOL_SEARCH_PATTERN = ".+"
 
-// VolumeInfo hold all the information about a constructed volume on E-Series array and Docker Host Mapping
-type VolumeInfo struct {
-	VolumeGroupRef string
-	VolumeRef      string
-
-	VolumeSize  int64
-	SegmentSize int
-	UnitSize    string
-
-	MediaType    string
-	SecureVolume bool
-
-	IsVolumeMapped bool
-	LunMappingRef  string
-	LunNumber      int
-}
-
-// DriverConfig holds the configuration data for Driver objects
+// DriverConfig holds configuration data for the API driver object.
 type DriverConfig struct {
-	//Web Proxy Services Info
+	// Web Proxy Services Info
 	WebProxyHostname  string
 	WebProxyPort      string
 	WebProxyUseHTTP   bool
@@ -45,45 +39,61 @@ type DriverConfig struct {
 	Username          string
 	Password          string
 
-	//Array Info
-	ControllerA     string
-	ControllerB     string
-	PasswordArray   string
-	ArrayRegistered bool
+	// Array Info
+	ControllerA   string
+	ControllerB   string
+	PasswordArray string
 
-	//Host Connectivity
-	HostDataIP string //for iSCSI with multipathing this can be either IP on host
+	// Options
+	PoolNameSearchPattern string
+	DebugTraceFlags       map[string]bool
 
-	//Internal Config Variables
-	ArrayID string //Unique ID for array once added to web proxy services
-	Volumes map[string]*VolumeInfo
+	// Host Connectivity
+	HostDataIP string //for iSCSI with multipathing this can be either IP or host
 
-	//Storage protocol of the driver (iSCSI, FC, etc)
-	Protocol string
+	// Internal Config Variables
+	ArrayID                       string // Unique ID for array once added to web proxy services
+	CompiledPoolNameSearchPattern *regexp.Regexp
 
-	DriverName string
-	Version    int
+	// Storage protocol of the driver (iSCSI, FC, etc)
+	Protocol    string
+	AccessGroup string
+	HostType    string
+
+	DriverName    string
+	DriverVersion string
+	ConfigVersion int
 }
 
-// Driver is the object to use for interacting with the Array
-type Driver struct {
+// Driver is the object to use for interacting with the E-series API.
+type ESeriesAPIDriver struct {
 	config *DriverConfig
 	m      *sync.Mutex
 }
 
-// NewDriver is a factory method for creating a new instance
-func NewDriver(config DriverConfig) *Driver {
-	d := &Driver{
+// NewDriver is a factory method for creating a new instance.
+func NewDriver(config DriverConfig) *ESeriesAPIDriver {
+	d := &ESeriesAPIDriver{
 		config: &config,
 		m:      &sync.Mutex{},
 	}
 
-	//Clear out internal config variables
+	// Initialize internal config variables
 	d.config.ArrayID = ""
-	d.config.Volumes = make(map[string]*VolumeInfo)
+
+	compiledRegex, err := regexp.Compile(d.config.PoolNameSearchPattern)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"PoolNameSearchPattern": d.config.PoolNameSearchPattern,
+			"DefaultSearchPattern":  DEFAULT_POOL_SEARCH_PATTERN,
+			"Error":                 err,
+		}).Warn("Could not compile PoolNameSearchPattern regular expression, using default pattern.")
+		compiledRegex, _ = regexp.Compile(".+")
+	}
+	d.config.CompiledPoolNameSearchPattern = compiledRegex
 
 	volumeTags = []VolumeTag{
-		{Key: "API", Value: "netappdvp-" + strconv.Itoa(config.Version)},
+		{Key: "API", Value: "netappdvp-" + config.DriverVersion},
 		{Key: "eBI", Value: "Containers-Docker"},
 		{Key: "IF", Value: d.config.Protocol},
 		{Key: "netappdvp", Value: config.DriverName},
@@ -94,678 +104,1122 @@ func NewDriver(config DriverConfig) *Driver {
 
 var volumeTags []VolumeTag
 
-// SendMsg sends the marshaled json byte array to the web services proxy
-func (d Driver) SendMsg(data []byte, httpMethod string, msgType string) (*http.Response, error) {
-
-	if data == nil && d.config.ArrayID == "" {
-		return nil, fmt.Errorf("Data is nil and no ArrayID set!")
-	}
-
-	log.Debugf("Sending data to web services proxy @ '%s' json: \n%s", d.config.WebProxyHostname, string(data))
+// InvokeAPI makes a REST call to the Web Services Proxy. The body must be a marshaled JSON byte array (or nil).
+// The method is the HTTP verb (i.e. GET, POST, ...).  The resource path is appended to the base URL to identify
+// the desired server resource; it should start with '/'.
+func (d ESeriesAPIDriver) InvokeAPI(requestBody []byte, method string, resourcePath string) (*http.Response, []byte, error) {
 
 	// Default to secure connection
-	addressPrefix := "https"
-	addressPort := "8443"
+	scheme, port := "https", "8443"
 
+	// Allow insecure override
 	if d.config.WebProxyUseHTTP {
-		addressPrefix = "http"
-		addressPort = "8080"
+		scheme, port = "http", "8080"
 	}
 
 	// Allow port override
 	if d.config.WebProxyPort != "" {
-		log.Debugf("Setting web services proxy port to %s", d.config.WebProxyPort)
-		addressPort = d.config.WebProxyPort
+		port = d.config.WebProxyPort
 	}
 
-	//Set up address to web services proxy
-	url := addressPrefix + "://" + d.config.WebProxyHostname + ":" + addressPort + "/devmgr/v2/storage-systems/" + d.config.ArrayID + msgType
-	log.Debugf("URL:> %s", url)
+	// Build URL
+	url := scheme + "://" + d.config.WebProxyHostname + ":" + port + "/devmgr/v2/storage-systems/" + d.config.ArrayID + resourcePath
 
-	req, err := http.NewRequest(httpMethod, url, bytes.NewBuffer(data))
-	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(d.config.Username, d.config.Password)
+	var request *http.Request
+	var err error
 
+	if requestBody == nil {
+		request, err = http.NewRequest(method, url, nil)
+	} else {
+		request, err = http.NewRequest(method, url, bytes.NewBuffer(requestBody))
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+	request.SetBasicAuth(d.config.Username, d.config.Password)
+
+	// Allow certificate validation override
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: !d.config.WebProxyVerifyTLS,
 		},
 	}
 
-	client := &http.Client{Transport: tr}
-	resp, err := client.Do(req)
-
-	//At this point either the resp or the err could be nil
-	if resp != nil {
-		log.Debugf("Response Status: %s", resp.Status)
-		log.Debugf("Response Headers: %s", resp.Header)
-	}
-
-	if err != nil {
-		log.Warnf("Error communicating with Web Services: %v!", err)
-	}
-
-	return resp, err
-}
-
-func (d Driver) init() {
-}
-
-func (d Driver) populateVolumeCache(name string) (err error) {
-
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
-	}
-
-	// If a volume is specified, only re-populate if it doesn't already exist in the cache.
-	if len(name) > 0 {
-		//First check if volume is already in persistant map
-		if _, isPresent := d.config.Volumes[name]; isPresent {
-			return nil
-		}
-	}
-
-	//If not in map then we need to query volumes on array
-	resp, err := d.SendMsg(nil, "GET", "/volumes")
-	defer resp.Body.Close()
-
-	if resp.StatusCode != GenericResponseOkay {
-		return fmt.Errorf("ESeriesStorageDriver::populateVolumeCache - GET to obtain volume failed! StatusCode=%v Status=%s", resp.StatusCode, resp.Status)
-	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
-
-	//Next need to demarshal json data
-	responseJSON := make([]MsgVolumeExResponse, 0)
-	if err := json.Unmarshal(body, &responseJSON); err != nil {
-		panic(err)
-	}
-
-	for _, e := range responseJSON {
-		if len(name) > 0 {
-			if e.Label != name {
-				continue
-			}
-		}
-
-		//Create a VolumeInfo structure and add it to the map
-		var tmpVolumeInfo VolumeInfo
-		tmpVolumeInfo.VolumeGroupRef = e.VolumeGroupRef
-		tmpVolumeInfo.VolumeRef = e.VolumeRef
-
-		//Convert size of volume from string to int64
-		tmpLunSize, atoiErr := strconv.ParseInt(e.VolumeSize, 10, 0)
-		if atoiErr != nil {
-			fmt.Errorf("Cannot convert size to bytes: %v error: %v", e.VolumeSize, atoiErr)
-			return atoiErr
-		}
-
-		tmpVolumeInfo.VolumeSize = tmpLunSize
-		tmpVolumeInfo.SegmentSize = e.SegmentSize
-		tmpVolumeInfo.UnitSize = "b" //bytes
-
-		//Need to figure out mediaType (whether this volume belongs to hdd or ssd group)
-		volumeGroupRef, error := d.VerifyVolumePools("hdd", "1m") //1 megabyte is just a small unit to use while figuring out which media type this volume belongs to
-		if error != nil {
-			return error
-		}
-
-		if e.VolumeGroupRef == volumeGroupRef {
-			//Found it! It is a hdd volume group.
-			tmpVolumeInfo.MediaType = "hdd"
+	if d.config.DebugTraceFlags["api"] {
+		if method == "POST" && resourcePath == "" {
+			// Suppress the empty POST body since it contains the array password
+			d.logHttpRequest(request, []byte("<suppressed>"))
 		} else {
-			//Not a part of hdd volume group so see if it is part of ssd volume group
-			volumeGroupRef1, error1 := d.VerifyVolumePools("ssd", "1m") //1 megabyte is just a small unit to use while figuring out which media type this volume belongs to
-			if error != nil {
-				return error1
-			}
-
-			if e.VolumeGroupRef == volumeGroupRef1 {
-				//Found it! It is part of ssd volume group.
-				tmpVolumeInfo.MediaType = "ssd"
-			} else {
-				//It isn't part of ssd nor hdd volume group!
-				continue
-			}
-		}
-
-		tmpVolumeInfo.SecureVolume = false //TODO: add this capability for FDE drives
-		tmpVolumeInfo.IsVolumeMapped = e.IsMapped
-
-		for j, f := range e.ListOfMappings {
-			log.Debugf("%v) Volume with name %s has mapping reference %s", j, e.Label, f.LunMappingRef)
-			tmpVolumeInfo.LunMappingRef = f.LunMappingRef //TODO - what if there are multiple mappings? Is this even possible outside 'Default Group'?
-			tmpVolumeInfo.LunNumber = f.LunNumber
-		}
-
-		//Add it to map
-		d.config.Volumes[e.Label] = &tmpVolumeInfo
-
-		// If we were just looking for one, we just found it. Bail out.
-		if len(name) > 0 {
-			break
+			d.logHttpRequest(request, requestBody)
 		}
 	}
 
-	return nil
+	// Send the request
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   time.Duration(HTTP_TIMEOUT_SECONDS * time.Second),
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Warnf("Error communicating with Web Services Proxy. %v", err)
+		return nil, nil, err
+	}
+	defer response.Body.Close()
+
+	responseBody := []byte{}
+	if err == nil {
+
+		responseBody, err = ioutil.ReadAll(response.Body)
+
+		if method == "GET" && resourcePath == "/volumes" {
+			// Suppress the potentially huge GET /volumes body unless asked for explicitly
+			if d.config.DebugTraceFlags["api_get_volumes"] {
+				d.logHttpResponse(response, responseBody)
+			} else if d.config.DebugTraceFlags["api"] {
+				d.logHttpResponse(response, []byte("<suppressed>"))
+			}
+		} else {
+			if d.config.DebugTraceFlags["api"] {
+				d.logHttpResponse(response, responseBody)
+			}
+		}
+	}
+
+	return response, responseBody, err
 }
 
-// Connect to the array's Web Services Proxy
-func (d Driver) Connect() (response string, err error) {
+func (d ESeriesAPIDriver) logHttpRequest(request *http.Request, requestBody []byte) {
+	header := ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+	footer := "--------------------------------------------------------------------------------"
+	var body string
+	if requestBody == nil {
+		body = "<nil>"
+	} else {
+		body = string(requestBody)
+	}
+	log.Debugf("\n%s\n%s %s\nHeaders: %v\nBody: %s\n%s", header, request.Method, request.URL, request.Header, body, footer)
+}
 
-	//Send a login/connect request for array to web services proxy
-	msgConnect := MsgConnect{[]string{d.config.ControllerA, d.config.ControllerB}, d.config.PasswordArray}
+func (d ESeriesAPIDriver) logHttpResponse(response *http.Response, responseBody []byte) {
+	header := "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	footer := "================================================================================"
+	var body string
+	if responseBody == nil {
+		body = "<nil>"
+	} else {
+		body = string(responseBody)
+	}
+	log.Debugf("\n%s\nStatus: %s\nHeaders: %v\nBody: %s\n%s", header, response.Status, response.Header, body, footer)
+}
 
-	jsonConnect, err := json.Marshal(msgConnect)
+// Connect connects to the Web Services Proxy and registers the array with it.
+func (d ESeriesAPIDriver) Connect() (string, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "Connect",
+			"Type":   "ESeriesAPIDriver",
+		}
+		log.WithFields(fields).Debug(">>>> Connect")
+		defer log.WithFields(fields).Debug("<<<< Connect")
+	}
+
+	// Send a login/connect request for array to web services proxy
+	request := MsgConnect{[]string{d.config.ControllerA, d.config.ControllerB}, d.config.PasswordArray}
+
+	jsonRequest, err := json.Marshal(request)
 	if err != nil {
-		return "", fmt.Errorf("Error defining JSON body: %v", err)
+		return "", fmt.Errorf("Could not marshal JSON request: %v. %v", request, err)
 	}
 
-	log.Debugf("jsonConnect=%s", string(jsonConnect))
-
-	//Send off the message
-	resp, err := d.SendMsg(jsonConnect, "POST", "")
-
+	// Send the message
+	response, responseBody, err := d.InvokeAPI(jsonRequest, "POST", "")
 	if err != nil {
-		return "", fmt.Errorf("Error logging into the Web Services Proxy: %v", err)
+		return "", fmt.Errorf("Could not log into the Web Services Proxy. %v", err)
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != GenericResponseSuccess && resp.StatusCode != GenericResponseOkay {
-		return "", fmt.Errorf("Couldn't add storage array to web services proxy!")
+	if response.StatusCode != http.StatusCreated && response.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Could not add storage array to Web Services Proxy. Status code: %d", response.StatusCode)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
-
-	//Next need to demarshal json data
+	// Parse JSON data
 	responseData := MsgConnectResponse{}
-	if err := json.Unmarshal(body, &responseData); err != nil {
-		return "", fmt.Errorf("Unable to deserialize login JSON response: %v", err)
+	if err := json.Unmarshal(responseBody, &responseData); err != nil {
+		return "", fmt.Errorf("Could not parse connect response: %s. %v", string(responseBody), err)
 	}
 
 	if responseData.ArrayID == "" {
-		return "", fmt.Errorf("We received an invalid ArrayID!")
+		return "", errors.New("Invalid ArrayID received from Web Services Proxy.")
 	}
 
 	d.config.ArrayID = responseData.ArrayID
-	d.config.ArrayRegistered = responseData.AlreadyExists
+	AlreadyRegistered := responseData.AlreadyExists
 
-	log.Debugf("ArrayID=%s alreadyRegistered=%v", d.config.ArrayID, d.config.ArrayRegistered)
+	log.WithFields(log.Fields{
+		"ArrayID":           d.config.ArrayID,
+		"AlreadyRegistered": AlreadyRegistered,
+	}).Debug("Connected to Web Services Proxy.")
 
 	return d.config.ArrayID, nil
 }
 
-func (d Driver) VerifyVolumePools(mediaType string, size string) (VolumeGroupRef string, err error) {
+// GetVolumePools reads all pools on the array, including volume groups and dynamic disk pools. It then
+// filters them based on several selection parameters and returns the ones that match.
+func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uint64) ([]VolumeGroupEx, error) {
 
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
-	}
-
-	//Do the GET to obtain volume pools
-	resp, err := d.SendMsg(nil, "GET", "/storage-pools")
-	defer resp.Body.Close()
-
-	if resp.StatusCode != GenericResponseOkay {
-		return "", fmt.Errorf("ESeriesStorageDriver::VerifyVolumePools - GET to obtain volume pools failed! StatusCode=%v Status=%s", resp.StatusCode, resp.Status)
-	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
-
-	//Next need to demarshal json data
-	responseJSON := make([]VolumeGroupExResponse, 0)
-	if err := json.Unmarshal(body, &responseJSON); err != nil {
-		panic(err)
-	}
-
-	//Create search volume group label
-	var volumeGroupLabel string = "netappdvp_"
-	if mediaType != "ssd" && mediaType != "hdd" {
-		return "", fmt.Errorf("ESeriesStorageDriver::VerifyVolumePools - mediaType specified is invalid! mediaType=%s", mediaType)
-	}
-
-	volumeGroupLabel += mediaType
-
-	//Search for correct volume group label
-	var volumeGroupRef string = ""
-	var volumeFreeSpace string = "0"
-	for i, e := range responseJSON {
-		log.Debugf("%v) label=%s freeSpace=%s", i, e.VolumeLabel, e.FreeSpace)
-
-		if e.VolumeLabel == volumeGroupLabel {
-			volumeGroupRef = e.VolumeGroupRef
-			volumeFreeSpace = e.FreeSpace
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":            "GetVolumePools",
+			"Type":              "ESeriesAPIDriver",
+			"mediaType":         mediaType,
+			"minFreeSpaceBytes": minFreeSpaceBytes,
 		}
+		log.WithFields(fields).Debug(">>>> GetVolumePools")
+		defer log.WithFields(fields).Debug("<<<< GetVolumePools")
 	}
 
-	if volumeGroupRef == "" {
-		return "", fmt.Errorf("ESeriesStorageDriver::VerifyVolumePools - correct volume group not found for mediaType=%s!", mediaType)
-	}
-
-	//Verify volume group has enough space
-	convertedSize, convertErr := utils.ConvertSizeToBytes64(size)
-	if convertErr != nil {
-		fmt.Errorf("Cannot convert size to bytes: %v error: %v", size, convertErr)
-		return "", convertErr
-	}
-	lunSize, atoiErr := strconv.ParseInt(convertedSize, 10, 0)
-	if atoiErr != nil {
-		fmt.Errorf("Cannot convert size to bytes: %v error: %v", size, atoiErr)
-		return "", atoiErr
-	}
-
-	if convertedVolumeFreeSpace, _ := strconv.ParseInt(volumeFreeSpace, 10, 0); lunSize > convertedVolumeFreeSpace {
-		return "", fmt.Errorf("ESeriesStorageDriver::VerifyVolumePools - volume group doesn't have enough space! lunSize=%v > volumeFreeSpace=%v!", lunSize, volumeFreeSpace)
-	}
-
-	return volumeGroupRef, nil
-}
-
-func (d Driver) GetVolumeList() (vols []string, err error) {
-	// TODO: Right now we re-build the whole list every time; not sure how painful this call is. Should
-	// look into finding ways to invalidate the cache and instituting a TTL, although there will be
-	// issues when this driver is installed on multiple hosts if we do that.
-	err = d.populateVolumeCache("")
+	// Get the storage pools (includes volume RAID groups and dynamic disk pools)
+	response, responseBody, err := d.InvokeAPI(nil, "GET", "/storage-pools")
 	if err != nil {
-		return nil, fmt.Errorf("Unable to retrieve the list of volumes: %v", err)
+		return nil, fmt.Errorf("Could not get storage pools. %v", err)
 	}
 
-	for vol := range d.config.Volumes {
-		vols = append(vols, vol)
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Could not get storage pools. Status code=%d", response.StatusCode)
 	}
 
-	return vols, nil
-}
-
-func (d Driver) VerifyVolumeExists(name string) (err error) {
-	d.populateVolumeCache(name)
-
-	if _, isPresent := d.config.Volumes[name]; isPresent {
-		return nil
+	// Parse JSON data
+	allPools := make([]VolumeGroupEx, 0)
+	if err := json.Unmarshal(responseBody, &allPools); err != nil {
+		return nil, fmt.Errorf("Could not parse storage pool data: %s. %v", string(responseBody), err)
 	}
 
-	return fmt.Errorf("ESeriesStorageDriver::VerifyVolumeExists - volume with name %s not found on array! Are you sure you created a volume with this name?", name)
-}
+	// Return only pools that match the requested criteria
+	matchingPools := make([]VolumeGroupEx, 0)
+	for _, pool := range allPools {
 
-func (d Driver) IsVolumeAlreadyMappedToHost(name string, hostRef string) (isMapped bool, lunNumber int, err error) {
+		log.WithFields(log.Fields{
+			"Name": pool.Label,
+			"Pool": pool,
+		}).Debug("Considering pool.")
 
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
-	}
+		// Pool must match regex from config
+		if !d.config.CompiledPoolNameSearchPattern.MatchString(pool.Label) {
+			log.WithFields(log.Fields{"Name": pool.Label}).Debug("Pool does not match search pattern.")
+			continue
+		}
 
-	resp, err := d.SendMsg(nil, "GET", "/volume-mappings")
-	defer resp.Body.Close()
+		// Pool must be online
+		if pool.IsOffline {
+			log.WithFields(log.Fields{"Name": pool.Label}).Debug("Pool is offline.")
+			continue
+		}
 
-	if resp.StatusCode != GenericResponseOkay {
-		return false, -1, fmt.Errorf("ESeriesStorageDriver::IsVolumeAlreadyMappedToHost - GET to obtain volume mappings failed! StatusCode=%v Status=%s", resp.StatusCode, resp.Status)
-	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
-
-	//Next need to demarshal json data
-	responseJSON := make([]LUNMapping, 0)
-	if err := json.Unmarshal(body, &responseJSON); err != nil {
-		panic(err)
-	}
-
-	//Need to find the correct volumeRef for the name argument and also verify that if is mapped already that it is indeed mapped to our host and not some other host
-	var foundVolumeMapping bool = false
-
-	//Make sure volume is already in persistant map
-	tmpVolumeInfo, isPresent := d.config.Volumes[name]
-	if !isPresent {
-		panic("volume is not already apart of map! Check to see if you indeed created the docker volume with this name.")
-	}
-
-	//tmpVolumeInfo.VolumeRef
-	for i, e := range responseJSON {
-		log.Debugf("%v) Found host mapping with volumeRef=%s mapped to LUN number %v with hostRef=%s", i, e.VolumeRef, e.LunNumber, e.HostRef)
-
-		if e.VolumeRef == tmpVolumeInfo.VolumeRef {
-			//We found our volume and it is indeed mapped, but is it mapped to the correct host?
-			foundVolumeMapping = true
-
-			if e.HostRef == hostRef {
-				//Yes, it is mapped to proper host
-				return true, e.LunNumber, nil
-			} else {
-				//No, it is mapped to different host!
-				return false, e.LunNumber, fmt.Errorf("ESeriesStorageDriver::IsVolumeAlreadyMappedToHost - found mapped volume with name %s but it is mapped to different host (%s) rather than requested host (%s)", name, e.HostRef, hostRef)
+		// Drive media type
+		if mediaType != "" {
+			if mediaType != pool.DriveMediaType {
+				log.WithFields(log.Fields{
+					"Name":      pool.Label,
+					"MediaType": pool.DriveMediaType,
+				}).Debug("Pool does not match requested media type.")
+				continue
 			}
 		}
+
+		// Free space
+		if minFreeSpaceBytes > 0 {
+			poolFreeSpace, err := strconv.ParseUint(pool.FreeSpace, 10, 64)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"Name":  pool.Label,
+					"Error": err,
+				}).Warn("Could not parse free space for pool.")
+				continue
+			}
+			if poolFreeSpace < minFreeSpaceBytes {
+				log.WithFields(log.Fields{
+					"Name":      pool.Label,
+					"FreeSpace": poolFreeSpace,
+				}).Debug("Pool does not have sufficient free space.")
+				continue
+			}
+		}
+
+		// Everything matched
+		matchingPools = append(matchingPools, pool)
 	}
 
-	if foundVolumeMapping {
-		panic("Unreachable code path")
-	}
-
-	//The volume is not mapped to any host
-	return false, -1, nil
+	return matchingPools, nil
 }
 
-func (d Driver) CreateVolume(name string, volumeGroupRef string, size string, mediaType string) (volumeRef string, err error) {
+// GetVolumes returns an array containing all the volumes on the array.
+func (d ESeriesAPIDriver) GetVolumes() ([]VolumeEx, error) {
 
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "GetVolumes",
+			"Type":   "ESeriesAPIDriver",
+		}
+		log.WithFields(fields).Debug(">>>> GetVolumes")
+		defer log.WithFields(fields).Debug("<<<< GetVolumes")
+	}
+
+	// Query volumes on array
+	response, responseBody, err := d.InvokeAPI(nil, "GET", "/volumes")
+	if err != nil {
+		return nil, errors.New("Failed to read volumes.")
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Failed to read volumes. Status code: %d", response.StatusCode)
+	}
+
+	volumes := make([]VolumeEx, 0)
+	err = json.Unmarshal(responseBody, &volumes)
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse volume data: %s. %v", string(responseBody), err)
+	}
+
+	log.WithField("Count", len(volumes)).Debug("Read volumes.")
+
+	return volumes, nil
+}
+
+// ListVolumes returns an array containing all the volume names on the array.
+func (d ESeriesAPIDriver) ListVolumes() ([]string, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "ListVolumes",
+			"Type":   "ESeriesAPIDriver",
+		}
+		log.WithFields(fields).Debug(">>>> ListVolumes")
+		defer log.WithFields(fields).Debug("<<<< ListVolumes")
+	}
+
+	volumes, err := d.GetVolumes()
+	if err != nil {
+		return nil, err
+	}
+
+	volumeNames := make([]string, 0, len(volumes))
+
+	for _, vol := range volumes {
+		volumeNames = append(volumeNames, vol.Label)
+	}
+
+	log.WithField("Count", len(volumeNames)).Debug("Read volume names.")
+
+	return volumeNames, nil
+}
+
+// GetVolume returns a volume structure from the array whose label matches the specified name. Use this method sparingly,
+// at most once per workflow, because the Web Services Proxy does not support server-side filtering so the only choice is to
+// read all volumes to find the one of interest. Most methods in this module operate on the returned VolumeEx structure, not
+// the volume name, to minimize the need for calling this method.
+func (d ESeriesAPIDriver) GetVolume(name string) (VolumeEx, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "GetVolume",
+			"Type":   "ESeriesAPIDriver",
+			"name":   name,
+		}
+		log.WithFields(fields).Debug(">>>> GetVolume")
+		defer log.WithFields(fields).Debug("<<<< GetVolume")
+	}
+
+	volumes, err := d.GetVolumes()
+	if err != nil {
+		return VolumeEx{}, err
+	}
+
+	for _, vol := range volumes {
+		if vol.Label == name {
+			return vol, nil
+		}
+	}
+
+	return VolumeEx{}, nil
+}
+
+// CreateVolume creates a volume (i.e. a LUN) on the array, and it returns the resulting VolumeEx structure.
+func (d ESeriesAPIDriver) CreateVolume(name string, volumeGroupRef string, size uint64, mediaType string) (VolumeEx, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":         "CreateVolume",
+			"Type":           "ESeriesAPIDriver",
+			"name":           name,
+			"volumeGroupRef": volumeGroupRef,
+			"size":           size,
+			"mediaType":      mediaType,
+		}
+		log.WithFields(fields).Debug(">>>> CreateVolume")
+		defer log.WithFields(fields).Debug("<<<< CreateVolume")
 	}
 
 	// Ensure that we do not exceed the maximum allowed volume length
-	if len(name) > maxNameLength {
-		return "", fmt.Errorf("The volume name of %v exceeds the maximum allowed length of %d characters",
-			name, maxNameLength)
+	if len(name) > MAX_NAME_LENGTH {
+		return VolumeEx{}, fmt.Errorf("The volume name %v exceeds the maximum length of %d characters", name, MAX_NAME_LENGTH)
 	}
 
-	//Lets create a volume message structure
-	var msgCreateVolume MsgVolumeEx
-	msgCreateVolume.VolumeGroupRef = volumeGroupRef
-	msgCreateVolume.Name = name
-	msgCreateVolume.SizeUnit = "kb" //bytes, b, kb, mb, gb, tb, pb, eb, zb, yb
-	msgCreateVolume.SegmentSize = 128
-	msgCreateVolume.VolumeTags = volumeTags
-
-	//Convert size string to int64
-	convertedSize, convertErr := utils.ConvertSizeToBytes64(size)
-	if convertErr != nil {
-		return "", fmt.Errorf("Cannot convert size to bytes: %v error: %v", size, convertErr)
-	}
-	lunSize, atoiErr := strconv.ParseInt(convertedSize, 10, 0)
-	if atoiErr != nil {
-		return "", fmt.Errorf("Cannot convert size to bytes: %v error: %v", size, atoiErr)
+	// Set up the volume create request
+	request := VolumeCreateRequest{
+		VolumeGroupRef: volumeGroupRef,
+		Name:           name,
+		SizeUnit:       "kb",
+		Size:           int(size / 1024), // The API requires Size to be an int (not int64) so pass as an int but in KB.
+		SegmentSize:    128,
+		VolumeTags:     volumeTags,
 	}
 
-	//Set lun size in kilobytes
-	msgCreateVolume.Size = int(lunSize / 1024) //the json request requires lunSize to be an int not an int64 so we are passing it as an int but in kilobytes
-
-	jsonCreateVolume, err := json.Marshal(msgCreateVolume)
+	jsonRequest, err := json.Marshal(request)
 	if err != nil {
-		panic(err)
+		return VolumeEx{}, fmt.Errorf("Could not marshal JSON request: %v. %v", request, err)
 	}
 
-	log.Debugf("jsonCreateVolume=%s", string(jsonCreateVolume))
+	// Create the volume
+	response, responseBody, err := d.InvokeAPI(jsonRequest, "POST", "/volumes")
+	if err != nil {
+		return VolumeEx{}, fmt.Errorf("API invocation failed. %v", err)
+	}
 
-	//Send off the message
-	resp, err := d.SendMsg(jsonCreateVolume, "POST", "/volumes")
-	defer resp.Body.Close()
+	if response.StatusCode != http.StatusOK {
 
-	if resp.StatusCode == GenericResponseOkay {
-		//Success!
+		err = d.getErrorFromHTTPResponse(response, responseBody)
+		return VolumeEx{}, fmt.Errorf("Could not create volume %s. %v", name, err)
 
-		body, _ := ioutil.ReadAll(resp.Body)
-		log.Debugf("response Body:\n%s", string(body))
-
-		//Next need to demarshal json data
-		responseData := MsgVolumeExResponse{}
-		if err := json.Unmarshal(body, &responseData); err != nil {
-			panic(err)
-		}
-
-		log.Debugf("Label=%s VolumeRef=%s", responseData.Label, responseData.VolumeRef)
-
-		//Create a VolumeInfo structure and put it into the map
-		var tmpVolumeInfo VolumeInfo
-		tmpVolumeInfo.VolumeGroupRef = volumeGroupRef
-		tmpVolumeInfo.VolumeRef = responseData.VolumeRef
-
-		tmpVolumeInfo.VolumeSize = lunSize
-		tmpVolumeInfo.SegmentSize = msgCreateVolume.SegmentSize * 1024 //convert from kilobytes to bytes
-		tmpVolumeInfo.UnitSize = "b"                                   //bytes
-
-		//Sanity check
-		if tmpVolumeInfo.SegmentSize != responseData.SegmentSize {
-			panic("Segment size specified in request doesn't equal returned volume segment size!")
-		}
-
-		tmpVolumeInfo.MediaType = mediaType
-		tmpVolumeInfo.SecureVolume = false //TODO: add this capability for FDE drives
-		tmpVolumeInfo.IsVolumeMapped = false
-		tmpVolumeInfo.LunMappingRef = ""
-		tmpVolumeInfo.LunNumber = -1
-
-		//Add it to map
-		d.config.Volumes[name] = &tmpVolumeInfo
-
-		return responseData.VolumeRef, nil
-	} else if resp.StatusCode == GenericResponseNotFound || resp.StatusCode == GenericResponseMalformed {
-		//Known Error!
-
-		body, _ := ioutil.ReadAll(resp.Body)
-		log.Debugf("response Body:\n%s", string(body))
-
-		//Next need to demarshal json data
-		responseData := CallResponseError{}
-		if err := json.Unmarshal(body, &responseData); err != nil {
-			panic(err)
-		}
-
-		return "", fmt.Errorf("Error - not found code - ErrorMsg=%s LocalizedMsg=%s", responseData.ErrorMsg, responseData.LocalizedMsg)
 	} else {
 
-		return "", fmt.Errorf("Unknown error code - StatusCode=%v!", resp.StatusCode)
-	}
-
-	return "", fmt.Errorf("Unreachable Code Path!")
-}
-
-func (d Driver) VerifyHostIQN(iqn string) (hostRef string, err error) {
-
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
-	}
-
-	//Do a GET to obtain hosts on array
-	resp, err := d.SendMsg(nil, "GET", "/hosts")
-	defer resp.Body.Close()
-
-	if resp.StatusCode != GenericResponseOkay {
-		panic("Couldn't obtain storage pools!")
-	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
-
-	//Next need to demarshal json data
-	responseJSON := make([]HostExResponse, 0)
-	if err := json.Unmarshal(body, &responseJSON); err != nil {
-		panic(err)
-	}
-
-	var retHostRef string = ""
-	for i, e := range responseJSON {
-		log.Debugf("%v) HostRef=%s Label=%s", i, e.HostRef, e.Label)
-
-		for j, f := range e.Initiators {
-			log.Debugf("	%v) Host_Label=%s interface=%s iqn=%s", j, f.Label, f.NodeName.IoInterfaceType, f.NodeName.IscsiNodeName)
-
-			if f.NodeName.IoInterfaceType == "iscsi" && f.NodeName.IscsiNodeName == iqn {
-				retHostRef = e.HostRef
-			}
+		// Parse JSON volume data
+		vol := VolumeEx{}
+		if err := json.Unmarshal(responseBody, &vol); err != nil {
+			return VolumeEx{}, fmt.Errorf("Could not parse API response: %s. %v", string(responseBody), err)
 		}
-	}
 
-	//Make sure we found the correct hostRef
-	if retHostRef == "" {
-		return "", fmt.Errorf("Host reference not found on array for host IQN %s!", iqn)
-	}
+		log.WithFields(log.Fields{
+			"Name":           vol.Label,
+			"VolumeRef":      vol.VolumeRef,
+			"VolumeGroupRef": vol.VolumeGroupRef,
+		}).Debug("Created volume.")
 
-	return retHostRef, nil
+		return vol, nil
+	}
 }
 
-func (d Driver) MapVolume(name string, hostRef string) (lunNumber int, err error) {
+// DeleteVolume deletes a volume from the array.
+func (d ESeriesAPIDriver) DeleteVolume(volume VolumeEx) error {
 
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "DeleteVolume",
+			"Type":   "ESeriesAPIDriver",
+			"name":   volume.Label,
+		}
+		log.WithFields(fields).Debug(">>>> DeleteVolume")
+		defer log.WithFields(fields).Debug("<<<< DeleteVolume")
 	}
 
-	//Look up volumeRef in persistant map, and error out if it is not found
-	tmpVolumeInfo, isPresent := d.config.Volumes[name]
-	if !isPresent {
-		return -1, fmt.Errorf("name (%s) wasn't found in persistant map! Have you created a netappdvp volume group yet with that name?", name)
-	}
-
-	//Lets create a volume message structure
-	var msgMapVolume VolumeMappingCreateRequest
-	msgMapVolume.MappableObjectId = tmpVolumeInfo.VolumeRef
-	msgMapVolume.TargetID = hostRef
-	//msgMapVolume.LunNumber = 20	<--- optional parameter. Just let array choose the LUN #, and return it on response
-
-	jsonMapVolume, err := json.Marshal(msgMapVolume)
+	// Remove this volume from storage array
+	response, responseBody, err := d.InvokeAPI(nil, "DELETE", "/volumes/"+volume.VolumeRef)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("API invocation failed. %v", err)
 	}
 
-	log.Debugf("jsonMapVolume=%s", string(jsonMapVolume))
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
 
-	//Send off the message
-	resp, err := d.SendMsg(jsonMapVolume, "POST", "/volume-mappings")
-	defer resp.Body.Close()
-
-	if resp.StatusCode != GenericResponseOkay {
-		return -1, fmt.Errorf("Error occured while mapping volume! ReturnCode=%v name=%s volumeRef=%s hostRef=%s", resp.StatusCode, name, tmpVolumeInfo.VolumeRef, hostRef)
+		err = d.getErrorFromHTTPResponse(response, responseBody)
+		return fmt.Errorf("Could not destroy volume %s. %v", volume.Label, err)
 	}
 
-	//Got back success code
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
+	log.WithFields(log.Fields{
+		"Name":           volume.Label,
+		"VolumeRef":      volume.VolumeRef,
+		"VolumeGroupRef": volume.VolumeGroupRef,
+	}).Debug("Deleted volume.")
 
-	//Next need to demarshal json data
-	responseData := LUNMapping{}
-	if err := json.Unmarshal(body, &responseData); err != nil {
-		panic(err)
-	}
-
-	log.Debugf("LunMappingRef=%s LunNumber=%v VolumeRef=%s", responseData.LunMappingRef, responseData.LunNumber, responseData.VolumeRef)
-
-	//Sanity check to verify that returned volumeRef matches up with the volume we sent
-	if tmpVolumeInfo.VolumeRef != responseData.VolumeRef {
-		return -1, fmt.Errorf("Extremely odd case where the returned volumeRef (%s) doesn't equal the volumeRef (%s) we sent to array to map!", responseData.VolumeRef, tmpVolumeInfo.VolumeRef)
-	}
-
-	//Update volumeInfo map for this volume that we are not mapped as well as setting the LunMappingRef and LUN #
-	if tmpVolumeInfo.IsVolumeMapped {
-		panic("Volume is already mapped!")
-	}
-
-	tmpVolumeInfo.IsVolumeMapped = true
-	tmpVolumeInfo.LunMappingRef = responseData.LunMappingRef
-	tmpVolumeInfo.LunNumber = responseData.LunNumber
-
-	return responseData.LunNumber, nil
-}
-
-func (d Driver) UnmapVolume(name string) (err error) {
-
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
-	}
-
-	//Need to lookup lunMappingRef for this volume from the volumeInfo map and do some sanity checking
-	tmpVolumeInfo, isPresent := d.config.Volumes[name]
-	if !isPresent {
-		//If we are in this unmap function this volume better be in the volumeInfo map!
-		panic("ERROR - volume wasn't found in volumeInfo map!")
-	}
-
-	//Sanity checks to make sure volume is mapped and have a LunMappingRef
-	if !tmpVolumeInfo.IsVolumeMapped {
-		//We are in unmap and the volume isn't even mapped!
-		panic("ERROR - volume was found on array but it isn't mapped!")
-	}
-
-	if tmpVolumeInfo.LunMappingRef == "" {
-		//Note: if this volume is indeed mapped it should have had its LunMappingRef filled either inside of CreateVolume function or inside of VerifyVolumeExists function!
-		panic("ERROR - LunMappingRef is empty!")
-	}
-
-	//Send a DELETE to remove this LUN mapping from storage array
-	resp, err := d.SendMsg(nil, "DELETE", "/volume-mappings/"+tmpVolumeInfo.LunMappingRef)
-	defer resp.Body.Close()
-
-	if resp.StatusCode != GenericResponseOkay && resp.StatusCode != GenericResponseNoContent {
-		return fmt.Errorf("Error occured while trying to remove LUN mapping for volume %s! Error Code (%v) and Status=%s", name, resp.StatusCode, resp.Status)
-	}
-
-	if resp.StatusCode != GenericResponseNoContent {
-		body, _ := ioutil.ReadAll(resp.Body)
-		log.Debugf("response Body:\n%s", string(body))
-
-		//Next need to demarshal json data
-		responseData := LUNMapping{}
-		if err := json.Unmarshal(body, &responseData); err != nil {
-			panic(err)
-		}
-
-		//Sanity check to verify we remove LUN mapping for correct volume
-		if responseData.LunMappingRef != tmpVolumeInfo.LunMappingRef {
-			return fmt.Errorf("Error occured while trying to remove LUN mapping for volume %s! Very odd - responseData.LunMappingRef (%s) != tmpVolumeInfo.LunMappingRef (%s)...", name, responseData.LunMappingRef, tmpVolumeInfo.LunMappingRef)
-		}
-	}
-
-	//Alter the state of the volumeInfo mapping to reflect this volume is no longer mapped
-	tmpVolumeInfo.IsVolumeMapped = false
-	tmpVolumeInfo.LunMappingRef = ""
-	tmpVolumeInfo.LunNumber = -1
-
-	//Return success!
 	return nil
 }
 
-func (d Driver) DestroyVolume(name string) (err error) {
+// EnsureHostForIQN handles automatic E-series Host and Host Group creation. Given the IQN of a host, this method
+// verifies whether a Host is already configured on the array. If so, the Host info is returned and no further action is
+// taken. If not, this method chooses a unique name for the Host and creates it on the array. Once the Host is created,
+// it is placed in the Host Group used for nDVP volumes.
+func (d ESeriesAPIDriver) EnsureHostForIQN(iqn string) (HostEx, error) {
 
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "EnsureHostForIQN",
+			"Type":   "ESeriesAPIDriver",
+			"iqn":    iqn,
+		}
+		log.WithFields(fields).Debug(">>>> EnsureHostForIQN")
+		defer log.WithFields(fields).Debug("<<<< EnsureHostForIQN")
 	}
 
-	//Make sure this volume is found in our volumeInfo map
-	tmpVolumeInfo, isPresent := d.config.Volumes[name]
-	if !isPresent {
-		//If we are in this destroy function this volume better be in the volumeInfo map!
-		panic("ERROR - volume wasn't found in volumeInfo map!")
+	// See if there is already a host for the specified IQN
+	host, err := d.GetHostForIQN(iqn)
+	if err != nil {
+		return HostEx{}, fmt.Errorf("Could not ensure host for IQN %s. %v", iqn, err)
 	}
 
-	//Sanity checks to make sure volume in map has a volumeRef
-	if tmpVolumeInfo.VolumeRef == "" {
-		//We are in destroy and the volume doesn't have a volumeRef!
-		panic("ERROR - volume was found in volumeInfo map but has invalid volumeRef!")
+	// If we found a host, return it and leave well enough alone, since the host could have been defined
+	// by nDVP or by an admin. Otherwise, we'll create a host for our purposes.
+	if host.HostRef != "" {
+
+		log.WithFields(log.Fields{
+			"IQN":        iqn,
+			"HostRef":    host.HostRef,
+			"ClusterRef": host.ClusterRef,
+		}).Debug("Host already exists for IQN.")
+
+		return host, nil
 	}
 
-	//Send a DELETE to remove this volume from storage array
-	resp, err := d.SendMsg(nil, "DELETE", "/volumes/"+tmpVolumeInfo.VolumeRef)
-	defer resp.Body.Close()
+	// Pick a host name
+	hostname := d.createNameForHost(iqn)
 
-	if resp.StatusCode != GenericResponseOkay && resp.StatusCode != GenericResponseNoContent {
-		if resp.StatusCode == GenericResponseNotFound {
-			body, _ := ioutil.ReadAll(resp.Body)
-			log.Debugf("error response Body:\n%s", string(body))
+	// Ensure we have a group for the new host. If for any reason this fails, we'll create the host anyway with no group.
+	hostGroup, err := d.EnsureHostGroup()
+	if err != nil {
+		log.Warn("Could not ensure host group for new host.")
+	}
 
-			//Next need to demarshal json data
-			responseData := CallResponseError{}
-			if err := json.Unmarshal(body, &responseData); err != nil {
-				panic(err)
+	// Create the new host in the group
+	return d.CreateHost(hostname, iqn, d.config.HostType, hostGroup)
+}
+
+func (d ESeriesAPIDriver) createNameForHost(iqn string) string {
+
+	// Get unique hostname suffix up to 10 chars, either the last part of the IQN or a random sequence
+	var uniqueSuffix = utils.RandomNumericString(10)
+	index := strings.LastIndex(iqn, ":")
+	if (index >= 0) && (len(iqn) > index+2) {
+		uniqueSuffix = iqn[index+1:]
+	}
+	if len(uniqueSuffix) > 10 {
+		uniqueSuffix = uniqueSuffix[:10]
+	}
+
+	// Pick a host name, incorporating the local hostname value if possible
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = utils.RandomNumericString(30)
+	}
+
+	// Use as much of the hostname as will fit
+	maxLength := 30 - (len(uniqueSuffix) + 1)
+	if len(hostname) > maxLength {
+		hostname = hostname[0:maxLength]
+	}
+
+	return hostname + "_" + uniqueSuffix
+}
+
+// GetHostForIQN queries the Host objects on the array an returns one matching the supplied IQN. An empty struct is
+// returned if a matching host is not found, so the caller should check for empty values in the result.
+func (d ESeriesAPIDriver) GetHostForIQN(iqn string) (HostEx, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "GetHostForIQN",
+			"Type":   "ESeriesAPIDriver",
+			"iqn":    iqn,
+		}
+		log.WithFields(fields).Debug(">>>> GetHostForIQN")
+		defer log.WithFields(fields).Debug("<<<< GetHostForIQN")
+	}
+
+	// Get hosts
+	response, responseBody, err := d.InvokeAPI(nil, "GET", "/hosts")
+	if err != nil {
+		return HostEx{}, fmt.Errorf("API invocation failed. %v", err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return HostEx{}, fmt.Errorf("Could not get hosts from array. Status code %d", response.StatusCode)
+	}
+
+	// Parse JSON data
+	hosts := make([]HostEx, 0)
+	if err := json.Unmarshal(responseBody, &hosts); err != nil {
+		return HostEx{}, fmt.Errorf("Could not parse host data: %s. %v", string(responseBody), err)
+	}
+
+	// Find initiator with matching IQN
+	for _, host := range hosts {
+		for _, f := range host.Initiators {
+			if f.NodeName.IoInterfaceType == "iscsi" && f.NodeName.IscsiNodeName == iqn {
+
+				log.WithFields(log.Fields{
+					"Name": host.Label,
+					"IQN":  iqn,
+				}).Debug("Found host.")
+
+				return host, nil
 			}
+		}
+	}
 
-			//Offer more information about what went wrong with request than just HTTP error information
-			return fmt.Errorf("Error occured while trying to remove LUN mapping for volume %s! ErrorMsg=%s LocalizedMsg=%s RetCode=%s CodeType=%s Error Code (%v) and Status=%s", name, responseData.ErrorMsg, responseData.LocalizedMsg, responseData.ReturnCode, responseData.CodeType, resp.StatusCode, resp.Status)
+	// Nothing failed, so return an empty structure if we didn't find anything
+	log.WithField("IQN", iqn).Debug("No host found.")
+	return HostEx{}, nil
+}
+
+// CreateHost creates a Host on the array. If a HostGroup is specified, the Host is placed in that group.
+func (d ESeriesAPIDriver) CreateHost(name string, iqn string, hostType string, hostGroup HostGroup) (HostEx, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":    "CreateHost",
+			"Type":      "ESeriesAPIDriver",
+			"name":      name,
+			"iqn":       iqn,
+			"hostType":  hostType,
+			"hostGroup": hostGroup.Label,
+		}
+		log.WithFields(fields).Debug(">>>> CreateHost")
+		defer log.WithFields(fields).Debug("<<<< CreateHost")
+	}
+
+	// Set up the host create request
+	var request HostCreateRequest
+	request.Name = name
+	request.HostType.Index = d.getBestIndexForHostType(hostType)
+	request.GroupID = hostGroup.ClusterRef
+	request.Ports = make([]HostPort, 1)
+	request.Ports[0].Label = name + "_port"
+	request.Ports[0].Port = iqn
+	request.Ports[0].Type = "iscsi"
+
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		return HostEx{}, fmt.Errorf("Could not marshal JSON request: %v. %v", request, err)
+	}
+
+	log.WithFields(log.Fields{
+		"Name":  name,
+		"Group": hostGroup.Label,
+		"IQN":   iqn,
+	}).Debug("Creating host.")
+
+	// Create the host
+	response, responseBody, err := d.InvokeAPI(jsonRequest, "POST", "/hosts")
+	if err != nil {
+		return HostEx{}, fmt.Errorf("API invocation failed. %v", err)
+	}
+
+	if response.StatusCode != http.StatusCreated && response.StatusCode != http.StatusOK {
+		return HostEx{}, fmt.Errorf("Could not create host %s. Status code %d", name, response.StatusCode)
+	}
+
+	// Parse JSON data
+	host := HostEx{}
+	if err := json.Unmarshal(responseBody, &host); err != nil {
+		return HostEx{}, fmt.Errorf("Could not parse host data: %s. %v", string(responseBody), err)
+	}
+
+	log.WithFields(log.Fields{
+		"Name":          host.Label,
+		"HostRef":       host.HostRef,
+		"ClusterRef":    host.ClusterRef,
+		"HostTypeIndex": host.HostTypeIndex,
+	}).Debug("Created host.")
+
+	return host, nil
+}
+
+func (d ESeriesAPIDriver) getBestIndexForHostType(hostType string) int {
+
+	hostTypeIndex := -1
+
+	// Try the mapped values first
+	_, ok := HOST_TYPES[hostType]
+	if ok {
+		hostTypeIndex, _ = d.getIndexForHostType(HOST_TYPES[hostType])
+	}
+
+	// If not found, try matching the E-series host type codes directly
+	if hostTypeIndex == -1 {
+		hostTypeIndex, _ = d.getIndexForHostType(hostType)
+	}
+
+	// If still not found, fall back to standard Linux DM-MPIO multipath driver
+	if hostTypeIndex == -1 {
+		hostTypeIndex, _ = d.getIndexForHostType("LnxALUA")
+	}
+
+	// Failing that, use index 0, which should be the factory default
+	if hostTypeIndex == -1 {
+		hostTypeIndex = 0
+	}
+
+	return hostTypeIndex
+}
+
+// getIndexForHostType queries the array for a host type matching the specified value. If found, it returns the
+// index by which the type is known on the array. If not found, it returns -1.
+func (d ESeriesAPIDriver) getIndexForHostType(hostTypeCode string) (int, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":       "getIndexForHostType",
+			"Type":         "ESeriesAPIDriver",
+			"hostTypeCode": hostTypeCode,
+		}
+		log.WithFields(fields).Debug(">>>> getIndexForHostType")
+		defer log.WithFields(fields).Debug("<<<< getIndexForHostType")
+	}
+
+	// Get host types
+	response, responseBody, err := d.InvokeAPI(nil, "GET", "/host-types")
+	if err != nil {
+		return -1, fmt.Errorf("API invocation failed. %v", err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return -1, fmt.Errorf("Could not get host types from array. Status code %d", response.StatusCode)
+	}
+
+	// Parse JSON data
+	hostTypes := make([]HostType, 0)
+	if err := json.Unmarshal(responseBody, &hostTypes); err != nil {
+		return -1, fmt.Errorf("Could not parse host type data: %s. %v", string(responseBody), err)
+	}
+
+	// Find host type with matching code
+	for _, hostType := range hostTypes {
+		if hostType.Code == hostTypeCode {
+
+			log.WithFields(log.Fields{
+				"Name":  hostType.Name,
+				"Index": hostType.Index,
+				"Code":  hostType.Code,
+			}).Debug("Host type found.")
+
+			return hostType.Index, nil
+		}
+	}
+
+	log.WithField("Code", hostTypeCode).Debug("Host type not found.")
+	return -1, nil
+}
+
+// EnsureHostGroup ensures that an E-series HostGroup exists to contain all Host objects created by the nDVP E-series driver.
+// The group name is taken from the config structure. If the group exists, the group structure is returned and no further
+// action is taken. If not, this method creates the group and returns the resulting group structure.
+func (d ESeriesAPIDriver) EnsureHostGroup() (HostGroup, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "EnsureHostGroup",
+			"Type":   "ESeriesAPIDriver",
+		}
+		log.WithFields(fields).Debug(">>>> EnsureHostGroup")
+		defer log.WithFields(fields).Debug("<<<< EnsureHostGroup")
+	}
+
+	hostGroupName := d.config.AccessGroup
+	if len(hostGroupName) > MAX_NAME_LENGTH {
+		hostGroupName = hostGroupName[:MAX_NAME_LENGTH]
+	}
+
+	// Get the group with the preconfigured name
+	hostGroup, err := d.GetHostGroup(hostGroupName)
+	if err != nil {
+		return HostGroup{}, fmt.Errorf("Could not ensure host group %s. %v", hostGroupName, err)
+	}
+
+	// Group found, so use it for host creation
+	if hostGroup.ClusterRef != "" {
+		log.WithFields(log.Fields{"Name": hostGroup.Label}).Debug("Host group found.")
+		return hostGroup, nil
+	}
+
+	// Create the group
+	hostGroup, err = d.CreateHostGroup(hostGroupName)
+	if err != nil {
+		return HostGroup{}, fmt.Errorf("Could not create host group %s. %v", hostGroupName, err)
+	}
+
+	log.WithFields(log.Fields{
+		"Name":       hostGroup.Label,
+		"ClusterRef": hostGroup.ClusterRef,
+	}).Debug("Host group created.")
+
+	return hostGroup, nil
+}
+
+// GetHostGroup returns an E-series HostGroup structure with the specified name. If no matching group is found, an
+// empty structure is returned, so the caller should check for empty values in the result.
+func (d ESeriesAPIDriver) GetHostGroup(name string) (HostGroup, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "GetHostGroup",
+			"Type":   "ESeriesAPIDriver",
+			"name":   name,
+		}
+		log.WithFields(fields).Debug(">>>> GetHostGroup")
+		defer log.WithFields(fields).Debug("<<<< GetHostGroup")
+	}
+
+	// Get host groups
+	response, responseBody, err := d.InvokeAPI(nil, "GET", "/host-groups")
+	if err != nil {
+		return HostGroup{}, fmt.Errorf("API invocation failed. %v", err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return HostGroup{}, fmt.Errorf("Could not get host groups from array. Status code %d", response.StatusCode)
+	}
+
+	// Parse JSON data
+	hostGroups := make([]HostGroup, 0)
+	if err := json.Unmarshal(responseBody, &hostGroups); err != nil {
+		return HostGroup{}, fmt.Errorf("Could not parse host group data: %s. %v", string(responseBody), err)
+	}
+
+	for _, hostGroup := range hostGroups {
+		if hostGroup.Label == name {
+			return hostGroup, nil
+		}
+	}
+
+	// Nothing failed, so return an empty structure if we didn't find anything
+	return HostGroup{}, nil
+}
+
+// CreateHostGroup creates an E-series HostGroup object with the specified name and returns the resulting HostGroup structure.
+func (d ESeriesAPIDriver) CreateHostGroup(name string) (HostGroup, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "CreateHostGroup",
+			"Type":   "ESeriesAPIDriver",
+			"name":   name,
+		}
+		log.WithFields(fields).Debug(">>>> CreateHostGroup")
+		defer log.WithFields(fields).Debug("<<<< CreateHostGroup")
+	}
+
+	// Set up the host group create request
+	request := HostGroupCreateRequest{
+		Name:  name,
+		Hosts: make([]string, 0),
+	}
+
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		return HostGroup{}, fmt.Errorf("Could not marshal JSON request: %v. %v", request, err)
+	}
+
+	// Create the host group
+	response, responseBody, err := d.InvokeAPI(jsonRequest, "POST", "/host-groups")
+	if err != nil {
+		return HostGroup{}, fmt.Errorf("API invocation failed. %v", err)
+	}
+
+	if response.StatusCode != http.StatusCreated && response.StatusCode != http.StatusOK {
+		return HostGroup{}, fmt.Errorf("Could not create host group %s. Status code %d", name, response.StatusCode)
+	}
+
+	// Parse JSON data
+	hostGroup := HostGroup{}
+	if err := json.Unmarshal(responseBody, &hostGroup); err != nil {
+		return HostGroup{}, fmt.Errorf("Could not parse host data: %s. %v", string(responseBody), err)
+	}
+
+	return hostGroup, nil
+}
+
+// MapVolume maps a volume to the specified host and returns the resulting LUN mapping. If the volume is already mapped to the
+// specified host, either directly or to the containing host group, no action is taken. If the volume is mapped to a different host,
+// the method returns an error. Note that if the host is in a group, the volume will actually be mapped to the group instead of the
+// individual host.
+func (d ESeriesAPIDriver) MapVolume(volume VolumeEx, host HostEx) (LUNMapping, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "MapVolume",
+			"Type":       "ESeriesAPIDriver",
+			"volumeName": volume.Label,
+			"hostName":   host.Label,
+		}
+		log.WithFields(fields).Debug(">>>> MapVolume")
+		defer log.WithFields(fields).Debug("<<<< MapVolume")
+	}
+
+	if !volume.IsMapped {
+
+		// Volume is not already mapped, so map it now
+		return d.mapVolume(volume, host)
+
+	} else {
+
+		// Volume is mapped, so check if it is mapped to this host/group
+		mappedToHost, mapping := d.volumeIsMappedToHost(volume, host)
+
+		if mappedToHost {
+
+			// Mapped here, so nothing to do
+			log.WithFields(log.Fields{
+				"Name": volume.Label,
+				"Host": host.Label,
+			}).Debug("Volume already mapped to host.")
+
+			return mapping, nil
+
 		} else {
 
-			//Different error than NotFound
-			return fmt.Errorf("Error occured while trying to remove LUN mapping for volume %s! Error Code (%v) and Status=%s", name, resp.StatusCode, resp.Status)
+			// Mapped elsewhere, so return an error
+			return LUNMapping{}, fmt.Errorf("Volume %s is already mapped to a different host or host group", volume.Label)
+		}
+	}
+}
+
+// mapVolume maps a volume to a host with no checks for an existing mapping. If the host is in a host group, the volume is
+// mapped to the group instead. The resulting mapping structure is returned.
+func (d ESeriesAPIDriver) mapVolume(volume VolumeEx, host HostEx) (LUNMapping, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "mapVolume",
+			"Type":       "ESeriesAPIDriver",
+			"volumeName": volume.Label,
+			"hostName":   host.Label,
+		}
+		log.WithFields(fields).Debug(">>>> mapVolume")
+		defer log.WithFields(fields).Debug("<<<< mapVolume")
+	}
+
+	// Map to host group if available, else a host
+	targetID := host.HostRef
+	if d.IsRefValid(host.ClusterRef) {
+		targetID = host.ClusterRef
+	}
+
+	// Create a map request. The API proxy will pick a non-zero LUN number automatically.
+	request := VolumeMappingCreateRequest{
+		MappableObjectID: volume.VolumeRef,
+		TargetID:         targetID,
+	}
+
+	jsonRequest, err := json.Marshal(request)
+	if err != nil {
+		return LUNMapping{}, fmt.Errorf("Could not marshal JSON request: %v. %v", request, err)
+	}
+
+	// Create the mapping
+	response, responseBody, err := d.InvokeAPI(jsonRequest, "POST", "/volume-mappings")
+	if err != nil {
+		return LUNMapping{}, fmt.Errorf("API invocation failed. %v", err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return LUNMapping{}, fmt.Errorf("Could not map volume %s. Status code %d", volume.Label, response.StatusCode)
+	}
+
+	// Parse JSON data
+	mapping := LUNMapping{}
+	if err := json.Unmarshal(responseBody, &mapping); err != nil {
+		return LUNMapping{}, fmt.Errorf("Could not parse volume mapping data: %s. %v", string(responseBody), err)
+	}
+
+	log.WithFields(log.Fields{
+		"Name":      volume.Label,
+		"VolumeRef": volume.VolumeRef,
+		"MapRef":    mapping.MapRef,
+		"Type":      mapping.Type,
+		"LunNumber": mapping.LunNumber,
+	}).Debug("Volume mapped.")
+
+	return mapping, nil
+}
+
+// volumeIsMappedToHost checks whether a volume is mapped to the specified host (or containing host group). If the mapping
+// exists, the method returns true with the associated mapping structure. If no mapping exists, or if the volume is mapped
+// elsewhere, the method returns false with an empty structure.
+func (d ESeriesAPIDriver) volumeIsMappedToHost(volume VolumeEx, host HostEx) (bool, LUNMapping) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "volumeIsMappedToHost",
+			"Type":       "ESeriesAPIDriver",
+			"volumeName": volume.Label,
+			"hostName":   host.Label,
+		}
+		log.WithFields(fields).Debug(">>>> volumeIsMappedToHost")
+		defer log.WithFields(fields).Debug("<<<< volumeIsMappedToHost")
+	}
+
+	// Quick check to skip everything else
+	if !volume.IsMapped {
+		log.WithField("Name", volume.Label).Debug("Volume is not mapped.")
+		return false, LUNMapping{}
+	}
+
+	// E-series only supports a single mapping per volume
+	if len(volume.Mappings) == 0 {
+		log.WithField("Name", volume.Label).Debug("Volume has no mappings.")
+		return false, LUNMapping{}
+	}
+	mapping := volume.Mappings[0]
+
+	// Double check we're looking at the right volume
+	if mapping.VolumeRef != volume.VolumeRef {
+		return false, LUNMapping{}
+	}
+
+	// Match either a host or a host group
+	switch mapping.Type {
+
+	case HOST_GROUP_MAPPING_TYPE: // "cluster"
+
+		if mapping.MapRef == host.ClusterRef {
+
+			log.WithFields(log.Fields{
+				"volumeName": volume.Label,
+				"hostName":   host.Label,
+			}).Debug("Volume is mapped to the host's enclosing group.")
+
+			return true, mapping
+		}
+
+	case HOST_MAPPING_TYPE: // "host"
+
+		if mapping.MapRef == host.HostRef {
+
+			log.WithFields(log.Fields{
+				"volumeName": volume.Label,
+				"hostName":   host.Label,
+			}).Debug("Volume is mapped to the host.")
+
+			return true, mapping
 		}
 	}
 
-	//Remove this volume from volumeInfo map
-	delete(d.config.Volumes, name)
+	log.WithFields(log.Fields{
+		"volumeName": volume.Label,
+		"hostName":   host.Label,
+	}).Debug("Volume is mapped to a different host or group.")
+
+	return false, LUNMapping{}
+}
+
+// UnmapVolume removes a mapping from the specified volume. If no map exists, no action is taken.
+func (d ESeriesAPIDriver) UnmapVolume(volume VolumeEx) error {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "UnmapVolume",
+			"Type":   "ESeriesAPIDriver",
+			"volume": volume.Label,
+		}
+		log.WithFields(fields).Debug(">>>> UnmapVolume")
+		defer log.WithFields(fields).Debug("<<<< UnmapVolume")
+	}
+
+	// If volume isn't mapped, there's nothing to do
+	if !volume.IsMapped || len(volume.Mappings) == 0 {
+
+		log.WithFields(log.Fields{
+			"Name":      volume.Label,
+			"VolumeRef": volume.VolumeRef,
+		}).Warn("Volume unmap requested, but volume is not mapped.")
+
+		return nil
+	}
+	mapping := volume.Mappings[0]
+
+	// Remove this volume mapping from storage array
+	response, _, err := d.InvokeAPI(nil, "DELETE", "/volume-mappings/"+mapping.LunMappingRef)
+	if err != nil {
+		return fmt.Errorf("API invocation failed. %v", err)
+	}
+
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("Could not unmap volume %s. Status code %d", volume.Label, response.StatusCode)
+	}
+
+	log.WithFields(log.Fields{
+		"Name":      volume.Label,
+		"VolumeRef": volume.VolumeRef,
+		"MapRef":    mapping.MapRef,
+		"Type":      mapping.Type,
+		"LunNumber": mapping.LunNumber,
+	}).Debug("Volume unmapped.")
 
 	return nil
+}
+
+// GetTargetIqn returns the IQN for the array.
+func (d *ESeriesAPIDriver) GetTargetIQN() (string, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "GetTargetIqn",
+			"Type":   "ESeriesAPIDriver",
+		}
+		log.WithFields(fields).Debug(">>>> GetTargetIqn")
+		defer log.WithFields(fields).Debug("<<<< GetTargetIqn")
+	}
+
+	// Query iSCSI target settings
+	response, responseBody, err := d.InvokeAPI(nil, "GET", "/iscsi/target-settings")
+	if err != nil {
+		return "", fmt.Errorf("API invocation failed. %v", err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Could not read iSCSI settings. Status code %d", response.StatusCode)
+	}
+
+	var settings IscsiTargetSettings
+	err = json.Unmarshal(responseBody, &settings)
+	if err != nil {
+		return "", fmt.Errorf("Could not parse iSCSI settings data: %s. %v", string(responseBody), err)
+	}
+
+	log.WithFields(log.Fields{
+		"IargetIQN": settings.NodeName.IscsiNodeName,
+	}).Debug("Got target iSCSI node name.")
+
+	return settings.NodeName.IscsiNodeName, nil
+}
+
+// isRefValid checks whether the supplied string is a valid E-series object reference as used by its REST API.
+// Ref values are strings of all numerical digits that aren't all zeros (i.e. the null ref).
+func (d ESeriesAPIDriver) IsRefValid(ref string) bool {
+
+	switch ref {
+	case "", NULL_REF:
+		return false
+	default:
+		return true
+	}
+}
+
+// getErrorFromHTTPResponse converts error information from some E-series API responses into GoLang error objects that
+// embed the additional error text.
+func (d ESeriesAPIDriver) getErrorFromHTTPResponse(response *http.Response, responseBody []byte) error {
+
+	if response.StatusCode == http.StatusNotFound || response.StatusCode == HTTP_UNPROCESSABLE_ENTITY {
+
+		// Parse JSON error data
+		responseData := CallResponseError{}
+		if err := json.Unmarshal(responseBody, &responseData); err != nil {
+			return fmt.Errorf("Could not parse API error response: %s. %v", string(responseBody), err)
+		}
+
+		return fmt.Errorf("API failed. Status code: %d. Error: %s Localized: %s",
+			response.StatusCode, responseData.ErrorMsg, responseData.LocalizedMsg)
+	} else {
+
+		// Other error
+		return fmt.Errorf("API failed. Status code: %d", response.StatusCode)
+	}
 }

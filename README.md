@@ -301,19 +301,22 @@ In addition to the global configuration values above, when using clustered Data 
 
 In addition to the global configuration values above, when using E-Series, these options are available.
 
-| Option            | Description                                                               | Example       |
-| ----------------- | --------------------------------------------------------------------------| ------------- |
-| webProxyHostname  | Hostname or IP address of Web Services Proxy                              | localhost     |
-| webProxyPort      | Port number of the Web Services Proxy (optional)                          | 8443          |
-| webProxyUseHTTP   | Use HTTP instead of HTTPS for Web Services Proxy (default = false)        | true          |
-| webProxyVerifyTLS | Verify server's certificate chain and hostname (default = false)          | true          |
-| username          | Username for Web Services Proxy                                           | rw            |
-| password          | Password for Web Services Proxy                                           | rw            |
-| controllerA       | IP address of controller A                                                | 10.0.0.5      |
-| controllerB       | IP address of controller B                                                | 10.0.0.6      |
-| passwordArray     | Password for storage array if set                                         | blank/empty   |
-| hostData_IP       | Host iSCSI IP address (if multipathing just choose either one)            | 10.0.0.101    |
-
+| Option                | Description                                                                             | Example       |
+| --------------------- | --------------------------------------------------------------------------------------- | ------------- |
+| webProxyHostname      | Hostname or IP address of Web Services Proxy                                            | localhost     |
+| webProxyPort          | Port number of the Web Services Proxy (optional)                                        | 8443          |
+| webProxyUseHTTP       | Use HTTP instead of HTTPS for Web Services Proxy (default = false)                      | true          |
+| webProxyVerifyTLS     | Verify server's certificate chain and hostname (default = false)                        | true          |
+| username              | Username for Web Services Proxy                                                         | rw            |
+| password              | Password for Web Services Proxy                                                         | rw            |
+| controllerA           | IP address of controller A                                                              | 10.0.0.5      |
+| controllerB           | IP address of controller B                                                              | 10.0.0.6      |
+| passwordArray         | Password for storage array if set                                                       | blank/empty   |
+| hostDataIP            | Host iSCSI IP address (if multipathing just choose either one)                          | 10.0.0.101    |
+| poolNameSearchPattern | Regular expression for matching storage pools available for nDVP volumes (default = .+) | docker.*      |
+| hostType              | Type of E-series Host created by nDVP (default = linux_dm_mp)                           | linux_dm_mp   |
+| accessGroupName       | Name of E-series Host Group to contain Hosts defined by nDVP (default = netappdvp)      | DockerHosts   |
+ 
 ### Example E-Series Config File
 
 **Example for eseries-iscsi driver**
@@ -332,38 +335,32 @@ In addition to the global configuration values above, when using E-Series, these
 	"controllerA": "10.0.0.5",
 	"controllerB": "10.0.0.6",
 	"passwordArray": "",
-	"hostData_IP": "10.0.0.101"
+	"hostDataIP": "10.0.0.101"
 }
 ```
 
 ### E-Series Array Setup Notes
 
-The E-Series Docker driver assumes that you have a volume group or a DDP pool
-pre-configured (N number of drives; segment size; RAID type; ...). The driver
-then allocates Docker volumes out of this volume group or DDP pool. The volume group
-and/or DDP pool must be given a specific name and there must be two groups allocated.
-For example, you could create a volume group/DDP pool named 'netappdvp_hdd' and another named 'netappdvp_ssd'.
+The E-Series Docker driver can provision Docker volumes in any storage pool on the array, including volume groups
+and DDP pools. To limit the Docker driver to a subset of the storage pools, set the poolNameSearchPattern in the
+configuration file to a regular expression that matches the desired pools.
 
-When creating a docker volume you can specify the volume size as well as the allocation group/DDP pool using the
-'-o' option and the tags 'size' and 'mediaType'. Note that these are optional; if unspecified, the defaults will
-be a 1 GB volume allocated from the HDD pool. An example of using these tags to create a 2 GB
-volume from the SSD volume group/DDP pool:
-
+When creating a docker volume you can specify the volume size as well as the disk media type using the
+'-o' option and the tags 'size' and 'mediaType'. Valid values for media type are 'hdd' and 'ssd'. Note that
+these are optional; if unspecified, the defaults will be a 1 GB volume allocated from an HDD pool. An example
+of using these tags to create a 2 GB volume from an SSD-based pool:
+ 	
 	docker volume create -d netapp --name my_vol -o size=2g -o mediaType=ssd
 
-Note that the current driver is meant to be used with iSCSI.
+The E-series Docker driver will detect and use any preexisting Host definitions without modification, and
+the driver will automatically define Host and Host Group objects as needed. The host type for hosts created
+by the driver defaults to "linux_dm_mp", the native DM-MPIO multipath driver in Linux.
 
-*Compatibility note:* When assigning LUN numbers for volumes attached to Linux hosts, start with LUN 1
-rather than LUN 0. If an array is connected to the host before a device is mapped to LUN 0, the
-Linux host will detect the REPORT LUNS well known logical unit as LUN 0, so that it can
-complete discovery. LUN 0 might not immediately map properly with a simple rescan,
-depending on the version of the host operating system in use.
-
-See [SANtricity Storage Manager 11.20 SAS Configuration and Provisioning for Linux Express Guide](https://library.netapp.com/ecm/ecm_download_file/ECMP1532526) for more details.
+The current E-series Docker driver only supports iSCSI.
 
 ## SolidFire Config File Variables
 
-In addition to the global configuration values above, when using SolidFire, these options are avaialble.
+In addition to the global configuration values above, when using SolidFire, these options are available.
 
 | Option            | Description                                                               | Example                    |
 | ----------------- | --------------------------------------------------------------------------| -------------------------- |

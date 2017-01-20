@@ -6,9 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
@@ -77,10 +79,15 @@ func main() {
 	// initially log to console, we'll switch to a file once we know where to write it
 	log.SetFormatter(&log.TextFormatter{FullTimestamp: true}) // default for logrus
 	log.SetOutput(os.Stderr)
-	log.SetLevel(log.InfoLevel)
+	if *debug == true {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 
 	flag.Parse()
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	rand.Seed(int64(time.Now().Nanosecond()))
 
 	if *printVersion == true {
 		fmt.Printf("NetApp Docker Volume Plugin version %v\n", storage_drivers.DriverVersion)

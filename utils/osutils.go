@@ -3,14 +3,18 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
+
+const ISCSI_ERR_NO_OBJS_FOUND int = 21
 
 // DFInfo data structure for wrapping the parsed output from the 'df' command
 type DFInfo struct {
@@ -301,16 +305,56 @@ func IscsiSupported() bool {
 	return true
 }
 
+// IscsiDiscoveryInfo contains information about discovered iSCSI targets
+type IscsiDiscoveryInfo struct {
+	Portal     string
+	PortalIP   string
+	TargetName string
+}
+
 // IscsiDiscovery uses the 'iscsiadm' command to perform discovery
-func IscsiDiscovery(portal string) (targets []string, err error) {
+func IscsiDiscovery(portal string) ([]IscsiDiscoveryInfo, error) {
 	log.Debugf("Begin osutils.IscsiDiscovery (portal: %s)", portal)
-	out, err := exec.Command("iscsiadm", "-m", "discovery", "-t", "sendtargets", "-p", portal).CombinedOutput()
+
+	out, err := IscsiadmCmd([]string{"-m", "discovery", "-t", "sendtargets", "-p", portal})
 	if err != nil {
-		log.Error("Error encountered in sendtargets cmd: ", out)
-		return
+		log.Error("Error encountered in sendtargets cmd: ", string(out))
+		return nil, err
 	}
-	targets = strings.Split(string(out), "\n")
-	return
+
+	/*
+			   iscsiadm -m discovery -t st -p 10.63.152.249:3260
+
+		           10.63.152.249:3260,1 iqn.1992-08.com.netapp:2752.600a0980006074c20000000056b32c4d
+		           10.63.152.250:3260,2 iqn.1992-08.com.netapp:2752.600a0980006074c20000000056b32c4d
+
+		           a[0]==10.63.152.249:3260,1
+		           a[1]==iqn.1992-08.com.netapp:2752.600a0980006074c20000000056b32c4d
+	*/
+
+	var discoveryInfo []IscsiDiscoveryInfo
+
+	lines := strings.Split(string(out), "\n")
+	for _, l := range lines {
+		a := strings.Fields(l)
+		if len(a) >= 2 {
+
+			portalIP := strings.Split(a[0], ":")[0]
+
+			discoveryInfo = append(discoveryInfo, IscsiDiscoveryInfo{
+				Portal:     a[0],
+				PortalIP:   portalIP,
+				TargetName: a[1],
+			})
+
+			log.WithFields(log.Fields{
+				"Portal":     a[0],
+				"PortalIP":   portalIP,
+				"TargetName": a[1],
+			}).Debug("Adding iSCSI discovery info")
+		}
+	}
+	return discoveryInfo, nil
 }
 
 // IscsiSessionInfo contains information about iSCSI sessions
@@ -327,8 +371,14 @@ func GetIscsiSessionInfo() ([]IscsiSessionInfo, error) {
 
 	out, err := IscsiadmCmd([]string{"-m", "session"})
 	if err != nil {
-		log.Errorf("Problem checking iscsi sessions error: %v", err)
-		return nil, err
+		exitErr, ok := err.(*exec.ExitError)
+		if ok && exitErr.ProcessState.Sys().(syscall.WaitStatus).ExitStatus() == ISCSI_ERR_NO_OBJS_FOUND {
+			log.Debug("No iSCSI session found.")
+			return []IscsiSessionInfo{}, nil
+		} else {
+			log.Errorf("Problem checking iSCSI sessions. %v", err)
+			return nil, err
+		}
 	}
 
 	/*
@@ -458,7 +508,7 @@ func MultipathFlush() (err error) {
 	out, err := exec.Command("multipath", "-F").CombinedOutput()
 	if err != nil {
 		// nothing to really do if it generates an error but log and return it
-		log.Debugf("Error encountered in multipath flush unused paths cmd: ", out)
+		log.Debugf("Error encountered in multipath flush unused paths cmd: ", string(out))
 		return
 	}
 	return
@@ -529,10 +579,27 @@ func IscsiadmCmd(args []string) ([]byte, error) {
 	log.Debugf("Begin osutils.iscsiadmCmd: iscsiadm %+v", args)
 	resp, err := exec.Command("iscsiadm", args...).CombinedOutput()
 	if err != nil {
-		log.Error("Error encountered running iscsiadm ", args, ": ", resp)
+		log.Error("Error encountered running iscsiadm ", args, ": ", string(resp))
 		log.Error("Error message: ", err)
 	}
 	return resp, err
+}
+
+// Login to iSCSI target
+func LoginIscsiTarget(iqn, portal string) error {
+
+	log.WithFields(log.Fields{
+		"IQN":    iqn,
+		"Portal": portal,
+	}).Debug("Logging in to iSCSI target.")
+
+	args := []string{"-m", "node", "-T", iqn, "-l", "-p", portal + ":3260"}
+
+	if _, err := IscsiadmCmd(args); err != nil {
+		log.Errorf("Error logging in to iSCSI target. %v", err)
+		return err
+	}
+	return nil
 }
 
 // LoginWithChap will login to the iscsi target with the supplied credentials
@@ -567,5 +634,73 @@ func LoginWithChap(tiqn, portal, username, password, iface string) error {
 		log.Error("Error running iscsiadm login: ", err)
 		return err
 	}
+	return nil
+}
+
+func EnsureIscsiSession(hostDataIP string) error {
+
+	// Ensure iSCSI is supported on system
+	if !IscsiSupported() {
+		return errors.New("iSCSI support not detected.")
+	}
+
+	// Ensure iSCSI session exists for the specified iSCSI portal
+	sessionExists, err := IscsiSessionExists(hostDataIP)
+	if err != nil {
+		return fmt.Errorf("Could not check for iSCSI session. %v", err)
+	}
+	if !sessionExists {
+
+		// Run discovery in case we haven't seen this target from this host
+		targets, err := IscsiDiscovery(hostDataIP)
+		if err != nil {
+			return fmt.Errorf("Could not run iSCSI discovery. %v", err)
+		}
+		if len(targets) == 0 {
+			return errors.New("iSCSI discovery found no targets.")
+		}
+
+		log.WithFields(log.Fields{
+			"Targets": targets,
+		}).Debugf("Found matching iSCSI targets.")
+
+		// Determine which target matches the portal we requested
+		targetIndex := -1
+		for i, target := range targets {
+			if target.PortalIP == hostDataIP {
+				targetIndex = i
+				break
+			}
+		}
+
+		if targetIndex == -1 {
+			return fmt.Errorf("iSCSI discovery found no targets with portal %s.", hostDataIP)
+		}
+
+		// To enable multipath, log in to each discovered target with the same IQN (target name)
+		targetName := targets[targetIndex].TargetName
+		for _, target := range targets {
+			if target.TargetName == targetName {
+
+				// Log in to target
+				err = LoginIscsiTarget(target.TargetName, target.PortalIP)
+				if err != nil {
+					return fmt.Errorf("Login to iSCSI target failed. %v", err)
+				}
+			}
+		}
+
+		// Recheck to ensure a session is now open
+		sessionExists, err = IscsiSessionExists(hostDataIP)
+		if err != nil {
+			return fmt.Errorf("Could not recheck for iSCSI session. %v", err)
+		}
+		if !sessionExists {
+			return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iSCSI portal.", hostDataIP)
+		}
+	}
+
+	log.Debugf("Found session to iSCSI portal %s.", hostDataIP)
+
 	return nil
 }

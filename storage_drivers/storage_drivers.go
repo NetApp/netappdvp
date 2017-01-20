@@ -4,6 +4,7 @@ package storage_drivers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/netapp/netappdvp/apis/sfapi"
@@ -23,6 +24,7 @@ type CommonStorageDriverConfig struct {
 	Version           int             `json:"version"`
 	StorageDriverName string          `json:"storageDriverName"`
 	Debug             bool            `json:"debug"`
+	DebugTraceFlags   map[string]bool `json:"debugTraceFlags"` // Example: {"api":false, "method":true}
 	DisableDelete     bool            `json:"disableDelete"`
 	StoragePrefixRaw  json.RawMessage `json:"storagePrefix,string"`
 	SnapshotPrefixRaw json.RawMessage `json:"snapshotPrefix,string"`
@@ -40,7 +42,7 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 
 	// load storage drivers and validate the one specified actually exists
 	if config.StorageDriverName == "" {
-		return nil, fmt.Errorf("Missing storage driver name in configuration file")
+		return nil, errors.New("Missing storage driver name in configuration file")
 	}
 
 	// validate config file version information
@@ -67,22 +69,27 @@ type OntapStorageDriverConfig struct {
 type ESeriesStorageDriverConfig struct {
 	CommonStorageDriverConfig
 
-	//Web Proxy Services Info
+	// Web Proxy Services Info
 	WebProxyHostname  string `json:"webProxyHostname"`
 	WebProxyPort      string `json:"webProxyPort"`      // optional
 	WebProxyUseHTTP   bool   `json:"webProxyUseHTTP"`   // optional
 	WebProxyVerifyTLS bool   `json:"webProxyVerifyTLS"` // optional
-	Username          string `json:"username"`          //rw
-	Password          string `json:"password"`          //rw
+	Username          string `json:"username"`
+	Password          string `json:"password"`
 
-	//Array Info
-	ControllerA     string `json:"controllerA"`
-	ControllerB     string `json:"controllerB"`
-	PasswordArray   string `json:"passwordArray"`   //optional
-	ArrayRegistered bool   `json:"arrayRegistered"` //optional
+	// Array Info
+	ControllerA   string `json:"controllerA"`
+	ControllerB   string `json:"controllerB"`
+	PasswordArray string `json:"passwordArray"` //optional
 
-	//Host Networking
-	HostDataIP string `json:"hostData_IP"` //for iSCSI can be either port if multipathing is setup
+	// Options
+	PoolNameSearchPattern string `json:"poolNameSearchPattern"` //optional
+
+	// Host Networking
+	HostData_IP string `json:"hostData_IP,omitempty"` // for backward compatibility only
+	HostDataIP  string `json:"hostDataIP"`            // for iSCSI can be either port if multipathing is setup
+	AccessGroup string `json:"accessGroupName"`       // name for host group, default is 'netappdvp'
+	HostType    string `json:"hostType"`              // host type, default is 'linux_dm_mp'
 }
 
 // SolidfireStorageDriverConfig holds settings for SolidfireStorageDrivers

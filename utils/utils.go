@@ -3,6 +3,7 @@
 package utils
 
 import (
+	"math/rand"
 	"sort"
 	"strconv"
 	"strings"
@@ -137,4 +138,14 @@ func GetV(opts map[string]string, key string, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func RandomNumericString(str_size int) string {
+	alphanum := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	var bytes = make([]byte, str_size)
+	rand.Read(bytes)
+	for i, b := range bytes {
+		bytes[i] = alphanum[b%byte(len(alphanum))]
+	}
+	return string(bytes)
 }
