@@ -72,8 +72,10 @@ func (c *Client) GetVolumesByDockerName(dockerName string, acctID int64) (v []Vo
 	}
 	for _, vol := range volumes {
 		attrs, _ := vol.Attributes.(map[string]interface{})
-		log.Debugf("Looking for docker-name: %+v\n", attrs)
+		log.Debugf("Looking for docker-name %+v in %+v\n", dockerName, attrs)
 		if attrs["docker-name"] == dockerName && vol.Status == "active" {
+			foundVolumes = append(foundVolumes, vol)
+		} else if vol.Name == strings.Replace(dockerName, "_", "-", -1) {
 			foundVolumes = append(foundVolumes, vol)
 		}
 	}

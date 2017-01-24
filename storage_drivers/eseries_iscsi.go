@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/apis/eseries"
 	"github.com/netapp/netappdvp/utils"
 
@@ -392,4 +393,11 @@ func (d *ESeriesStorageDriver) SnapshotList(name string) ([]CommonSnapshot, erro
 // Create a volume clone
 func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
 	return fmt.Errorf("Cloning with E-Series is not yet supported")
+}
+
+// VolumeList retrieves a list of volumes according to backend device
+func (d *ESeriesStorageDriver) VolumeList(vDir string) ([]*volume.Volume, error) {
+	// Currently ESeries utilizes the parent directory method, this function is
+	// an empty stub for the driver interface
+	return nil, fmt.Errorf("VolumeList not implemented in ESeries driver.")
 }

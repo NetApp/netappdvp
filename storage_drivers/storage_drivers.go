@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/apis/sfapi"
 )
 
@@ -14,6 +15,7 @@ const ConfigVersion = 1
 
 // DriverVersion is the actual release version number
 const DriverVersion = "1.3.2"
+
 // ExtendedDriverVersion can be overridden by embeddors such as Trident to uniquify the version string
 var ExtendedDriverVersion = "native"
 
@@ -93,6 +95,7 @@ type SolidfireStorageDriverConfig struct {
 	SVIP                      string
 	InitiatorIFace            string //iface to use of iSCSI initiator
 	Types                     *[]sfapi.VolType
+	LegacyNamePrefix          string //name prefix used in earlier ndvp versions
 }
 
 // CommonSnapshot contains the normalized volume snapshot format we report to Docker
@@ -117,4 +120,5 @@ type StorageDriver interface {
 	DefaultStoragePrefix() string
 	DefaultSnapshotPrefix() string
 	SnapshotList(name string) ([]CommonSnapshot, error)
+	VolumeList(rootDir string) ([]*volume.Volume, error)
 }

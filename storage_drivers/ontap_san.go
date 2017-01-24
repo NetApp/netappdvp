@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
 	"github.com/netapp/netappdvp/utils"
@@ -441,4 +442,11 @@ func (d *OntapSANStorageDriver) DefaultSnapshotPrefix() string {
 // Return the list of snapshots associated with the named volume
 func (d *OntapSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
 	return GetSnapshotList(name, d.API)
+}
+
+// VolumeList retrieves a list of volumes according to backend device
+func (d *OntapSANStorageDriver) VolumeList(vDir string) ([]*volume.Volume, error) {
+	// Currently ESeries utilizes the parent directory method, this function is
+	// an empty stub for the driver interface
+	return nil, fmt.Errorf("VolumeList not implemented in Ontap driver.")
 }
