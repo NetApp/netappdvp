@@ -69,7 +69,7 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
     EOF
     ```
 
-3. After placing the binary and creating the configuration file(s), start the nDVP daemon using the desired configuration file.  
+3. After placing the binary and creating the configuration file(s), start the nDVP daemon using the desired configuration file.
 
     **Note:** Unless specified, the default name for the volume driver will be "netapp".
 
@@ -241,6 +241,14 @@ supplied is prepended with "netappdvp_".  _("netappdvp-" for SolidFire.)_
 If you wish to use a different prefix, you can specify it with this directive.  Alternatively, you can use
 *pre-existing* volumes with the volume plugin by setting `storagePrefix` to an empty string, "".
 
+*solidfire specific recommendation* do not use a storagePrefix (including the default)
+By default the SolidFire driver will ignore this setting and not use a prefix.
+We recommend using either a specific tenantID for docker volume mapping or
+using the attribute data which is populated with the docker version, driver
+info and raw name from docker in cases where any name munging may have been
+used.
+
+
 **A note of caution**: `docker volume rm` will *delete* these volumes just as it does volumes created by the
 plugin using the default prefix.  Be very careful when using pre-existing volumes!
 
@@ -305,25 +313,25 @@ In addition to the global configuration values above, when using E-Series, these
 | controllerB       | IP address of controller B                                                | 10.0.0.6      |
 | passwordArray     | Password for storage array if set                                         | blank/empty   |
 | hostData_IP       | Host iSCSI IP address (if multipathing just choose either one)            | 10.0.0.101    |
- 
+
 ### Example E-Series Config File
 
 **Example for eseries-iscsi driver**
 
 ```json
-{    
-	"version": 1,    
-	"storageDriverName": "eseries-iscsi",    
-	"debug": true,    
-	"webProxyHostname": "localhost",    
+{
+	"version": 1,
+	"storageDriverName": "eseries-iscsi",
+	"debug": true,
+	"webProxyHostname": "localhost",
 	"webProxyPort": "8443",
 	"webProxyUseHTTP": false,
 	"webProxyVerifyTLS": true,
-	"username": "rw",    
-	"password": "rw",    
-	"controllerA": "10.0.0.5",    
-	"controllerB": "10.0.0.6",    
-	"passwordArray": "",    
+	"username": "rw",
+	"password": "rw",
+	"controllerA": "10.0.0.5",
+	"controllerB": "10.0.0.6",
+	"passwordArray": "",
 	"hostData_IP": "10.0.0.101"
 }
 ```
@@ -332,7 +340,7 @@ In addition to the global configuration values above, when using E-Series, these
 
 The E-Series Docker driver assumes that you have a volume group or a DDP pool
 pre-configured (N number of drives; segment size; RAID type; ...). The driver
-then allocates Docker volumes out of this volume group or DDP pool. The volume group 
+then allocates Docker volumes out of this volume group or DDP pool. The volume group
 and/or DDP pool must be given a specific name and there must be two groups allocated.
 For example, you could create a volume group/DDP pool named 'netappdvp_hdd' and another named 'netappdvp_ssd'.
 
@@ -340,8 +348,8 @@ When creating a docker volume you can specify the volume size as well as the all
 '-o' option and the tags 'size' and 'mediaType'. Note that these are optional; if unspecified, the defaults will
 be a 1 GB volume allocated from the HDD pool. An example of using these tags to create a 2 GB
 volume from the SSD volume group/DDP pool:
- 	
-	docker volume create -d netapp --name my_vol -o size=2g -o mediaType=ssd 	
+
+	docker volume create -d netapp --name my_vol -o size=2g -o mediaType=ssd
 
 Note that the current driver is meant to be used with iSCSI.
 
@@ -365,6 +373,12 @@ In addition to the global configuration values above, when using SolidFire, thes
 | DefaultVolSz      | Volume size in GiB                                                        | 1                          |
 | InitiatorIFace    | Specify interface when restricting iSCSI traffic to non-default interface | "default"                  |
 | Types             | QoS specifications                                                        | See below                  |
+| LegacyNamePrefix  | Prefix for upgraded NDVP installs                                         | "netappdvp-"               |
+
+
+**LegacyNamePrefix** If you used a version of ndvp prior to 1.3.2 and perform an
+upgrade with existing volumes, you'll need to set this value in order to access
+your old volumes that were mapped via the volume-name method.
 
 ### Example Solidfire Config File
 

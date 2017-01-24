@@ -21,6 +21,7 @@ type ndvpDriver struct {
 	root   string
 	config storage_drivers.CommonStorageDriverConfig
 	sd     storage_drivers.StorageDriver
+	isSF   bool
 }
 
 func (d *ndvpDriver) volumePrefix() string {
@@ -46,6 +47,9 @@ func (d *ndvpDriver) volumePrefix() string {
 }
 
 func (d *ndvpDriver) volumeName(name string) string {
+	if d.isSF == true {
+		return name
+	}
 	prefixToUse := d.volumePrefix()
 	if strings.HasPrefix(name, prefixToUse) {
 		return name
@@ -97,6 +101,12 @@ func newNetAppDockerVolumePlugin(root string, config storage_drivers.CommonStora
 		config: config,
 		m:      &sync.Mutex{},
 		sd:     storage_drivers.Drivers[config.StorageDriverName],
+		isSF:   false,
+	}
+
+	if config.StorageDriverName == "solidfire-san" {
+		log.Debug("Setting is SolidFire to true")
+		d.isSF = true
 	}
 	return d, nil
 }
@@ -139,6 +149,7 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 	}
 
 	if createErr != nil {
+		log.Errorf("Encountered create error: %+v", createErr)
 		os.Remove(m)
 		return volume.Response{Err: fmt.Sprintf("Error creating storage: %v", createErr)}
 	}
@@ -341,10 +352,19 @@ func (d ndvpDriver) Unmount(r volume.UnmountRequest) volume.Response {
 
 // List is part of the core Docker API and is called to list all known docker volumes for this plugin
 func (d ndvpDriver) List(r volume.Request) volume.Response {
+	var vols []*volume.Volume
 	d.m.Lock()
 	defer d.m.Unlock()
 
 	log.Debugf("List(%v)", r)
+
+	if d.isSF == true {
+		vols, err := d.sd.VolumeList(d.root)
+		if err != nil {
+			return volume.Response{Err: fmt.Sprintf("Problem reading volumes from backend: %v", err)}
+		}
+		return volume.Response{Volumes: vols}
+	}
 
 	// open directory ...
 	volumeDir := d.root
@@ -364,7 +384,6 @@ func (d ndvpDriver) List(r volume.Request) volume.Response {
 	}
 
 	// finally, we spin through all the subdirectories (if any) and return them in our List response
-	var vols []*volume.Volume
 	dirs := make([]string, 0)   // lint complains to switch to this, but it doens't work -> var dirs []string
 	fis, err := dir.Readdir(-1) // -1 means return all the FileInfos
 	if err != nil {
