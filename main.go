@@ -76,7 +76,7 @@ func initLogging(logName string) *os.File {
 
 func main() {
 	// initially log to console, we'll switch to a file once we know where to write it
-	log.SetFormatter(&log.TextFormatter{}) // default for logrus
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true}) // default for logrus
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.InfoLevel)
 
