@@ -17,12 +17,12 @@ func (c *Client) GetClusterCapacity() (capacity *ClusterCapacity, err error) {
 
 	response, err := c.Request("GetClusterCapacity", clusterCapReq, NewReqID())
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		log.Errorf("error detected in GetClusterCapacity API response: %+v", err)
+		return nil, errors.New("device API error")
 	}
 	if err := json.Unmarshal([]byte(response), &clusterCapResult); err != nil {
-		log.Fatal(err)
-		return nil, err
+		log.Errorf("error detected unmsarshalling json response: %+v", err)
+		return nil, errors.New("json decode error")
 	}
 	return &clusterCapResult.Result.ClusterCapacity, err
 }

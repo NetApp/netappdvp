@@ -73,10 +73,10 @@ func NewFromParameters(pendpoint string, pdefaultSizeGiB int64, psvip string, pc
 
 // Request performs a json-rpc POST to the configured endpoint
 func (c *Client) Request(method string, params interface{}, id int) (response []byte, err error) {
-	log.Debug("Issueing request to SolidFire Endpoint...")
+	log.Debug("sending request to SolidFire endpoint")
 	if c.Endpoint == "" {
-		log.Error("Endpoint is not set, unable to issue requests")
-		err = errors.New("Unable to issue json-rpc requests without specifying Endpoint")
+		log.Error("endpoint is not set, unable to issue json-rpc requests")
+		err = errors.New("no endpoint set")
 		return nil, err
 	}
 	data, err := json.Marshal(map[string]interface{}{
@@ -89,14 +89,14 @@ func (c *Client) Request(method string, params interface{}, id int) (response []
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
-	log.Debugf("POST request to: %+v", c.Endpoint)
+	log.Debugf("sending request to: %+v", c.Endpoint)
 	http := &http.Client{Transport: tr}
 	resp, err := http.Post(c.Endpoint,
 		"json-rpc",
 		strings.NewReader(string(data)))
 	if err != nil {
-		log.Errorf("Error encountered posting request: %v", err)
-		return nil, err
+		log.Errorf("error response from SolidFire API request: %v", err)
+		return nil, errors.New("device API error")
 	}
 
 	defer resp.Body.Close()
@@ -112,8 +112,8 @@ func (c *Client) Request(method string, params interface{}, id int) (response []
 	errresp := APIError{}
 	json.Unmarshal([]byte(body), &errresp)
 	if errresp.Error.Code != 0 {
-		err = errors.New("Received error response from API request")
-		return body, err
+		log.Errorf("error detected in API response: %+v", errresp)
+		return body, errors.New("device API error")
 	}
 	return body, nil
 }

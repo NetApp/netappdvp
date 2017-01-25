@@ -13,8 +13,8 @@ func (c *Client) CreateVolumeAccessGroup(r *CreateVolumeAccessGroupRequest) (vag
 	var result CreateVolumeAccessGroupResult
 	response, err := c.Request("CreateVolumeAccessGroup", r, NewReqID())
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Fatal(err)
-		return 0, err
+		log.Errorf("error detected unmarshalling CreateVolumeAccessGroupResult API response: %+v", errresp)
+		return 0, errors.New("json-decode error")
 	}
 	vagID = result.Result.VagID
 	return
@@ -25,13 +25,13 @@ func (c *Client) CreateVolumeAccessGroup(r *CreateVolumeAccessGroupRequest) (vag
 func (c *Client) ListVolumeAccessGroups(r *ListVolumeAccessGroupsRequest) (vags []VolumeAccessGroup, err error) {
 	response, err := c.Request("ListVolumeAccessGroups", r, NewReqID())
 	if err != nil {
-		log.Error(err)
-		return
+		log.Errorf("error in ListVolumeAccessGroupResult API response: %+v", errresp)
+		return 0, errors.New("failed to retrieve VAG list")
 	}
 	var result ListVolumesAccessGroupsResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Fatal(err)
-		return nil, err
+		log.Errorf("error detected unmarshalling ListVolumeAccessGroupResult API response: %+v", errresp)
+		return nil, errors.New("json-decode error")
 	}
 	vags = result.Result.Vags
 	return
@@ -41,9 +41,8 @@ func (c *Client) ListVolumeAccessGroups(r *ListVolumeAccessGroupsRequest) (vags 
 func (c *Client) AddInitiatorsToVolumeAccessGroup(r *AddInitiatorsToVolumeAccessGroupRequest) error {
 	response, err := c.Request("AddInitiatorsToVolumeAccessGroup", r, NewReqID())
 	if err != nil {
-		log.Error(string(response))
-		log.Error(err)
-		return err
+		log.Errorf("error in AddInitiator to VAG API response: %+v", errresp)
+		return errors.New("failed to add initiator to VAG")
 	}
 	return nil
 }
