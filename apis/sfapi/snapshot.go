@@ -4,6 +4,7 @@ package sfapi
 
 import (
 	"encoding/json"
+	"errors"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -12,8 +13,8 @@ func (c *Client) CreateSnapshot(req *CreateSnapshotRequest) (snapshot Snapshot, 
 	response, err := c.Request("CreateSnapshot", req, NewReqID())
 	var result CreateSnapshotResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Error(err)
-		return Snapshot{}, err
+		log.Errorf("error detected unmsarshalling CreateSnapshot json response: %+v", err)
+		return Snapshot{}, errors.New("json decode error")
 	}
 	return (c.GetSnapshot(req.VolumeID, result.Result.SnapshotID, ""))
 }
@@ -23,7 +24,8 @@ func (c *Client) GetSnapshot(snapID, volID int64, sfName string) (s Snapshot, er
 	listReq.VolumeID = volID
 	snapshots, err := c.ListSnapshots(&listReq)
 	if err != nil {
-		return Snapshot{}, err
+		log.Errorf("error in GetSnapshot from ListSnapshots: %+v", err)
+		return Snapshot{}, errors.New("failed to perform ListSnaphsots")
 	}
 	for _, snap := range snapshots {
 		if snapID == snap.SnapshotID {
@@ -40,13 +42,13 @@ func (c *Client) GetSnapshot(snapID, volID int64, sfName string) (s Snapshot, er
 func (c *Client) ListSnapshots(req *ListSnapshotsRequest) (snapshots []Snapshot, err error) {
 	response, err := c.Request("ListSnapshots", req, NewReqID())
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		log.Errorf("error in ListSnapshots: %+v", err)
+		return nil, errors.New("failed to retrieve snapshots")
 	}
 	var result ListSnapshotsResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Error(err)
-		return nil, err
+		log.Errorf("error detected unmsarshalling ListSnapshots json response: %+v", err)
+		return nil, errors.New("json decode error")
 	}
 	snapshots = result.Result.Snapshots
 	return
@@ -56,13 +58,13 @@ func (c *Client) ListSnapshots(req *ListSnapshotsRequest) (snapshots []Snapshot,
 func (c *Client) RollbackToSnapshot(req *RollbackToSnapshotRequest) (newSnapID int64, err error) {
 	response, err := c.Request("RollbackToSnapshot", req, NewReqID())
 	if err != nil {
-		log.Error(err)
-		return 0, err
+		log.Errorf("error in RollbackToSnapshot: %+v", err)
+		return 0, errors.New("failed to rollback snapshot")
 	}
 	var result RollbackToSnapshotResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Error(err)
-		return 0, err
+		log.Errorf("error detected unmsarshalling RollbackToSnapshot json response: %+v", err)
+		return 0, errors.New("json decode error")
 	}
 	newSnapID = result.Result.SnapshotID
 	err = nil
@@ -76,8 +78,8 @@ func (c *Client) DeleteSnapshot(snapshotID int64) (err error) {
 	req.SnapshotID = snapshotID
 	_, err = c.Request("DeleteSnapshot", req, NewReqID())
 	if err != nil {
-		log.Error("Failed to delete snapshot ID: ", snapshotID)
-		return err
+		log.Errorf("error in DeleteSnapshot: %+v", err)
+		return errors.New("failed to delete snapshot")
 	}
 	return
 }
