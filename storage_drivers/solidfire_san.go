@@ -314,7 +314,6 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 // Destroy the requested docker volume
 func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	log.Debugf("SolidfireSANStorageDriver#Destroy(%s)", name)
-
 	v, err := d.getVolume(name)
 	if err != nil {
 		log.Errorf("unable to locate volume for delete operation: %+v", err)
