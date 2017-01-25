@@ -5,8 +5,6 @@ package storage_drivers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -451,9 +449,9 @@ func (d *SolidfireSANStorageDriver) Get(name string) error {
 
 	_, err := d.getVolume(name)
 	if err != nil {
-		return fmt.Errorf("Problem looking up volumes for TenantID: %v", d.TenantID)
+		log.Errorf("error encountered fetching volume: %+v", err)
+		return errors.New("volume not found")
 	}
-
 	return nil
 }
 
