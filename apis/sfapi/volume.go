@@ -18,13 +18,13 @@ import (
 func (c *Client) ListVolumesForAccount(listReq *ListVolumesForAccountRequest) (volumes []Volume, err error) {
 	response, err := c.Request("ListVolumesForAccount", listReq, NewReqID())
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		log.Errorf("error detected in ListVolumesForAccount API response: %+v", err)
+		return nil, errors.New("device API error")
 	}
 	var result ListVolumesResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Fatal(err)
-		return nil, err
+		log.Errorf("error detected unmarshalling ListVolumesForAccount API response: %+v", err)
+		return nil, errors.New("json-decode error")
 	}
 	volumes = result.Result.Volumes
 	return volumes, err
@@ -62,17 +62,18 @@ func (c *Client) GetVolumeByDockerName(n string, acctID int64) (v Volume, err er
 
 // GetVolumesByDockerName tbd
 func (c *Client) GetVolumesByDockerName(dockerName string, acctID int64) (v []Volume, err error) {
+	log.Debug("attempting GetVolumesByDockerName call")
 	var listReq ListVolumesForAccountRequest
 	var foundVolumes []Volume
 	listReq.AccountID = acctID
 	volumes, err := c.ListVolumesForAccount(&listReq)
 	if err != nil {
-		log.Error("Error retrieving volumes: ", err)
-		return foundVolumes, err
+		log.Errorf("error detected in ListVolumesForAccount API response: %+v", err)
+		return foundVolumes, errors.New("device API error")
 	}
 	for _, vol := range volumes {
 		attrs, _ := vol.Attributes.(map[string]interface{})
-		log.Debugf("Looking for docker-name %+v in %+v\n", dockerName, attrs)
+		log.Debugf("looking for docker-name %+v in %+v\n", dockerName, attrs)
 		if attrs["docker-name"] == dockerName && vol.Status == "active" {
 			foundVolumes = append(foundVolumes, vol)
 		} else if vol.Name == strings.Replace(dockerName, "_", "-", -1) {
@@ -80,10 +81,11 @@ func (c *Client) GetVolumesByDockerName(dockerName string, acctID int64) (v []Vo
 		}
 	}
 	if len(foundVolumes) > 1 {
-		log.Warningf("Found more than one volume with the docker-name: %s\n%+v", dockerName, foundVolumes)
+		log.Warningf("found more than one volume with the docker-name: %s\n%+v", dockerName, foundVolumes)
 	}
 	if len(foundVolumes) == 0 {
-		return foundVolumes, fmt.Errorf("Failed to find any volumes by the name of: %s for this account: %d", dockerName, acctID)
+		log.Warningf("failed to find volume with docker name: %s", dockerName)
+		return foundVolumes, errors.New("volume not found")
 	}
 	return foundVolumes, nil
 }
@@ -110,8 +112,8 @@ func (c *Client) GetVolumesByName(sfName string, acctID int64) (v []Volume, err 
 	listReq.AccountID = acctID
 	volumes, err := c.ListVolumesForAccount(&listReq)
 	if err != nil {
-		log.Error("Error retrieving volumes: ", err)
-		return foundVolumes, err
+		log.Errorf("error retrieving volumes in GetVolumesByname: %+v ", err)
+		return foundVolumes, errors.New("device API error")
 	}
 	for _, vol := range volumes {
 		if vol.Name == sfName && vol.Status == "active" {
@@ -119,10 +121,11 @@ func (c *Client) GetVolumesByName(sfName string, acctID int64) (v []Volume, err 
 		}
 	}
 	if len(foundVolumes) > 1 {
-		log.Warningf("Found more than one volume with the name: %s\n%+v", sfName, foundVolumes)
+		log.Warningf("dscovered more than one volume with the name: %s\n%+v", sfName, foundVolumes)
 	}
 	if len(foundVolumes) == 0 {
-		return foundVolumes, fmt.Errorf("Failed to find any volumes by the name of: %s for this account: %d", sfName, acctID)
+		log.Errorf("no volumes found in list matching name %s and account %s", sfName, acctID)
+		return foundVolumes, errors.New("volume not found")
 	}
 	return foundVolumes, nil
 }
@@ -131,13 +134,13 @@ func (c *Client) GetVolumesByName(sfName string, acctID int64) (v []Volume, err 
 func (c *Client) ListActiveVolumes(listVolReq *ListActiveVolumesRequest) (volumes []Volume, err error) {
 	response, err := c.Request("ListActiveVolumes", listVolReq, NewReqID())
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		log.Errorf("error reponse from ListActiveVolumes request: %+v ", err)
+		return nil, errors.New("device API error")
 	}
 	var result ListVolumesResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Fatal(err)
-		return nil, err
+		log.Errorf("error detected unmarshalling ListActiveVolumes API response: %+v", err)
+		return nil, errors.New("json-decode error")
 	}
 	volumes = result.Result.Volumes
 	return volumes, err
@@ -147,8 +150,8 @@ func (c *Client) CloneVolume(req *CloneVolumeRequest) (vol Volume, err error) {
 	response, err := c.Request("CloneVolume", req, NewReqID())
 	var result CloneVolumeResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Fatal(err)
-		return Volume{}, err
+		log.Errorf("error detected unmarshalling CloneVolume API response: %+v", err)
+		return Volume{}, errors.New("json-decode error")
 	}
 
 	wait := 0
@@ -169,12 +172,13 @@ func (c *Client) CloneVolume(req *CloneVolumeRequest) (vol Volume, err error) {
 func (c *Client) CreateVolume(createReq *CreateVolumeRequest) (vol Volume, err error) {
 	response, err := c.Request("CreateVolume", createReq, NewReqID())
 	if err != nil {
-		return Volume{}, err
+		log.Errorf("error response from CreateVolume request: %+v ", err)
+		return Volume{}, errors.New("device API error")
 	}
 	var result CreateVolumeResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Fatal(err)
-		return Volume{}, err
+		log.Errorf("error detected unmarshalling CreateVolume API response: %+v", err)
+		return Volume{}, errors.New("json-decode error")
 	}
 
 	vol, err = c.GetVolumeByID(result.Result.VolumeID)
@@ -189,8 +193,8 @@ func (c *Client) AddVolumeToAccessGroup(groupID int64, volIDs []int64) (err erro
 	}
 	_, err = c.Request("AddVolumesToVolumeAccessGroup", req, NewReqID())
 	if err != nil {
-		log.Errorf("Failed to add volume(s) to VAG %d: ", groupID)
-		return err
+		log.Errorf("error response from Add to VAG request: %+v ", err)
+		return errors.New("device API error")
 	}
 	return err
 }
@@ -211,8 +215,9 @@ func (c *Client) DeleteVolume(volumeID int64) (err error) {
 	req.VolumeID = volumeID
 	_, err = c.Request("DeleteVolume", req, NewReqID())
 	if err != nil {
-		log.Error("Failed to delete volume ID: ", volumeID)
-		return err
+		// TODO: distinguish what the error was?
+		log.Errorf("error response from DeleteVolume request: %+v ", err)
+		return errors.New("device API error")
 	}
 	return
 }
@@ -220,8 +225,8 @@ func (c *Client) DeleteVolume(volumeID int64) (err error) {
 // DetachVolume tbd
 func (c *Client) DetachVolume(v Volume) (err error) {
 	if c.SVIP == "" {
-		err = errors.New("Unable to perform iSCSI actions without setting SVIP")
-		return
+		log.Errorf("error response from DetachVolume request: %+v ", err)
+		return errors.New("detach volume error")
 	}
 	tgt := &utils.IscsiTargetInfo{
 		IP:     c.SVIP,
@@ -238,34 +243,34 @@ func (c *Client) AttachVolume(v *Volume, iface string) (path, device string, err
 	path = "/dev/disk/by-path/ip-" + c.SVIP + "-iscsi-" + v.Iqn + "-lun-0"
 
 	if c.SVIP == "" {
-		err = errors.New("Unable to perform iSCSI actions without setting SVIP")
-		log.Error(err)
+		err = errors.New("unable to perform iSCSI actions without setting SVIP")
+		log.Errorf("unable to attach volume, SVIP is NOT set")
 		return path, device, err
 	}
 
 	if utils.IscsiSupported() == false {
-		err := errors.New("Unable to attach, open-iscsi tools not found on host")
-		log.Error(err)
+		err := errors.New("unable to attach, open-iscsi tools not found on host")
+		log.Errorf("unable to attach volume, open-iscsi utils not found")
 		return path, device, err
 	}
 
 	req.AccountID = v.AccountID
 	a, err := c.GetAccountByID(&req)
 	if err != nil {
-		log.Error("Failed to get account ", v.AccountID, ": ", err)
-		return path, device, err
+		log.Errorf("failed to get account %v, error: %+v ", v.AccountID, err)
+		return path, device, errors.New("volume attach failure")
 	}
 
 	// Make sure it's not already attached
 	if utils.WaitForPathToExist(path, 1) {
-		log.Debug("Get device file from path: ", path)
+		log.Debugf("get device file from path: %s", path)
 		device = strings.TrimSpace(utils.GetDeviceFileFromIscsiPath(path))
 		return path, device, nil
 	}
 
 	err = utils.LoginWithChap(v.Iqn, c.SVIP, a.Username, a.InitiatorSecret, iface)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("failed to login with CHAP credentials: %+v ", err)
 		return path, device, err
 	}
 	if utils.WaitForPathToExist(path, 5) {
