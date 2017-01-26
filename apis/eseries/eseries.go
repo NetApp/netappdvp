@@ -155,6 +155,107 @@ func (d Driver) SendMsg(data []byte, httpMethod string, msgType string) (*http.R
 func (d Driver) init() {
 }
 
+func (d Driver) populateVolumeCache(name string) (err error) {
+
+	//Verify we have a valid array id
+	if d.config.ArrayID == "" {
+		panic("ArrayID is invalid!")
+	}
+
+	// If a volume is specified, only re-populate if it doesn't already exist in the cache.
+	if len(name) > 0 {
+		//First check if volume is already in persistant map
+		if _, isPresent := d.config.Volumes[name]; isPresent {
+			return nil
+		}
+	}
+
+	//If not in map then we need to query volumes on array
+	resp, err := d.SendMsg(nil, "GET", "/volumes")
+	defer resp.Body.Close()
+
+	if resp.StatusCode != GenericResponseOkay {
+		return fmt.Errorf("ESeriesStorageDriver::populateVolumeCache - GET to obtain volume failed! StatusCode=%v Status=%s", resp.StatusCode, resp.Status)
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	log.Debugf("response Body:\n%s", string(body))
+
+	//Next need to demarshal json data
+	responseJSON := make([]MsgVolumeExResponse, 0)
+	if err := json.Unmarshal(body, &responseJSON); err != nil {
+		panic(err)
+	}
+
+	for _, e := range responseJSON {
+		if len(name) > 0 {
+			if e.Label != name {
+				continue
+			}
+		}
+
+		//Create a VolumeInfo structure and add it to the map
+		var tmpVolumeInfo VolumeInfo
+		tmpVolumeInfo.VolumeGroupRef = e.VolumeGroupRef
+		tmpVolumeInfo.VolumeRef = e.VolumeRef
+
+		//Convert size of volume from string to int64
+		tmpLunSize, atoiErr := strconv.ParseInt(e.VolumeSize, 10, 0)
+		if atoiErr != nil {
+			fmt.Errorf("Cannot convert size to bytes: %v error: %v", e.VolumeSize, atoiErr)
+			return atoiErr
+		}
+
+		tmpVolumeInfo.VolumeSize = tmpLunSize
+		tmpVolumeInfo.SegmentSize = e.SegmentSize
+		tmpVolumeInfo.UnitSize = "b" //bytes
+
+		//Need to figure out mediaType (whether this volume belongs to hdd or ssd group)
+		volumeGroupRef, error := d.VerifyVolumePools("hdd", "1m") //1 megabyte is just a small unit to use while figuring out which media type this volume belongs to
+		if error != nil {
+			return error
+		}
+
+		if e.VolumeGroupRef == volumeGroupRef {
+			//Found it! It is a hdd volume group.
+			tmpVolumeInfo.MediaType = "hdd"
+		} else {
+			//Not a part of hdd volume group so see if it is part of ssd volume group
+			volumeGroupRef1, error1 := d.VerifyVolumePools("ssd", "1m") //1 megabyte is just a small unit to use while figuring out which media type this volume belongs to
+			if error != nil {
+				return error1
+			}
+
+			if e.VolumeGroupRef == volumeGroupRef1 {
+				//Found it! It is part of ssd volume group.
+				tmpVolumeInfo.MediaType = "ssd"
+			} else {
+				//It isn't part of ssd nor hdd volume group!
+				continue
+			}
+		}
+
+		tmpVolumeInfo.SecureVolume = false //TODO: add this capability for FDE drives
+		tmpVolumeInfo.IsVolumeMapped = e.IsMapped
+
+		for j, f := range e.ListOfMappings {
+			log.Debugf("%v) Volume with name %s has mapping reference %s", j, e.Label, f.LunMappingRef)
+			tmpVolumeInfo.LunMappingRef = f.LunMappingRef //TODO - what if there are multiple mappings? Is this even possible outside 'Default Group'?
+			tmpVolumeInfo.LunNumber = f.LunNumber
+		}
+
+		//Add it to map
+		d.config.Volumes[e.Label] = &tmpVolumeInfo
+
+		// If we were just looking for one, we just found it. Bail out.
+		if len(name) > 0 {
+			break
+		}
+	}
+
+	return nil
+}
+
 // Connect to the array's Web Services Proxy
 func (d Driver) Connect() (response string, err error) {
 
@@ -269,105 +370,30 @@ func (d Driver) VerifyVolumePools(mediaType string, size string) (VolumeGroupRef
 	return volumeGroupRef, nil
 }
 
-func (d Driver) VerifyVolumeExists(name string) (err error) {
-
-	//Verify we have a valid array id
-	if d.config.ArrayID == "" {
-		panic("ArrayID is invalid!")
+func (d Driver) GetVolumeList() (vols []string, err error) {
+	// TODO: Right now we re-build the whole list every time; not sure how painful this call is. Should
+	// look into finding ways to invalidate the cache and instituting a TTL, although there will be
+	// issues when this driver is installed on multiple hosts if we do that.
+	err = d.populateVolumeCache("");
+	if err != nil {
+		return nil, fmt.Errorf("Unable to retrieve the list of volumes: %v", err)
 	}
 
-	//First check if volume is already in persistant map
+	for vol := range d.config.Volumes {
+		vols = append(vols, vol)
+	}
+
+	return vols, nil
+}
+
+func (d Driver) VerifyVolumeExists(name string) (err error) {
+	d.populateVolumeCache(name);
+
 	if _, isPresent := d.config.Volumes[name]; isPresent {
 		return nil
 	}
 
-	//If not in map then we need to query volumes on array
-	resp, err := d.SendMsg(nil, "GET", "/volumes")
-	defer resp.Body.Close()
-
-	if resp.StatusCode != GenericResponseOkay {
-		return fmt.Errorf("ESeriesStorageDriver::VerifyVolumeExists - GET to obtain volume failed! StatusCode=%v Status=%s", resp.StatusCode, resp.Status)
-	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
-
-	//Next need to demarshal json data
-	responseJSON := make([]MsgVolumeExResponse, 0)
-	if err := json.Unmarshal(body, &responseJSON); err != nil {
-		panic(err)
-	}
-
-	var foundVolume bool = false
-	for i, e := range responseJSON {
-		log.Debugf("%v) Found volume with name %s Label=%s IsMapped=%v", i, name, e.Label, e.IsMapped)
-
-		if e.Label == name {
-			foundVolume = true
-
-			//Create a VolumeInfo structure and add it to the map
-			var tmpVolumeInfo VolumeInfo
-			tmpVolumeInfo.VolumeGroupRef = e.VolumeGroupRef
-			tmpVolumeInfo.VolumeRef = e.VolumeRef
-
-			//Convert size of volume from string to int64
-			tmpLunSize, atoiErr := strconv.ParseInt(e.VolumeSize, 10, 0)
-			if atoiErr != nil {
-				fmt.Errorf("Cannot convert size to bytes: %v error: %v", e.VolumeSize, atoiErr)
-				return atoiErr
-			}
-
-			tmpVolumeInfo.VolumeSize = tmpLunSize
-			tmpVolumeInfo.SegmentSize = e.SegmentSize
-			tmpVolumeInfo.UnitSize = "b" //bytes
-
-			//Need to figure out mediaType (whether this volume belongs to hdd or ssd group)
-			volumeGroupRef, error := d.VerifyVolumePools("hdd", "1m") //1 megabyte is just a small unit to use while figuring out which media type this volume belongs to
-			if error != nil {
-				return error
-			}
-
-			if e.VolumeGroupRef == volumeGroupRef {
-				//Found it! It is a hdd volume group.
-				tmpVolumeInfo.MediaType = "hdd"
-			} else {
-				//Not a part of hdd volume group so see if it is part of ssd volume group
-				volumeGroupRef1, error1 := d.VerifyVolumePools("ssd", "1m") //1 megabyte is just a small unit to use while figuring out which media type this volume belongs to
-				if error != nil {
-					return error1
-				}
-
-				if e.VolumeGroupRef == volumeGroupRef1 {
-					//Found it! It is part of ssd volume group.
-					tmpVolumeInfo.MediaType = "ssd"
-				} else {
-					//It isn't part of ssd nor hdd volume group!
-					panic("volume is not part of ssd nor hdd volume group!")
-				}
-			}
-
-			tmpVolumeInfo.SecureVolume = false //TODO: add this capability for FDE drives
-			tmpVolumeInfo.IsVolumeMapped = e.IsMapped
-
-			for j, f := range e.ListOfMappings {
-				log.Debugf("%v) Volume with name %s has mapping reference %s", j, name, f.LunMappingRef)
-				tmpVolumeInfo.LunMappingRef = f.LunMappingRef //TODO - what if there are multiple mappings? Is this even possible outside 'Default Group'?
-				tmpVolumeInfo.LunNumber = f.LunNumber
-			}
-
-			//Add it to map
-			d.config.Volumes[name] = &tmpVolumeInfo
-
-			//Stop searching
-			break
-		}
-	}
-
-	if !foundVolume {
-		return fmt.Errorf("ESeriesStorageDriver::VerifyVolumeExists - volume with name %s not found on array! Are you sure you created a volume with this name?", name)
-	}
-
-	return nil
+	return fmt.Errorf("ESeriesStorageDriver::VerifyVolumeExists - volume with name %s not found on array! Are you sure you created a volume with this name?", name)
 }
 
 func (d Driver) IsVolumeAlreadyMappedToHost(name string, hostRef string) (isMapped bool, lunNumber int, err error) {

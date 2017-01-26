@@ -70,13 +70,13 @@ func EmsInitialized(driverName string, api *ontap.Driver) {
 func CreateOntapClone(name, source, snapshot, newSnapshotPrefix string, api *ontap.Driver) error {
 	log.Debugf("OntapCommon#CreateOntapClone(%v, %v, %v, %v)", name, source, snapshot, newSnapshotPrefix)
 
-	// If the specified volume already exists, skip creation and call it a success
+	// If the specified volume already exists, return an error
 	response, err := api.VolumeSize(name)
 	if err != nil {
 		return fmt.Errorf("Error searching for existing volume: error: %v", err)
 	}
 	if isPassed(response.Result.ResultStatusAttr) {
-		return nil
+		return fmt.Errorf("Volume already exists")
 	}
 
 	// If no specific snapshot was requested, create one
@@ -130,6 +130,37 @@ func GetSnapshotList(name string, api *ontap.Driver) ([]CommonSnapshot, error) {
 	}
 
 	return snapshots, nil
+}
+
+// Return the list of volumes associated with the tenant
+func GetVolumeList(prefix string, api *ontap.Driver) ([]string, error) {
+	log.Debugf("OntapCommon#GetVolumeList()")
+
+	response, err := api.VolumeList(prefix)
+		if !isPassed(response.Result.ResultStatusAttr) || err != nil {
+		return nil, fmt.Errorf("Error enumerating volumes: status: %v error: %v", response.Result.ResultStatusAttr, err)
+	}
+
+	var volumes []string
+
+	// AttributesList() returns []VolumeAttributesType
+	for _, vat := range response.Result.AttributesList() {
+		vid := vat.VolumeIdAttributes()
+		vol := string(vid.Name())[len(prefix):]
+		volumes = append(volumes, vol)
+	}
+
+	return volumes, nil
+}
+
+// Test for the existence of a volume
+func GetVolume(name string, api *ontap.Driver) error {
+	response, err := api.VolumeSize(name)
+	if !isPassed(response.Result.ResultStatusAttr) || err != nil {
+		return fmt.Errorf("Error searching for existing volume: status: %v error: %v", response.Result.ResultStatusAttr, err)
+	}
+
+	return nil
 }
 
 func isPassed(s string) bool {

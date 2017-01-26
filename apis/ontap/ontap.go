@@ -83,7 +83,9 @@ func (d Driver) IgroupDestroy(initiatorGroupName string) (response azgo.IgroupDe
 
 // IgroupList lists initiator groups
 func (d Driver) IgroupList() (response azgo.IgroupGetIterResponse, err error) {
-	response, err = azgo.NewIgroupGetIterRequest().ExecuteUsing(d.zr)
+	response, err = azgo.NewIgroupGetIterRequest().
+		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		ExecuteUsing(d.zr)
 	return
 }
 
@@ -249,6 +251,18 @@ func (d Driver) VolumeDestroy(name string, force bool) (response azgo.VolumeDest
 	return
 }
 
+// VolumeList lists volumes
+func (d Driver) VolumeList(prefix string) (response azgo.VolumeGetIterResponse, err error) {
+	viat := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(prefix + "*"))
+	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*viat)
+
+	response, err = azgo.NewVolumeGetIterRequest().
+		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		SetQuery(*query).
+		ExecuteUsing(d.zr)
+	return
+}
+
 // VOLUME operations END
 /////////////////////////////////////////////////////////////////////////////
 
@@ -269,6 +283,7 @@ func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGe
 	query := azgo.NewSnapshotInfoType().SetVolume(volumeName)
 
 	response, err = azgo.NewSnapshotGetIterRequest().
+		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
 		SetQuery(*query).
 		ExecuteUsing(d.zr)
 	return
@@ -282,7 +297,9 @@ func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGe
 
 // IscsiServiceGetIterRequest returns information about an iSCSI target
 func (d Driver) IscsiServiceGetIterRequest() (response azgo.IscsiServiceGetIterResponse, err error) {
-	response, err = azgo.NewIscsiServiceGetIterRequest().ExecuteUsing(d.zr)
+	response, err = azgo.NewIscsiServiceGetIterRequest().
+		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		ExecuteUsing(d.zr)
 	return
 }
 
@@ -295,7 +312,9 @@ func (d Driver) IscsiServiceGetIterRequest() (response azgo.IscsiServiceGetIterR
 // NetInterfaceGet returns the list of network interfaces with associated metadata
 // equivalent to filer::> net interface list
 func (d Driver) NetInterfaceGet() (response azgo.NetInterfaceGetIterResponse, err error) {
-	response, err = azgo.NewNetInterfaceGetIterRequest().ExecuteUsing(d.zr)
+	response, err = azgo.NewNetInterfaceGetIterRequest().
+		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		ExecuteUsing(d.zr)
 	return
 }
 
@@ -309,7 +328,9 @@ func (d Driver) SystemGetVersion() (response azgo.SystemGetVersionResponse, err 
 // VserverGetIterRequest returns the vservers on the system
 // equivalent to filer::> vserver show
 func (d Driver) VserverGetIterRequest() (response azgo.VserverGetIterResponse, err error) {
-	response, err = azgo.NewVserverGetIterRequest().ExecuteUsing(d.zr)
+	response, err = azgo.NewVserverGetIterRequest().
+		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		ExecuteUsing(d.zr)
 	return
 }
 

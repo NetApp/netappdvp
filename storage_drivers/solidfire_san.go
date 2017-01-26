@@ -5,12 +5,10 @@ package storage_drivers
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/alecthomas/units"
-	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/apis/sfapi"
 	"github.com/netapp/netappdvp/utils"
 
@@ -215,8 +213,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 
 	v, err := d.getVolume(name)
 	if err == nil && v.VolumeID != 0 {
-		log.Infof("Found existing Volume by name: %s", name)
-		return nil
+		return fmt.Errorf("Volume already exists")
 	}
 
 	formatOpts(opts)
@@ -376,19 +373,18 @@ func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 
 // DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
 func (d *SolidfireSANStorageDriver) DefaultStoragePrefix() string {
-	return "netappdvp-"
+	return ""
 }
 
 // DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
 func (d *SolidfireSANStorageDriver) DefaultSnapshotPrefix() string {
-	return "netappdvp-"
+	return ""
 }
 
 // Return the list of volumes according to backend device
-func (d *SolidfireSANStorageDriver) VolumeList(vDir string) ([]*volume.Volume, error) {
-	log.Info("List volumes from SolidFire backend")
+func (d *SolidfireSANStorageDriver) List(prefix string) (vols []string, err error) {
 	var req sfapi.ListVolumesForAccountRequest
-	var vols []*volume.Volume
+
 	req.AccountID = d.TenantID
 	volumes, err := d.Client.ListVolumesForAccount(&req)
 	for _, v := range volumes {
@@ -398,7 +394,7 @@ func (d *SolidfireSANStorageDriver) VolumeList(vDir string) ([]*volume.Volume, e
 			if str, ok := attrs["docker-name"].(string); ok {
 				dName = strings.Replace(str, d.LegacyNamePrefix, "", -1)
 			}
-			vols = append(vols, &volume.Volume{Name: dName, Mountpoint: filepath.Join(vDir, v.Name)})
+			vols = append(vols, dName)
 		}
 	}
 	return vols, err
@@ -429,6 +425,18 @@ func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot,
 	}
 
 	return snapshots, nil
+}
+
+// Test for the existence of a volume
+func (d *SolidfireSANStorageDriver) Get(name string) error {
+	log.Debugf("SolidfireSANStorageDriver#Get(%v)", name)
+
+	_, err := d.getVolume(name)
+	if err != nil {
+		return fmt.Errorf("Problem looking up volumes for TenantID: %v", d.TenantID)
+	}
+
+	return nil
 }
 
 // Get volume using a couple of different methods to support changes after

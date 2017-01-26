@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
 	"github.com/netapp/netappdvp/utils"
@@ -159,10 +158,10 @@ func (d *OntapSANStorageDriver) Validate() error {
 func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) error {
 	log.Debugf("OntapSANStorageDriver#Create(%v)", name)
 
+	// If the volume already exists, bail out
 	response, _ := d.API.VolumeSize(name)
 	if isPassed(response.Result.ResultStatusAttr) {
-		log.Debugf("%v already exists, skipping create...", name)
-		return nil
+		return fmt.Errorf("Volume already exists")
 	}
 
 	// get options with default values if not specified in config file
@@ -444,9 +443,12 @@ func (d *OntapSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, err
 	return GetSnapshotList(name, d.API)
 }
 
-// VolumeList retrieves a list of volumes according to backend device
-func (d *OntapSANStorageDriver) VolumeList(vDir string) ([]*volume.Volume, error) {
-	// Currently ESeries utilizes the parent directory method, this function is
-	// an empty stub for the driver interface
-	return nil, fmt.Errorf("VolumeList not implemented in Ontap driver.")
+// Return the list of volumes associated with this tenant
+func (d *OntapSANStorageDriver) List(prefix string) ([]string, error) {
+	return GetVolumeList(prefix, d.API)
+}
+
+// Test for the existence of a volume
+func (d *OntapSANStorageDriver) Get(name string) error {
+	return GetVolume(name, d.API)
 }

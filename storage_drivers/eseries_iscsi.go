@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/apis/eseries"
 	"github.com/netapp/netappdvp/utils"
 
@@ -395,9 +394,35 @@ func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot, newSnapshotPr
 	return fmt.Errorf("Cloning with E-Series is not yet supported")
 }
 
-// VolumeList retrieves a list of volumes according to backend device
-func (d *ESeriesStorageDriver) VolumeList(vDir string) ([]*volume.Volume, error) {
-	// Currently ESeries utilizes the parent directory method, this function is
-	// an empty stub for the driver interface
-	return nil, fmt.Errorf("VolumeList not implemented in ESeries driver.")
+// Return the list of volumes associated with this tenant
+func (d *ESeriesStorageDriver) List(prefix string) (vols []string, err error) {
+	vols, err = d.Storage.GetVolumeList()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get the list of volumes: %v", err)
+	}
+
+	var trimvols []string
+
+	if len(prefix) > 0 {
+		for _, v := range vols {
+			if !strings.HasPrefix(v, prefix) {
+				continue
+			}
+			// The prefix shouldn't be visible to the user
+			trimvols = append(trimvols, strings.TrimPrefix(v, prefix))
+		}
+	} else {
+		trimvols = vols
+	}
+
+	return trimvols, nil
+}
+
+// Test for the existence of a volume
+func (d *ESeriesStorageDriver) Get(name string) error {
+	err := d.Storage.VerifyVolumeExists(name)
+	if err != nil {
+		return fmt.Errorf("Unable to verify existence of volume %v: %v", name, err)
+	}
+	return nil
 }

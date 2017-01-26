@@ -9,7 +9,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
 	"github.com/netapp/netappdvp/utils"
@@ -147,10 +146,10 @@ loop2:
 func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) error {
 	log.Debugf("OntapNASStorageDriver#Create(%v)", name)
 
+	// If the volume already exists, bail out
 	response, _ := d.API.VolumeSize(name)
 	if isPassed(response.Result.ResultStatusAttr) {
-		log.Debugf("%v already exists, skipping volume create...", name)
-		return nil
+		return fmt.Errorf("Volume already exists")
 	}
 
 	// get options with default values if not specified in config file
@@ -287,9 +286,12 @@ func (d *OntapNASStorageDriver) SnapshotList(name string) ([]CommonSnapshot, err
 	return GetSnapshotList(name, d.API)
 }
 
-// VolumeList retrieves a list of volumes according to backend device
-func (d *OntapNASStorageDriver) VolumeList(vDir string) ([]*volume.Volume, error) {
-	// Currently Ontap utilizes the parent directory method, this function is
-	// an empty stub for the driver interface
-	return nil, fmt.Errorf("VolumeList not implemented in Ontapdriver.")
+// Return the list of volumes associated with this tenant
+func (d *OntapNASStorageDriver) List(prefix string) ([]string, error) {
+	return GetVolumeList(prefix, d.API)
+}
+
+// Test for the existence of a volume
+func (d *OntapNASStorageDriver) Get(name string) error {
+	return GetVolume(name, d.API)
 }

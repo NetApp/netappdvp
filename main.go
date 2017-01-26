@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	debug        = flag.Bool("debug", true, "Enable debugging output")
+	debug        = flag.Bool("debug", false, "Enable debugging output")
 	configFile   = flag.String("config", "config.json", "Path to configuration file")
 	driverID     = flag.String("volume-driver", "netapp", "Register as a docker volume plugin with this driver name")
 	port         = flag.String("port", "", "Listen on this port instead of using a bsd socket")
@@ -148,4 +148,7 @@ func main() {
 	} else {
 		log.Info(h.ServeUnix(*driverID, 0)) // 0  is the unix group to start as (root gid)
 	}
+
+	log.SetOutput(os.Stderr)
+	log.Errorf("Unexpected exit")
 }
