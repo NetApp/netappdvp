@@ -124,7 +124,7 @@ func (c *Client) GetVolumesByName(sfName string, acctID int64) (v []Volume, err 
 		log.Warningf("dscovered more than one volume with the name: %s\n%+v", sfName, foundVolumes)
 	}
 	if len(foundVolumes) == 0 {
-		log.Errorf("no volumes found in list matching name %s and account %s", sfName, acctID)
+		log.Errorf("no volumes found in list matching name %s and account %d", sfName, acctID)
 		return foundVolumes, errors.New("volume not found")
 	}
 	return foundVolumes, nil

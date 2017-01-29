@@ -231,7 +231,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 		// when we pull the value from d.DefaultVolSz it's already been
 		// multiplied
 		vsz = d.DefaultVolSz
-		log.Infof("creating with default size of: %s", vsz)
+		log.Infof("creating with default size of: %d", vsz)
 	}
 
 	if opts["qos"] != "" {
