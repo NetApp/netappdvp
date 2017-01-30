@@ -1,6 +1,6 @@
 # Volume plugin for SolidFire
 
-Connect your NetApp SolidFire systems to your Cattle, Swarm and Mesos environments in Rancher!
+Connect your NetApp SolidFire systems to Cattle in Rancher!
 
 This plugin enables both provisioning and management of storage resources. Deploying this service will maintain an instance of the plugin on each of the hosts in the environment.
 
