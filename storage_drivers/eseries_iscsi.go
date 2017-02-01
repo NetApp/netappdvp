@@ -6,14 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-
 	"strconv"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/apis/eseries"
 	"github.com/netapp/netappdvp/utils"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 func init() {

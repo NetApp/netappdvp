@@ -8,11 +8,10 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/alecthomas/units"
 	"github.com/netapp/netappdvp/apis/sfapi"
 	"github.com/netapp/netappdvp/utils"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // SolidfireSANStorageDriverName is the constant name for this Solidfire SAN storage driver

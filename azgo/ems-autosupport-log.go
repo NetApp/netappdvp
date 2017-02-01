@@ -6,8 +6,9 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // EmsAutosupportLogRequest is a structure to represent a ems-autosupport-log ZAPI request object

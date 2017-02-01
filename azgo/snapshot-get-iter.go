@@ -6,8 +6,9 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // SnapshotGetIterRequest is a structure to represent a snapshot-get-iter ZAPI request object

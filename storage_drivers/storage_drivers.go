@@ -120,5 +120,5 @@ type StorageDriver interface {
 	DefaultSnapshotPrefix() string
 	SnapshotList(name string) ([]CommonSnapshot, error)
 	List(prefix string) ([]string, error)
-	Get(name string) (error)
+	Get(name string) error
 }

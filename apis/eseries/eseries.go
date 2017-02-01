@@ -4,20 +4,16 @@ package eseries
 
 import (
 	"bytes"
-	"encoding/json"
-	"sync"
-
 	"crypto/tls"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-
-	"fmt"
-
 	"strconv"
-
-	"github.com/netapp/netappdvp/utils"
+	"sync"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/netapp/netappdvp/utils"
 )
 
 const maxNameLength int = 30
@@ -374,7 +370,7 @@ func (d Driver) GetVolumeList() (vols []string, err error) {
 	// TODO: Right now we re-build the whole list every time; not sure how painful this call is. Should
 	// look into finding ways to invalidate the cache and instituting a TTL, although there will be
 	// issues when this driver is installed on multiple hosts if we do that.
-	err = d.populateVolumeCache("");
+	err = d.populateVolumeCache("")
 	if err != nil {
 		return nil, fmt.Errorf("Unable to retrieve the list of volumes: %v", err)
 	}
@@ -387,7 +383,7 @@ func (d Driver) GetVolumeList() (vols []string, err error) {
 }
 
 func (d Driver) VerifyVolumeExists(name string) (err error) {
-	d.populateVolumeCache(name);
+	d.populateVolumeCache(name)
 
 	if _, isPresent := d.config.Volumes[name]; isPresent {
 		return nil

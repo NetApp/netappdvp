@@ -8,10 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // InitializeOntapDriver will attempt to derive the SVM to use if not provided
@@ -137,7 +136,7 @@ func GetVolumeList(prefix string, api *ontap.Driver) ([]string, error) {
 	log.Debugf("OntapCommon#GetVolumeList()")
 
 	response, err := api.VolumeList(prefix)
-		if !isPassed(response.Result.ResultStatusAttr) || err != nil {
+	if !isPassed(response.Result.ResultStatusAttr) || err != nil {
 		return nil, fmt.Errorf("Error enumerating volumes: status: %v error: %v", response.Result.ResultStatusAttr, err)
 	}
 

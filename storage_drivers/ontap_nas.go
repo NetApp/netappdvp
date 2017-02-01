@@ -9,11 +9,10 @@ import (
 	"runtime"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
 	"github.com/netapp/netappdvp/utils"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 func init() {

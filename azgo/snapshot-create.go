@@ -6,8 +6,9 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // SnapshotCreateRequest is a structure to represent a snapshot-create ZAPI request object

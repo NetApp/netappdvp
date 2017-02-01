@@ -6,8 +6,9 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // AggrGetIterRequest is a structure to represent a aggr-get-iter ZAPI request object

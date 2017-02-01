@@ -10,11 +10,10 @@ import (
 	"path/filepath"
 	"runtime"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/storage_drivers"
 	"github.com/netapp/netappdvp/utils"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 var (

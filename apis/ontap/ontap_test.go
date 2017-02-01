@@ -5,9 +5,8 @@ package ontap
 import (
 	"testing"
 
-	"github.com/netapp/netappdvp/azgo"
-
 	log "github.com/Sirupsen/logrus"
+	"github.com/netapp/netappdvp/azgo"
 )
 
 // TODO externalize for testing against different configurations

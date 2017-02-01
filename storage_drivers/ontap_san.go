@@ -9,11 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
 	"github.com/netapp/netappdvp/utils"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // OntapSANStorageDriverName is the constant name for this Ontap NAS storage driver

@@ -9,9 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/netapp/netappdvp/utils"
-
 	log "github.com/Sirupsen/logrus"
+	"github.com/netapp/netappdvp/utils"
 )
 
 // ListVolumesForAccount tbd

@@ -9,11 +9,10 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/volume"
 	"github.com/netapp/netappdvp/storage_drivers"
 	"github.com/netapp/netappdvp/utils"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 type ndvpDriver struct {
@@ -154,8 +153,8 @@ func (d ndvpDriver) Remove(r volume.Request) volume.Response {
 		return volume.Response{Err: fmt.Sprintf("Problem removing docker volume: %v error: %v", target, destroyErr)}
 	}
 
-    // Best effort removal of the mountpoint
-    m := d.mountpoint(target)
+	// Best effort removal of the mountpoint
+	m := d.mountpoint(target)
 	os.Remove(m)
 
 	return volume.Response{}
@@ -307,7 +306,7 @@ func (d ndvpDriver) Unmount(r volume.UnmountRequest) volume.Response {
 		return volume.Response{Err: fmt.Sprintf("Problem unmounting docker volume: %v error: %v", target, detachErr)}
 	}
 
-    // Best effort removal of the mountpoint
+	// Best effort removal of the mountpoint
 	os.Remove(m)
 
 	return volume.Response{}

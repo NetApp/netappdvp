@@ -2,8 +2,6 @@
 
 package eseries
 
-import ()
-
 var GenericResponseOkay int = 200
 var GenericResponseSuccess int = 201
 var GenericResponseNoContent int = 204
