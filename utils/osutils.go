@@ -32,7 +32,7 @@ func GetDFOutput() ([]DFInfo, error) {
 		// safely ignore. There may be other reasons. Consider it a warning if
 		// it printed anything to stdout.
 		if len(out) == 0 {
-			log.Error("Error encountered gathering df output: ", err)
+			log.Errorf("Error encountered gathering df output: %v.", err)
 			return nil, err
 		}
 	}
@@ -62,7 +62,7 @@ func Stat(fileName string) (string, error) {
 	if err == nil {
 		return string(out), err
 	} else {
-		log.Errorf("Problem encountered stating file: %v error: %v", fileName, err)
+		log.Errorf("Error stating file %v: %v", fileName, err)
 		return string(out), err
 	}
 }
@@ -73,7 +73,7 @@ func GetInitiatorIqns() ([]string, error) {
 	var iqns []string
 	out, err := exec.Command("cat", "/etc/iscsi/initiatorname.iscsi").CombinedOutput()
 	if err != nil {
-		log.Error("Error encountered gathering initiator names: ", err)
+		log.Errorf("Error gathering initiator names: %v. %v", err, string(out))
 		return nil, err
 	}
 	lines := strings.Split(string(out), "\n")
@@ -134,6 +134,7 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 	log.Debugf("Begin osutils.LsscsiCmd: %v", args)
 	out, err := exec.Command("lsscsi", args...).CombinedOutput()
 	if err != nil {
+		log.Errorf("Error listing iSCSI devices: %v. %v", err, string(out))
 		return nil, err
 	}
 
@@ -186,7 +187,7 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 			out2, err2 := exec.Command("sh", "-c", lsblkCmd).CombinedOutput()
 			if err2 != nil {
 				// this can be fine, for instance could be a floppy or cd-rom, later logic will error if we never find our device
-				log.Debugf("could not run multipath check against device: %v error: %v", devFile, err2)
+				log.Debugf("Error running multipath check for device %v: %v. %v", devFile, err2, string(out2))
 			} else {
 				md := strings.Split(strings.TrimSpace(string(out2)), " ")
 				if md != nil && len(md) > 0 && len(md[0]) > 0 {
@@ -238,14 +239,14 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 func GetDeviceInfoForLuns() ([]ScsiDeviceInfo, error) {
 	log.Debug("Begin osutils.getDeviceInfoForLuns: ")
 
-	// first, list w/out iscsi target info
+	// first, list w/out iSCSI target info
 	var info1 []ScsiDeviceInfo
 	info1, err1 := LsscsiCmd(nil)
 	if err1 != nil {
 		return nil, err1
 	}
 
-	// now, list w/ iscsi target info
+	// now, list w/ iSCSI target info
 	var info2 []ScsiDeviceInfo
 	info2, err2 := LsscsiCmd([]string{"-t"})
 	if err2 != nil {
@@ -285,6 +286,7 @@ func GetDeviceFileFromIscsiPath(iscsiPath string) (devFile string) {
 	log.Debug("Begin osutils.GetDeviceFileFromIscsiPath: ", iscsiPath)
 	out, err := exec.Command("ls", "-la", iscsiPath).CombinedOutput()
 	if err != nil {
+		log.Errorf("Error getting device file from iSCSI path %v: %v. %v", iscsiPath, err, string(out))
 		return
 	}
 	d := strings.Split(string(out), "../../")
@@ -297,9 +299,9 @@ func GetDeviceFileFromIscsiPath(iscsiPath string) (devFile string) {
 
 // IscsiSupported returns true if iscsiadm is installed and in the PATH
 func IscsiSupported() bool {
-	_, err := exec.Command("iscsiadm", "-h").CombinedOutput()
+	out, err := exec.Command("iscsiadm", "-h").CombinedOutput()
 	if err != nil {
-		log.Debug("iscsiadm tools not found on this host")
+		log.Debugf("iscsiadm tools not found on this host: %v. %v", err, string(out))
 		return false
 	}
 	return true
@@ -318,7 +320,7 @@ func IscsiDiscovery(portal string) ([]IscsiDiscoveryInfo, error) {
 
 	out, err := IscsiadmCmd([]string{"-m", "discovery", "-t", "sendtargets", "-p", portal})
 	if err != nil {
-		log.Error("Error encountered in sendtargets cmd: ", string(out))
+		log.Errorf("Error encountered in sendtargets cmd: %v. %v", err, string(out))
 		return nil, err
 	}
 
@@ -437,13 +439,12 @@ type IscsiTargetInfo struct {
 	Discovery string
 }
 
-// IscsiDisableDelete logout from the supplied target and remove the iscsi device
+// IscsiDisableDelete logout from the supplied target and remove the iSCSI device
 func IscsiDisableDelete(tgt *IscsiTargetInfo) (err error) {
 	log.Debugf("Begin osutils.IscsiDisableDelete: %v", tgt)
-	_, err = exec.Command("sudo", "iscsiadm", "-m", "node", "-T", tgt.Iqn, "--portal", tgt.IP, "-u").CombinedOutput()
+	out, err := exec.Command("sudo", "iscsiadm", "-m", "node", "-T", tgt.Iqn, "--portal", tgt.IP, "-u").CombinedOutput()
 	if err != nil {
-		log.Debugf("Error during iscsi logout: ", err)
-		//return
+		log.Debugf("Error during iSCSI logout: %v. %v", err, string(out))
 	}
 	_, err = exec.Command("sudo", "iscsiadm", "-m", "node", "-o", "delete", "-T", tgt.Iqn).CombinedOutput()
 	return
@@ -455,7 +456,7 @@ func IscsiSessionExists(portal string) (bool, error) {
 
 	sessionInfo, err := GetIscsiSessionInfo()
 	if err != nil {
-		log.Errorf("Problem checking iscsi sessions error: %v", err)
+		log.Errorf("Problem checking iSCSI sessions error: %v", err)
 		return false, err
 	}
 
@@ -481,20 +482,20 @@ func IscsiRescan() (err error) {
 			out, rescanErr := exec.Command(rescanCommand, "-a", "-r").CombinedOutput()
 			// We encountered an error condition
 			if rescanErr != nil {
-				log.Error("Error encountered in rescan-scsi-bus cmd: ", out)
+				log.Errorf("Could not rescan SCSI bus: %v. %v", rescanErr, string(out))
 				return rescanErr
-				// The command was successful
 			} else {
+				// The command was successful
 				return
 			}
 		}
 
 	}
 
-	//Attempt to find the binary on the path
+	// Attempt to find the binary on the path
 	out, err := exec.Command("rescan-scsi-bus.sh", "-a", "-r").CombinedOutput()
 	if err != nil {
-		log.Error("Error encountered in rescan-scsi-bus cmd: ", out)
+		log.Errorf("Could not rescan SCSI bus: %v. %v", err, string(out))
 		return
 	}
 
@@ -504,11 +505,11 @@ func IscsiRescan() (err error) {
 
 // MultipathFlush uses the 'multipath' commands to flush paths that have been removed
 func MultipathFlush() (err error) {
-	log.Debugf("Begin osutils.multipathFlush")
+	log.Debug("Begin osutils.multipathFlush")
 	out, err := exec.Command("multipath", "-F").CombinedOutput()
 	if err != nil {
 		// nothing to really do if it generates an error but log and return it
-		log.Debugf("Error encountered in multipath flush unused paths cmd: ", string(out))
+		log.Debugf("Error encountered in multipath flush unused paths cmd: %v. %v", err, string(out))
 		return
 	}
 	return
@@ -520,6 +521,7 @@ func GetFSType(device string) string {
 	fsType := ""
 	out, err := exec.Command("blkid", device).CombinedOutput()
 	if err != nil {
+		log.Debugf("Could not get FSType for device %v: %v. %v", device, err, string(out))
 		return fsType
 	}
 
@@ -554,7 +556,7 @@ func Mount(device, mountpoint string) error {
 	out, err = exec.Command("mount", device, mountpoint).CombinedOutput()
 	log.Debug("Response from mount ", device, " at ", mountpoint, ": ", string(out))
 	if err != nil {
-		log.Error("Error in mount: ", err)
+		log.Errorf("Error in mount: %v.", err)
 	}
 	return err
 }
@@ -563,26 +565,22 @@ func Mount(device, mountpoint string) error {
 func Umount(mountpoint string) error {
 	log.Debugf("Begin osutils.Umount: %s", mountpoint)
 	out, err := exec.Command("umount", mountpoint).CombinedOutput()
-	log.Debug("Response from umount ", mountpoint, ": ", out)
+	log.Debug("Response from umount ", mountpoint, ": ", string(out))
 	if err != nil {
-		log.Error("Error in unmount: ", err)
+		log.Errorf("Error in unmount: %v.", err)
 	}
-	/*
-		out, _ = exec.Command("rmdir", mountpoint).CombinedOutput()
-		log.Debug("Response from rmdir ", mountpoint, ": ", out)
-	*/
 	return err
 }
 
 // IscsiadmCmd uses the 'iscsiadm' command to perform operations
 func IscsiadmCmd(args []string) ([]byte, error) {
 	log.Debugf("Begin osutils.iscsiadmCmd: iscsiadm %+v", args)
-	resp, err := exec.Command("iscsiadm", args...).CombinedOutput()
+	out, err := exec.Command("iscsiadm", args...).CombinedOutput()
 	if err != nil {
-		log.Error("Error encountered running iscsiadm ", args, ": ", string(resp))
-		log.Error("Error message: ", err)
+		errMsg := fmt.Sprint("Error encountered running iscsiadm ", args)
+		log.Errorf("%s: %v. %v", errMsg, err, string(out))
 	}
-	return resp, err
+	return out, err
 }
 
 // Login to iSCSI target
@@ -596,42 +594,42 @@ func LoginIscsiTarget(iqn, portal string) error {
 	args := []string{"-m", "node", "-T", iqn, "-l", "-p", portal + ":3260"}
 
 	if _, err := IscsiadmCmd(args); err != nil {
-		log.Errorf("Error logging in to iSCSI target. %v", err)
+		log.Errorf("Error logging in to iSCSI target: %v.", err)
 		return err
 	}
 	return nil
 }
 
-// LoginWithChap will login to the iscsi target with the supplied credentials
+// LoginWithChap will login to the iSCSI target with the supplied credentials
 func LoginWithChap(tiqn, portal, username, password, iface string) error {
 	log.Debugf("Begin osutils.LoginWithChap: iqn: %s, portal: %s, username: %s, password=xxxx, iface: %s", tiqn, portal, username, iface)
 	args := []string{"-m", "node", "-T", tiqn, "-p", portal + ":3260"}
 	createArgs := append(args, []string{"--interface", iface, "--op", "new"}...)
 
-	if _, err := exec.Command("iscsiadm", createArgs...).CombinedOutput(); err != nil {
-		log.Error("Error running iscsiadm node create: ", err)
+	if out, err := exec.Command("iscsiadm", createArgs...).CombinedOutput(); err != nil {
+		log.Errorf("Error running iscsiadm node create: %v. %v", err, string(out))
 		return err
 	}
 
 	authMethodArgs := append(args, []string{"--op=update", "--name", "node.session.auth.authmethod", "--value=CHAP"}...)
 	if out, err := exec.Command("iscsiadm", authMethodArgs...).CombinedOutput(); err != nil {
-		log.Error("Error running iscsiadm set authmethod: ", err, "{", out, "}")
+		log.Errorf("Error running iscsiadm set authmethod: %v. %v", err, string(out))
 		return err
 	}
 
 	authUserArgs := append(args, []string{"--op=update", "--name", "node.session.auth.username", "--value=" + username}...)
-	if _, err := exec.Command("iscsiadm", authUserArgs...).CombinedOutput(); err != nil {
-		log.Error("Error running iscsiadm set authuser: ", err)
+	if out, err := exec.Command("iscsiadm", authUserArgs...).CombinedOutput(); err != nil {
+		log.Errorf("Error running iscsiadm set authuser: %v. %v", err, string(out))
 		return err
 	}
 	authPasswordArgs := append(args, []string{"--op=update", "--name", "node.session.auth.password", "--value=" + password}...)
-	if _, err := exec.Command("iscsiadm", authPasswordArgs...).CombinedOutput(); err != nil {
-		log.Error("Error running iscsiadm set authpassword: ", err)
+	if out, err := exec.Command("iscsiadm", authPasswordArgs...).CombinedOutput(); err != nil {
+		log.Errorf("Error running iscsiadm set authpassword: %v. %v", err, string(out))
 		return err
 	}
 	loginArgs := append(args, []string{"--login"}...)
-	if _, err := exec.Command("iscsiadm", loginArgs...).CombinedOutput(); err != nil {
-		log.Error("Error running iscsiadm login: ", err)
+	if out, err := exec.Command("iscsiadm", loginArgs...).CombinedOutput(); err != nil {
+		log.Errorf("Error running iscsiadm login: %v. %v", err, string(out))
 		return err
 	}
 	return nil
