@@ -106,7 +106,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 		"defaultTenantName": defaultTenantName,
 	}).Debug("About to call NewFromParameters")
 
-	// creaet a new sfapi.Client object for interacting with the SolidFire storage system
+	// create a new sfapi.Client object for interacting with the SolidFire storage system
 	client, _ := sfapi.NewFromParameters(endpoint, defaultSizeGiB, svip, cfg, defaultTenantName)
 	req := sfapi.GetAccountByNameRequest{
 		Name: c.TenantName,
@@ -303,7 +303,7 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	_, err = d.Client.CloneVolume(&req)
 	if err != nil {
 		log.Errorf("failed to create clone: error: %+v", err)
-		return errors.New("error performaing clone operation")
+		return errors.New("error performing clone operation")
 	}
 	return nil
 }
@@ -454,8 +454,7 @@ func (d *SolidfireSANStorageDriver) Get(name string) error {
 	return nil
 }
 
-// Get volume using a couple of different methods to support changes after
-// upgrades
+// Get volume using a couple of different methods to support changes after upgrades
 func (d *SolidfireSANStorageDriver) getVolume(name string) (v sfapi.Volume, err error) {
 	// By default we now use the attributes which is the raw docker name so we
 	// can ignore the prefix/translation nonsense for the first go around

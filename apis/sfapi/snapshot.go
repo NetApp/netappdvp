@@ -13,7 +13,7 @@ func (c *Client) CreateSnapshot(req *CreateSnapshotRequest) (snapshot Snapshot, 
 	response, err := c.Request("CreateSnapshot", req, NewReqID())
 	var result CreateSnapshotResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Errorf("error detected unmsarshalling CreateSnapshot json response: %+v", err)
+		log.Errorf("error detected unmarshalling CreateSnapshot json response: %+v", err)
 		return Snapshot{}, errors.New("json decode error")
 	}
 	return (c.GetSnapshot(req.VolumeID, result.Result.SnapshotID, ""))
@@ -47,7 +47,7 @@ func (c *Client) ListSnapshots(req *ListSnapshotsRequest) (snapshots []Snapshot,
 	}
 	var result ListSnapshotsResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Errorf("error detected unmsarshalling ListSnapshots json response: %+v", err)
+		log.Errorf("error detected unmarshalling ListSnapshots json response: %+v", err)
 		return nil, errors.New("json decode error")
 	}
 	snapshots = result.Result.Snapshots
@@ -63,7 +63,7 @@ func (c *Client) RollbackToSnapshot(req *RollbackToSnapshotRequest) (newSnapID i
 	}
 	var result RollbackToSnapshotResult
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		log.Errorf("error detected unmsarshalling RollbackToSnapshot json response: %+v", err)
+		log.Errorf("error detected unmarshalling RollbackToSnapshot json response: %+v", err)
 		return 0, errors.New("json decode error")
 	}
 	newSnapID = result.Result.SnapshotID

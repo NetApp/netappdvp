@@ -22,7 +22,7 @@ func (c *Client) GetClusterCapacity() (capacity *ClusterCapacity, err error) {
 		return nil, errors.New("device API error")
 	}
 	if err := json.Unmarshal([]byte(response), &clusterCapResult); err != nil {
-		log.Errorf("error detected unmsarshalling json response: %+v", err)
+		log.Errorf("error detected unmarshalling json response: %+v", err)
 		return nil, errors.New("json decode error")
 	}
 	return &clusterCapResult.Result.ClusterCapacity, err

@@ -17,7 +17,7 @@ import (
 	"github.com/alecthomas/units"
 )
 
-// Client is used to send api requests to a SolidFire system system
+// Client is used to send API requests to a SolidFire system system
 type Client struct {
 	SVIP              string
 	Endpoint          string
@@ -56,7 +56,7 @@ var (
 	cfg               Config
 )
 
-// NewFromParameters is a factory method to createsa new sfapi.Client object using the supplied paramters
+// NewFromParameters is a factory method to create a new sfapi.Client object using the supplied parameters
 func NewFromParameters(pendpoint string, pdefaultSizeGiB int64, psvip string, pcfg Config, pdefaultTenantName string) (c *Client, err error) {
 	rand.Seed(time.Now().UTC().UnixNano())
 	defSize := pdefaultSizeGiB * int64(units.GiB)

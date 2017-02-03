@@ -120,7 +120,7 @@ func (c *Client) GetVolumesByName(sfName string, acctID int64) (v []Volume, err 
 		}
 	}
 	if len(foundVolumes) > 1 {
-		log.Warningf("dscovered more than one volume with the name: %s\n%+v", sfName, foundVolumes)
+		log.Warningf("discovered more than one volume with the name: %s\n%+v", sfName, foundVolumes)
 	}
 	if len(foundVolumes) == 0 {
 		log.Errorf("no volumes found in list matching name %s and account %d", sfName, acctID)
@@ -133,7 +133,7 @@ func (c *Client) GetVolumesByName(sfName string, acctID int64) (v []Volume, err 
 func (c *Client) ListActiveVolumes(listVolReq *ListActiveVolumesRequest) (volumes []Volume, err error) {
 	response, err := c.Request("ListActiveVolumes", listVolReq, NewReqID())
 	if err != nil {
-		log.Errorf("error reponse from ListActiveVolumes request: %+v ", err)
+		log.Errorf("error response from ListActiveVolumes request: %+v ", err)
 		return nil, errors.New("device API error")
 	}
 	var result ListVolumesResult
