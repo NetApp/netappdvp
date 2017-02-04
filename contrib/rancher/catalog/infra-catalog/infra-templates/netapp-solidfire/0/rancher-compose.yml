@@ -3,19 +3,18 @@
   version: "1.3.3"
   description: "NetApp Docker Volume Plugin (nDVP)"
   questions:
-    # Common settings
-    - variable: "STORAGE_PREFIX"
-      description: "Prefix for created storage objects"
-      label: "Storage Prefix"
-      required: false
-      default: "netappdvp-"
+    - variable: "TENANT_NAME"
+      description: "SolidFire tenant to use (created if not found)"
+      label: "TenantName"
+      required: true
+      default: "docker"
       type: "string"
 
     - variable: "DEBUG_ENABLED"
       description: "Enable debugging output in logs"
       label: "Debug Logging"
       required: false
-      default: true
+      default: false
       type: "boolean"
 
     # SolidFire settings
@@ -30,13 +29,6 @@
       description: "iSCSI IP address and port; example 10.0.0.7:3260"
       label: "SVIP"
       required: true
-      type: "string"
-
-    - variable: "TENANT_NAME"
-      description: "SolidFire Tenant to use (created if not found)"
-      label: "TenantName"
-      required: true
-      default: "docker"
       type: "string"
 
     - variable: "INITIATOR_IFACE"
@@ -70,7 +62,7 @@
       default: "netapp"
       type: "string"
 
-ndvp-solidfire-san-server:
+netapp-solidfire:
   labels:
     io.rancher.scheduler.global: 'true'
   metadata:

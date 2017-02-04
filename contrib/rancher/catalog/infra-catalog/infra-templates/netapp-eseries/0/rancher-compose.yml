@@ -15,7 +15,7 @@
       description: "Enable debugging output in logs"
       label: "Debug Logging"
       required: false
-      default: true
+      default: false
       type: "boolean"
 
     # E-Series settings
@@ -95,7 +95,7 @@
       default: "netapp"
       type: "string"
 
-ndvp-eseries-iscsi-server:
+netapp-eseries:
   labels:
     io.rancher.scheduler.global: 'true'
   metadata:

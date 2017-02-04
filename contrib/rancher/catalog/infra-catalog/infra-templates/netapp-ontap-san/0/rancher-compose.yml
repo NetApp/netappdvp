@@ -15,7 +15,7 @@
       description: "Enable debugging output in logs"
       label: "Debug Logging"
       required: false
-      default: true
+      default: false
       type: "boolean"
 
     # ONTAP-NAS settings
@@ -62,12 +62,12 @@
       default: "netapp"
       type: "string"
 
-ndvp-ontap-nas-server:
+netapp-ontap-san:
   labels:
     io.rancher.scheduler.global: 'true'
   metadata:
     version: 1
-    storageDriverName: "ontap-nas"
+    storageDriverName: "ontap-san"
     debug: true
     storagePrefix: "${STORAGE_PREFIX}"
     managementLIF: "${MANAGEMENT_LIF}"
@@ -80,5 +80,5 @@ ndvp-ontap-nas-server:
   storage_driver:
     name: "${VOLUME_DRIVER_NAME}"
     scope: environment
-    volume_access_mode: multiHostRW
+    volume_access_mode: singleHostRW
 

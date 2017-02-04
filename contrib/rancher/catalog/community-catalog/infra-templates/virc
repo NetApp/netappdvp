@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-vim ndvp-*/0/rancher-compose.yml 
