@@ -199,7 +199,10 @@ func (d *ESeriesStorageDriver) Create(name string, opts map[string]string) error
 	// Get media type, or default to "hdd" if not specified
 	mediaType := utils.GetV(opts, "mediaType", "hdd")
 
-	pools, err := d.API.GetVolumePools(mediaType, volumeSizeBytes)
+	// Get pool name, or default to all pools if not specified
+	poolName := utils.GetV(opts, "pool", "")
+
+	pools, err := d.API.GetVolumePools(mediaType, volumeSizeBytes, poolName)
 	if err != nil {
 		return fmt.Errorf("Create failed. %v", err)
 	} else if len(pools) == 0 {

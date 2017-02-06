@@ -267,7 +267,7 @@ func (d ESeriesAPIDriver) Connect() (string, error) {
 
 // GetVolumePools reads all pools on the array, including volume groups and dynamic disk pools. It then
 // filters them based on several selection parameters and returns the ones that match.
-func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uint64) ([]VolumeGroupEx, error) {
+func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uint64, poolName string) ([]VolumeGroupEx, error) {
 
 	if d.config.DebugTraceFlags["method"] {
 		fields := log.Fields{
@@ -275,6 +275,7 @@ func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uin
 			"Type":              "ESeriesAPIDriver",
 			"mediaType":         mediaType,
 			"minFreeSpaceBytes": minFreeSpaceBytes,
+			"poolName":          poolName,
 		}
 		log.WithFields(fields).Debug(">>>> GetVolumePools")
 		defer log.WithFields(fields).Debug("<<<< GetVolumePools")
@@ -287,7 +288,7 @@ func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uin
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Could not get storage pools. Status code=%d", response.StatusCode)
+		return nil, fmt.Errorf("Could not get storage pools. Status code: %d", response.StatusCode)
 	}
 
 	// Parse JSON data
@@ -317,12 +318,24 @@ func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uin
 			continue
 		}
 
+		// Pool name
+		if poolName != "" {
+			if poolName != pool.Label {
+				log.WithFields(log.Fields{
+					"Name":          pool.Label,
+					"RequestedName": poolName,
+				}).Debug("Pool does not match requested pool name.")
+				continue
+			}
+		}
+
 		// Drive media type
 		if mediaType != "" {
 			if mediaType != pool.DriveMediaType {
 				log.WithFields(log.Fields{
-					"Name":      pool.Label,
-					"MediaType": pool.DriveMediaType,
+					"Name":               pool.Label,
+					"MediaType":          pool.DriveMediaType,
+					"RequestedMediaType": mediaType,
 				}).Debug("Pool does not match requested media type.")
 				continue
 			}
@@ -340,8 +353,9 @@ func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uin
 			}
 			if poolFreeSpace < minFreeSpaceBytes {
 				log.WithFields(log.Fields{
-					"Name":      pool.Label,
-					"FreeSpace": poolFreeSpace,
+					"Name":           pool.Label,
+					"FreeSpace":      poolFreeSpace,
+					"RequestedSpace": minFreeSpaceBytes,
 				}).Debug("Pool does not have sufficient free space.")
 				continue
 			}

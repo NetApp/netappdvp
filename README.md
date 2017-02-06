@@ -345,10 +345,10 @@ The E-Series Docker driver can provision Docker volumes in any storage pool on t
 and DDP pools. To limit the Docker driver to a subset of the storage pools, set the poolNameSearchPattern in the
 configuration file to a regular expression that matches the desired pools.
 
-When creating a docker volume you can specify the volume size as well as the disk media type using the
-'-o' option and the tags 'size' and 'mediaType'. Valid values for media type are 'hdd' and 'ssd'. Note that
+When creating a docker volume you can specify the pool name, volume size, and disk media type using the '-o' option
+and the tags 'pool, 'size', and 'mediaType', respectively. Valid values for media type are 'hdd' and 'ssd'. Note that
 these are optional; if unspecified, the defaults will be a 1 GB volume allocated from an HDD pool. An example
-of using these tags to create a 2 GB volume from an SSD-based pool:
+of using these tags to create a 2 GB volume from any available SSD-based pool with sufficient space available:
  	
 	docker volume create -d netapp --name my_vol -o size=2g -o mediaType=ssd
 
