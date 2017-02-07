@@ -218,6 +218,7 @@ func (c *Client) DeleteVolume(volumeID int64) (err error) {
 		log.Errorf("error response from DeleteVolume request: %+v ", err)
 		return errors.New("device API error")
 	}
+	_, err = c.Request("PurgeDeletedVolume", req, NewReqID())
 	return
 }
 
