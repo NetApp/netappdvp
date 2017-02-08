@@ -1,0 +1,33 @@
+Global Configuration
+====================
+
+These configuration variables apply to all nDVP configurations, regardless of the storage platform being used.
+
++-----------------------+-----------------------------------------------------------------------------------+-------------+
+| Option                | Description                                                                       | Example     |
++=======================+===================================================================================+=============+
+| ``version``           | Config file version number                                                        | 1           |
++-----------------------+-----------------------------------------------------------------------------------+-------------+
+| ``storageDriverName`` | ``ontap-nas``, ``ontap-san``, ``eseries-iscsi``, or ``solidfire-san``             | ontap-nas   |
++-----------------------+-----------------------------------------------------------------------------------+-------------+
+| ``debug``             | Turn debugging output on or off                                                   | false       |
++-----------------------+-----------------------------------------------------------------------------------+-------------+
+| ``storagePrefix``     | Optional prefix for volume names.  Default: "netappdvp\_"                         | netappdvp\_ |
++-----------------------+-----------------------------------------------------------------------------------+-------------+
+
+**Storage Prefix**
+
+A new config file variable has been added in v1.2 called "storagePrefix" that allows you to modify the prefix applied to volume names by the plugin.  By default, when you run `docker volume create`, the volume name supplied is prepended with "netappdvp\_" *("netappdvp-" for SolidFire)*.
+
+If you wish to use a different prefix, you can specify it with this directive.  Alternatively, you can use *pre-existing* volumes with the volume plugin by setting ``storagePrefix`` to an empty string, "".
+
+*SolidFire specific recommendation* do not use a storagePrefix (including the default).  By default the SolidFire driver will ignore this setting and not use a prefix. We recommend using either a specific tenantID for docker volume mapping or using the attribute data which is populated with the docker version, driver info and raw name from docker in cases where any name munging may have been used.
+
+**A note of caution**: `docker volume rm` will *delete* these volumes just as it does volumes created by the plugin using the default prefix.  Be very careful when using pre-existing volumes!
+
+Known Issues and Limitations
+----------------------------
+
+#. Volume names must be a minimum of 2 characters in length
+
+   This is a Docker client limitation. The client will interpret a single character name as being a Windows path. `See bug 25773 <https://github.com/docker/docker/issues/25773>`_.
