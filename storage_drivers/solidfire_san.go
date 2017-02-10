@@ -268,9 +268,11 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	log.Debugf("SolidfireSANStorageDriver#CreateClone(%s, %s, %s, %s)", name, source, snapshot, newSnapshotPrefix)
 
 	var req sfapi.CloneVolumeRequest
-	var meta = map[string]string{"platform": "Docker-NDVP",
+	var meta = map[string]string{
+		"platform":     "Docker-NDVP",
 		"ndvp-version": DriverVersion + " [" + ExtendedDriverVersion + "]",
-		"docker-name":  name}
+		"docker-name":  name,
+	}
 
 	// Check to see if the clone already exists
 	v, err := d.getVolume(name)
@@ -279,21 +281,21 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 		return nil
 	}
 
-	// If a snapshot was specified, use that
-	if snapshot != "" {
-		s, err := d.Client.GetSnapshot(0, v.VolumeID, snapshot)
-		if err != nil || s.SnapshotID == 0 {
-			log.Errorf("unable to locate requested snapshot: %+v")
-			return errors.New("no iSCSI support on this host")
-		}
-		req.SnapshotID = s.SnapshotID
-	}
-
 	// Get the volume ID for the source volume
 	v, err = d.getVolume(source)
 	if err != nil || v.VolumeID == 0 {
 		log.Errorf("unable to locate requested source volume: %+v", err)
-		return errors.New("volume not found")
+		return errors.New("error performing clone operation, source volume not found")
+	}
+
+	// If a snapshot was specified, use that
+	if snapshot != "" {
+		s, err := d.Client.GetSnapshot(0, v.VolumeID, snapshot)
+		if err != nil || s.SnapshotID == 0 {
+			log.Errorf("unable to locate requested source snapshot: %+v", err)
+			return errors.New("error performing clone operation, source snapshot not found")
+		}
+		req.SnapshotID = s.SnapshotID
 	}
 
 	// Create the clone of the source volume with the name specified
@@ -302,7 +304,7 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	req.Attributes = meta
 	_, err = d.Client.CloneVolume(&req)
 	if err != nil {
-		log.Errorf("failed to create clone: error: %+v", err)
+		log.Errorf("failed to create clone: %+v", err)
 		return errors.New("error performing clone operation")
 	}
 	return nil
