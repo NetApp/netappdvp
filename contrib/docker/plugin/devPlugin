@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+PN=$(cat ./pluginname)
+
+docker plugin disable -f ${PN}
+docker plugin rm -f ${PN}
+
+service docker stop
+service docker start
+
+sudo cp -f ./container-launch.sh ./myplugin/rootfs/netapp/container-launch.sh
+sudo cp -f ./netappdvp ./myplugin/rootfs/netapp/netappdvp
+sudo cp -f ./plugin.json ./myplugin/config.json
+
+sudo docker plugin create ${PN} ./myplugin 
+

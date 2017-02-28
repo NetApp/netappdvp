@@ -442,11 +442,11 @@ type IscsiTargetInfo struct {
 // IscsiDisableDelete logout from the supplied target and remove the iSCSI device
 func IscsiDisableDelete(tgt *IscsiTargetInfo) (err error) {
 	log.Debugf("Begin osutils.IscsiDisableDelete: %v", tgt)
-	out, err := exec.Command("sudo", "iscsiadm", "-m", "node", "-T", tgt.Iqn, "--portal", tgt.IP, "-u").CombinedOutput()
+	out, err := exec.Command("iscsiadm", "-m", "node", "-T", tgt.Iqn, "--portal", tgt.IP, "-u").CombinedOutput()
 	if err != nil {
 		log.Debugf("Error during iSCSI logout: %v. %v", err, string(out))
 	}
-	_, err = exec.Command("sudo", "iscsiadm", "-m", "node", "-o", "delete", "-T", tgt.Iqn).CombinedOutput()
+	_, err = exec.Command("iscsiadm", "-m", "node", "-o", "delete", "-T", tgt.Iqn).CombinedOutput()
 	return
 }
 

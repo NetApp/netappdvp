@@ -1,0 +1,14 @@
+#!/bin/bash
+
+CMD="rescan-scsi-bus"
+chroot /host /usr/bin/env -i PATH="/sbin:/bin:/usr/bin" which rescan-scsi-bus >> /dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+    chroot /host /usr/bin/env -i PATH="/sbin:/bin:/usr/bin" which rescan-scsi-bus.sh >> /dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        exit
+    fi
+    CMD="rescan-scsi-bus.sh"
+fi
+
+chroot /host /usr/bin/env -i PATH="/sbin:/bin:/usr/bin" ${CMD} "${@:1}"
+

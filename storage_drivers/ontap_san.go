@@ -145,9 +145,10 @@ func (d *OntapSANStorageDriver) Validate() error {
 		return fmt.Errorf("Could not find iSCSI DataLIF")
 	}
 
-	isIscsiSupported := utils.IscsiSupported()
-	if !isIscsiSupported {
-		return fmt.Errorf("iSCSI support not detected")
+	// Make sure this host is logged into the ONTAP iSCSI target
+	err := utils.EnsureIscsiSession(d.Config.DataLIF)
+	if err != nil {
+		return fmt.Errorf("Could not establish iSCSI session. %v", err)
 	}
 
 	return nil

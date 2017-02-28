@@ -14,7 +14,7 @@ import (
 const ConfigVersion = 1
 
 // DriverVersion is the actual release version number
-const DriverVersion = "1.3.3"
+const DriverVersion = "1.4.0"
 
 // ExtendedDriverVersion can be overridden by embeddors such as Trident to uniquify the version string
 var ExtendedDriverVersion = "native"
