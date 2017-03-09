@@ -11,9 +11,9 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
         - [RHEL / CentOS](#rhel-centos)
         - [Ubuntu / Debian](#ubuntu-debian)
     - [iSCSI](#iscsi)
-        - [RHEL / CentOS](#rhel-centos-1)
-        - [Ubuntu / Debian](#ubuntu-debian-1)
-- [Global Config File Variables](#global-config-file-variables)
+        - [RHEL / CentOS](#rhel--centos-1)
+        - [Ubuntu / Debian](#ubuntu--debian-1)
+- [Global Config File Variables](#global-configuration-file-variables)
     - [Storage Prefix](#storage-prefix)
 - [ONTAP Config File Variables](#ontap-config-file-variables)
     - [Example ONTAP Config Files](#example-ontap-config-files)
@@ -41,41 +41,43 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
 
 2. After ensuring the correct version of Docker is installed, install and configure the NetApp Docker Volume Plugin.  Note, you will need to ensure that NFS and/or iSCSI is configured for your system.  See the installation instructions below for detailed information on how to do this.
 
-    ```bash
-    # download and unpack the application
-    wget https://github.com/NetApp/netappdvp/releases/download/v1.4.0/netappdvp-1.4.0.tar.gz
-    tar zxf netappdvp-1.4.0.tar.gz
+	```bash
+# download and unpack the application
+wget -O /tmp/netappdvp-1.4.0.tar.gz https://github.com/NetApp/netappdvp/releases/download/v1.4.0/netappdvp-1.4.0.tar.gz 
+cd /tmp
+tar zxf netappdvp-1.4.0.tar.gz
 
-    # move to a location in the bin path
-    sudo mv netappdvp /usr/local/bin
-    sudo chown root:root /usr/local/bin/netappdvp
-    sudo chmod 755 /usr/local/bin/netappdvp
+# move to a location in the bin path
+sudo mv netappdvp /usr/local/bin
+sudo chown root:root /usr/local/bin/netappdvp
+sudo chmod 755 /usr/local/bin/netappdvp
 
-    # create a location for the config files
-    sudo mkdir -p /etc/netappdvp
+# create a location for the config files
+sudo mkdir -p /etc/netappdvp
 
-    # create the configuration file, see below for more configuration examples
-    cat << EOF > /etc/netappdvp/ontap-nas.json
-    {
-        "version": 1,
-        "storageDriverName": "ontap-nas",
-        "managementLIF": "10.0.0.1",
-        "dataLIF": "10.0.0.2",
-        "svm": "svm_nfs",
-        "username": "vsadmin",
-        "password": "netapp123",
-        "aggregate": "aggr1"
-    }
-    EOF
-    ```
+# create the configuration file, see below for more configuration examples
+cat << EOF > /etc/netappdvp/ontap-nas.json
+{
+   "version": 1,
+   "storageDriverName": "ontap-nas",
+   "managementLIF": "10.0.0.1",
+   "dataLIF": "10.0.0.2",
+   "svm": "docker_svm",
+   "username": "vsadmin",
+   "password": "password",
+   "aggregate": "aggr",
+   "storagePrefix": "netappdvp_",
+}
+EOF
+	```    
 
 3. After placing the binary and creating the configuration file(s), start the nDVP daemon using the desired configuration file.
 
     **Note:** Unless specified, the default name for the volume driver will be "netapp".
 
-    ```bash
+	```bash
     sudo netappdvp --config=/etc/netappdvp/ontap-nas.json
-    ```
+	```
 
 4. Once the daemon is started, create and manage volumes using the Docker CLI interface.
 
@@ -122,7 +124,50 @@ Multiple instances of the nDVP can run concurrently on the same host.  The allow
     ```bash
     docker volume create -d netapp-san --name my_iscsi_vol
     ```
+## Systemd service and startup scripts
 
+1. Create the netappdvp systemd service
+
+    **systemd**
+    ```bash
+    cat << EOF > /etc/systemd/system/netappdvp.service
+    [Unit]
+    Description=Start Netapp Docker Volume Plugin
+    Before=docker.service
+    After=network.target
+    Requires=docker.service
+
+    [Service]
+    ExecStart=/etc/netappdvp/netappdvp_startup.sh
+    
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    ```
+
+	**configure startup options**
+    ```bash	
+    sudo systemctl enable /etc/systemd/system/netappdvp.service
+    sudo systemctl daemon-reload
+    ```
+
+2. Create the startup script
+  
+    **bash script**
+    ```bash
+    cat << EOF > /etc/netappdvp/netappdvp_startup.sh
+    #!/bin/bash
+    /usr/local/bin/netappdvp --config=/etc/netappdvp/ontap-nas.json
+    EOF
+    
+    chmod +x /etc/netappdvp/netappdvp_startup.sh
+    ```
+
+  **restart services**
+    ```bash
+	systemctl restart netappdvp
+	systemctl restart docker
+    ```
 ## Configuring your Docker host for NFS or iSCSI
 
 ### NFS
@@ -145,43 +190,58 @@ sudo apt-get install -y nfs-common
 
 #### RHEL / CentOS
 
-1. Install the following system packages:
+Other things needed
+* Add in an iSCSI NIC (this only handles a single source NIC, so make it a failover NIC)  
+* Configure an IP address on your iSCSI NIC  
+* get the name of your iSCSI NIC 'connection' with nmcli con show  
 
-    ```bash
-    sudo yum install -y lsscsi iscsi-initiator-utils sg3_utils device-mapper-multipath
-    ```
+Fill out the variables below and the rest is pretty much blind copy and paste.  
 
-2. Start the multipathing daemon:
+```bash  
+#some variables to smooth out the process, change the areas contained in <foo>  
+ISCSI_NIC_NAME="<interfacename>"  
+SVM_NAME="<SVM name>"  
+SVM_MGMT_IP="<SVM management IP>"  
+SVM_ISCSI_IP1="<SVM iSCSI LIF IP1>"  
+SVM_ISCSI_IP2="<SVM iSCSI LIF IP2>"  
+VSADMIN_PASSWORD="<password>"  
+AGGREGATE_NAME="<aggregate name>"  
+STORAGE_PREFIX="<storage prefix>"
+IGROUP="$(hostname -s)"  
+  
+#install dependencies  
+sudo yum install -y lsscsi iscsi-initiator-utils sg3_utils device-mapper-multipath
 
-    ```bash
-    sudo mpathconf --enable --with_multipathd y
-    ```
+#append hostname to IQN so its easy to identify
+sudo printf "$(< /etc/iscsi/initiatorname.iscsi)-$(hostname -s)\n" > /etc/iscsi/initiatorname.iscsi
 
-3. Ensure that `iscsid` and `multipathd` are enabled and running:
+#configure iscsi virtual interface and bind it to the iscsi nics mac address
+sudo iscsiadm -m iface -I ieth1 --op=new
+sudo iscsiadm -m iface -I ieth1 --op=update -n iface.net_ifacename -v ${ISCSI_NIC_NAME}
 
-    ```bash
-    sudo systemctl enable iscsid multipathd
-    sudo systemctl start iscsid multipathd
-    ```
+#change iscsi interface to have a 9k mtu and not submit dns registration
+sudo nmcli con mod ${ISCSI_NIC_CON_NAME} 802-3-ethernet.mtu 9000
+sudo nmcli device mod ${ISCSI_NIC_NAME} ipv6.dhcp-send-hostname no
+sudo nmcli device mod ${ISCSI_NIC_NAME} ipv4.dhcp-send-hostname no
 
-4. Discover the iSCSI targets:
+#enable multipathd
+sudo mpathconf --enable --with_multipathd y
+sudo systemctl enable iscsid multipathd
+sudo systemctl start iscsid multipathd
 
-    ```bash
-    sudo iscsiadm -m discoverydb -t st -p <DATA_LIF_IP> --discover
-    ```
+#change iscsi session timeout per netapps recommended best practice 
+sudo sed -i 's/node.session.timeo.replacement_timeout = 120/node.session.timeo.replacement_timeout = 5/' /etc/iscsi/iscsid.conf
 
-5. Login to the discovered iSCSI targets:
+#configure discovery for both iscsi IPs
+sudo iscsiadm -m discoverydb -t st -p ${SVM_ISCSI_IP1} --discover -I ieth1
+sudo iscsiadm -m discoverydb -t st -p ${SVM_ISCSI_IP2} --discover -I ieth1
+sudo iscsiadm -m node -p ${SVM_ISCSI_IP1} -I ieth1 --login
+sudo iscsiadm -m node -p ${SVM_ISCSI_IP2} -I ieth1 --login
 
-    ```bash
-    sudo iscsiadm -m node -p <DATA_LIF_IP> --login
-    ```
-
-6. Start and enable `iscsi`:
-
-    ```bash
-    sudo systemctl enable iscsi
-    sudo systemctl start iscsi
-    ```
+#enable iscsi
+sudo systemctl enable iscsi
+sudo systemctl start iscsi
+```
 
 #### Ubuntu / Debian
 
@@ -230,7 +290,7 @@ sudo apt-get install -y nfs-common
 | version           | Config file version number                                               | 1          |
 | storageDriverName | `ontap-nas`, `ontap-san`, `eseries-iscsi`, or `solidfire-san`            | ontap-nas  |
 | debug             | Turn debugging output on or off                                          | false      |
-| storagePrefix     | Optional prefix for volume names.  Default: "netappdvp_"                 | netappdvp_ |
+| storagePrefix     | Optional but recommended prefix for docker volume names.  Default: "netappdvp_"                 | netappdvp_ |
 
 ### Storage Prefix
 
@@ -241,6 +301,10 @@ supplied is prepended with "netappdvp_".  _("netappdvp-" for SolidFire.)_
 If you wish to use a different prefix, you can specify it with this directive.  Alternatively, you can use
 *pre-existing* volumes with the volume plugin by setting `storagePrefix` to an empty string, "".
 
+*Ontap specific recommendation* Keeping the same storagePrefix across multiple docker hosts will show *all* docker volumes created with
+the same storagePrefix, even if you use a different igroup. Use a different storagePrefix per docker host barring shared volumes. 
+With iSCSI you are unlikely to ever want this scenario to happen.
+
 *solidfire specific recommendation* do not use a storagePrefix (including the default)
 By default the SolidFire driver will ignore this setting and not use a prefix.
 We recommend using either a specific tenantID for docker volume mapping or
@@ -248,11 +312,9 @@ using the attribute data which is populated with the docker version, driver
 info and raw name from docker in cases where any name munging may have been
 used.
 
+**A note of caution**: If you can see a volume with `docker volume ls` due to your storagePrefix name, then `docker volume rm <volumename>` will *delete* the specified volume, even if you aren't in the same igroup or if it was not created by the netappdvp plugin! Be very careful when using pre-existing volumes!
 
-**A note of caution**: `docker volume rm` will *delete* these volumes just as it does volumes created by the
-plugin using the default prefix.  Be very careful when using pre-existing volumes!
-
-## ONTAP Config File Variables
+## ONTAP Specific Config File Variables
 
 In addition to the global configuration values above, when using clustered Data ONTAP, these options are avaialble.
 
@@ -264,6 +326,7 @@ In addition to the global configuration values above, when using clustered Data 
 | username          | Username to connect to the storage device                                | vsadmin    |
 | password          | Password to connect to the storage device                                | netapp123  |
 | aggregate         | Aggregate to use for volume/LUN provisioning                             | aggr1      |
+| IgroupName        | Optional but recommended prefix prefix for igroup name.  Default: "netappdvp"                 | netappdvp |
 
 ### Example ONTAP Config Files
 
@@ -278,7 +341,8 @@ In addition to the global configuration values above, when using clustered Data 
     "svm": "svm_nfs",
     "username": "vsadmin",
     "password": "netapp123",
-    "aggregate": "aggr1"
+    "aggregate": "aggr1",
+    "storagePrefix": "mydocker_nfs_"
 }
 ```
 
@@ -293,11 +357,13 @@ In addition to the global configuration values above, when using clustered Data 
     "svm": "svm_iscsi",
     "username": "vsadmin",
     "password": "netapp123",
-    "aggregate": "aggr1"
+    "aggregate": "aggr1",
+    "IgroupName": "mydockerhost",
+    "storagePrefix": "mydocker_iscsi_"
 }
 ```
 
-## E-Series Config File Variables
+## E-Series Specific Config File Variables
 
 In addition to the global configuration values above, when using E-Series, these options are available.
 
@@ -358,7 +424,7 @@ by the driver defaults to "linux_dm_mp", the native DM-MPIO multipath driver in 
 
 The current E-series Docker driver only supports iSCSI.
 
-## SolidFire Config File Variables
+## SolidFire Specific Config File Variables
 
 In addition to the global configuration values above, when using SolidFire, these options are available.
 
