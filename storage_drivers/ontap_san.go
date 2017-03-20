@@ -361,12 +361,33 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 		}
 	}
 
+	for i, e := range info {
+		log.WithFields(log.Fields{
+			"i":                i,
+			"scsiHost":         e.Host,
+			"scsiChannel":      e.Channel,
+			"scsiTarget":       e.Target,
+			"scsiLun":          e.LUN,
+			"multipathDevFile": e.MultipathDevice,
+			"devFile":          e.Device,
+			"fsType":           e.Filesystem,
+			"iqn":              e.IQN,
+		}).Debug("Found")
+	}
+
 	// look for the expected mapped lun
 	for i, e := range info {
 
 		log.WithFields(log.Fields{
-			"i": i,
-			"e": e,
+			"i":                i,
+			"scsiHost":         e.Host,
+			"scsiChannel":      e.Channel,
+			"scsiTarget":       e.Target,
+			"scsiLun":          e.LUN,
+			"multipathDevFile": e.MultipathDevice,
+			"devFile":          e.Device,
+			"fsType":           e.Filesystem,
+			"iqn":              e.IQN,
 		}).Debug("Checking")
 
 		if e.LUN != strconv.Itoa(lunID) {

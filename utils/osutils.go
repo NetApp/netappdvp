@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -178,10 +179,10 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 
 		// check to see if there's a multipath device
 		multipathDevFile := ""
-		_, err := Stat("/sbin/multipath")
-		if err != nil {
+		if !MultipathDetected() {
 			log.Debug("Skipping multipath check, /sbin/multipath doesn't exist")
 		} else {
+
 			lsblkCmd := fmt.Sprintf("lsblk %v -n -o name,type -r | grep mpath | cut -f1 -d\\ ", devFile)
 			log.Debugf("running 'sh -c %v'", lsblkCmd)
 			out2, err2 := exec.Command("sh", "-c", lsblkCmd).CombinedOutput()
@@ -191,6 +192,9 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 			} else {
 				md := strings.Split(strings.TrimSpace(string(out2)), " ")
 				if md != nil && len(md) > 0 && len(md[0]) > 0 {
+					if strings.HasPrefix(md[0], "lsblk") || strings.HasSuffix(string(out2), "failed to get device path") {
+						return nil, fmt.Errorf("Problem checking device path while running multipath check for device: %v: output: %v", devFile, string(out2))
+					}
 					log.Debug("Found md: ", md)
 
 					multipathDevFileToCheck := "/dev/mapper/" + md[0]
@@ -472,6 +476,7 @@ func IscsiSessionExists(portal string) (bool, error) {
 // IscsiRescan uses the 'rescan-scsi-bus' command to perform rescanning of the SCSI bus
 func IscsiRescan() (err error) {
 	log.Debugf("Begin osutils.IscsiRescan")
+	defer UdevSettle()
 
 	// look for version of rescan-scsi-bus in known locations
 	var rescanCommands []string = []string{"/sbin/rescan-scsi-bus", "/sbin/rescan-scsi-bus.sh", "/bin/rescan-scsi-bus.sh", "/usr/bin/rescan-scsi-bus.sh"}
@@ -503,7 +508,47 @@ func IscsiRescan() (err error) {
 	return
 }
 
-// MultipathFlush uses the 'multipath' commands to flush paths that have been removed
+// UdevSettle invokes the 'udevadm settle' command
+func UdevSettle() error {
+	// creating new storage and attaching it to a host can trigger a ripple of udev activity.
+	log.Debug("Begin osutils.udevSettle")
+
+	// back-to-back invoke /sbin/multipath, if it exists, to make sure that device discovery has settled down post rescan
+	for i := 0; i < 2; i++ {
+		Multipath()
+		Multipath()
+
+		// attempt to wait for inflight udev events to complete (should eventually timeout if they never complete)
+		out, err := exec.Command("udevadm", "settle").CombinedOutput()
+		if err != nil {
+			// nothing to really do if it generates an error but log and return it
+			log.Debugf("Error encountered in udevadm settle cmd: %v. %v", err, string(out))
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Multipath invokes the 'multipath' command
+func Multipath() (err error) {
+	log.Debug("Begin osutils.multipath")
+
+	if !MultipathDetected() {
+		log.Debug("Skipping multipath command, /sbin/multipath doesn't exist.")
+		return
+	}
+
+	out, err := exec.Command("multipath").CombinedOutput()
+	if err != nil {
+		// nothing to really do if it generates an error but log and return it
+		log.Debugf("Error encountered in multipath cmd: %v. %v", err, string(out))
+		return
+	}
+	return
+}
+
+// MultipathFlush invokes the 'multipath' commands to flush paths that have been removed
 func MultipathFlush() (err error) {
 	log.Debug("Begin osutils.multipathFlush")
 	out, err := exec.Command("multipath", "-F").CombinedOutput()
@@ -513,6 +558,27 @@ func MultipathFlush() (err error) {
 		return
 	}
 	return
+}
+
+var mpChecked = false
+var mpDetected = false
+var mpMutex sync.Mutex
+
+// MultipathDetected returns true if /sbin/multipath is installed and in the PATH
+func MultipathDetected() bool {
+	mpMutex.Lock()
+	defer mpMutex.Unlock()
+
+	if !mpChecked {
+		_, errStat := Stat("/sbin/multipath")
+		if errStat != nil {
+			mpDetected = false
+		} else {
+			mpDetected = true
+		}
+		mpChecked = true
+	}
+	return mpDetected
 }
 
 // GetFSType returns the filesystem for the supplied device
