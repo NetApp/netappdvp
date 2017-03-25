@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -115,8 +116,8 @@ func (c *Client) Request(method string, params interface{}, id int) (response []
 	errresp := APIError{}
 	json.Unmarshal([]byte(body), &errresp)
 	if errresp.Error.Code != 0 {
-		log.Errorf("error detected in API response: %+v", errresp)
-		return body, errors.New("device API error")
+		log.Warningf("error detected in API response: %+v", errresp)
+		return body, fmt.Errorf("device API error: %+v", errresp.Error.Name)
 	}
 	return body, nil
 }

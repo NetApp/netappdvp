@@ -146,25 +146,49 @@ func (c *Client) ListActiveVolumes(listVolReq *ListActiveVolumesRequest) (volume
 }
 
 func (c *Client) CloneVolume(req *CloneVolumeRequest) (vol Volume, err error) {
-	response, err := c.Request("CloneVolume", req, NewReqID())
+	var cloneError error
+	var response []byte
 	var result CloneVolumeResult
+
+	// We use this loop to deal with things like trying to immediately clone
+	// from a volume that was just created.  Sometimes it can take a few
+	// seconds for the Slice to finalize even though the Volume reports ready.
+	// We'll do a backoff retry loop here, at some point would be handy go have
+	// a global util for us to use for any call
+	retry := 0
+	for retry < 5 {
+		response, cloneError = c.Request("CloneVolume", req, NewReqID())
+		if cloneError != nil && strings.Contains(cloneError.Error(), "SliceNotRegistered") {
+			log.Warningf("detected SliceNotRegistered on Clone operation, retrying in %+v secons", (2 + retry))
+			time.Sleep(time.Second * time.Duration(2+retry))
+			retry += 1
+		} else {
+			break
+		}
+	}
+
+	if cloneError != nil {
+		log.Errorf("failed to clone volume: %+v", cloneError)
+		return Volume{}, cloneError
+	}
+	log.Info("clone request was succesful")
+
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
 		log.Errorf("error detected unmarshalling CloneVolume API response: %+v", err)
 		return Volume{}, errors.New("json-decode error")
 	}
 
-	wait := 0
-	multiplier := 1
-	for wait < 10 {
-		wait += wait
+	retry = 0
+	for retry < 5 {
 		vol, err = c.GetVolumeByID(result.Result.VolumeID)
 		if err == nil {
 			break
 		}
-		time.Sleep(time.Second * time.Duration(multiplier))
-		multiplier *= wait
+		log.Warningf("failed to get volume by ID, retrying in %+v secons", (2 + retry))
+		time.Sleep(time.Second * time.Duration(2+retry))
+		retry += 1
 	}
-	return
+	return vol, err
 }
 
 // CreateVolume tbd
@@ -181,7 +205,7 @@ func (c *Client) CreateVolume(createReq *CreateVolumeRequest) (vol Volume, err e
 	}
 
 	vol, err = c.GetVolumeByID(result.Result.VolumeID)
-	return
+	return vol, err
 }
 
 // AddVolumeToAccessGroup tbd
