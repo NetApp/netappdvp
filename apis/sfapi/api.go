@@ -69,7 +69,6 @@ func NewFromParameters(pendpoint string, psvip string, pcfg Config, pdefaultTena
 
 // Request performs a json-rpc POST to the configured endpoint
 func (c *Client) Request(method string, params interface{}, id int) (response []byte, err error) {
-	log.Debug("sending request to SolidFire endpoint")
 	var prettyJSON bytes.Buffer
 	if c.Endpoint == "" {
 		log.Error("endpoint is not set, unable to issue json-rpc requests")
@@ -81,15 +80,13 @@ func (c *Client) Request(method string, params interface{}, id int) (response []
 		"id":     id,
 		"params": params,
 	})
+	log.Debugf("issuing request to SolidFire endpoint:  %+v", string(data))
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
-	log.Debugf("sending request to: %+v", c.Endpoint)
 	_ = json.Indent(&prettyJSON, data, "", "  ")
-	log.Debugf("request json: %+v", string(prettyJSON.Bytes()))
-
 	http := &http.Client{Transport: tr}
 	resp, err := http.Post(c.Endpoint,
 		"json-rpc",
@@ -106,9 +103,14 @@ func (c *Client) Request(method string, params interface{}, id int) (response []
 	}
 
 	_ = json.Indent(&prettyJSON, body, "", "  ")
-	log.Debugf("response body: %+v", string(prettyJSON.Bytes()))
 	errresp := APIError{}
 	json.Unmarshal([]byte(body), &errresp)
+
+	// NOTE(jdg): We removed the raw dump of the json response, was mostly just
+	// more noise than anything useful and clogged up the logfile.  Might be
+	// cool to add a config option that lets one turn this on/off for special
+	// debug purposes, but in general I think it's just too much noise,
+	// especially on things like a List
 	if errresp.Error.Code != 0 {
 		log.Warningf("error detected in API response: %+v", errresp)
 		return body, fmt.Errorf("device API error: %+v", errresp.Error.Name)
