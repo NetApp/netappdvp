@@ -63,6 +63,7 @@ type OntapStorageDriverConfig struct {
 	Username                  string `json:"username"`
 	Password                  string `json:"password"`
 	Aggregate                 string `json:"aggregate"`
+	UsageHeartbeat            string `json:"usageHeartbeat"` // in hours, default to 24.0
 }
 
 // ESeriesStorageDriverConfig holds settings for ESeriesStorageDriver

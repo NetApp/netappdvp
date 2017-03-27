@@ -66,8 +66,8 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 }
 
 // EmsInitialized logs an ASUP message that this docker volume plugin has been initialized
-// view them via filer::> event log show
-func EmsInitialized(driverName string, api *ontap.Driver) {
+// view them via filer::> event log show -severity NOTICE
+func EmsInitialized(driverName string, api *ontap.Driver, config *OntapStorageDriverConfig) {
 
 	// log an informational message when this plugin starts
 	myHostname, hostlookupErr := os.Hostname()
@@ -76,9 +76,61 @@ func EmsInitialized(driverName string, api *ontap.Driver) {
 		myHostname = "unknown"
 	}
 
-	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "initialized", myHostname, driverName+" docker volume plugin initialized, version "+DriverVersion+" ["+ExtendedDriverVersion+"]", 1, "netappdvp", 6)
+	message := driverName + " docker volume plugin initialized, version " + DriverVersion + " [" + ExtendedDriverVersion + "]"
+	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "initialized", myHostname,
+		message,
+		1, "netappdvp", 5)
 	if emsErr != nil {
 		log.Warnf("problem while logging ems message, error: %v", emsErr)
+	}
+}
+
+// EmsHeartbeat logs an ASUP message on a timer
+// view them via filer::> event log show -severity NOTICE
+func EmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorageDriverConfig) {
+
+	// log an informational message on a timer
+	myHostname, hostlookupErr := os.Hostname()
+	if hostlookupErr != nil {
+		log.Warnf("problem while looking up hostname, error: %v", hostlookupErr)
+		myHostname = "unknown"
+	}
+
+	message := driverName + " docker volume plugin, version " + DriverVersion + " [" + ExtendedDriverVersion + "] SVM[" + config.SVM + "] StoragePrefix[" + string(config.StoragePrefixRaw) + "]"
+
+	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "heartbeat", myHostname,
+		message,
+		1, "netappdvp", 5)
+	if emsErr != nil {
+		log.Warnf("problem while logging ems message, error: %v", emsErr)
+	}
+}
+
+const MSEC_PER_HOUR = 1000 * 60 * 60 // millis * seconds * minutes
+
+func StartEmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorageDriverConfig) {
+
+	heartbeatIntervalInHours := 24.0 // default to 24 hours
+	if config.UsageHeartbeat != "" {
+		f, errParsing := strconv.ParseFloat(config.UsageHeartbeat, 64)
+		if errParsing != nil {
+			log.Warnf("Problem parsing heartbeat interval: {%v} error: %v", config.UsageHeartbeat, errParsing)
+		} else {
+			heartbeatIntervalInHours = f
+		}
+	}
+	log.WithField("intervalHours", heartbeatIntervalInHours).Debug("Configured EMS heartbeat.")
+
+	durationInHours := time.Millisecond * time.Duration(MSEC_PER_HOUR*heartbeatIntervalInHours)
+	if durationInHours > 0 {
+		EmsHeartbeat(driverName, api, config)
+		ticker := time.NewTicker(durationInHours)
+		go func() {
+			for t := range ticker.C {
+				log.WithField("tick", t).Debug("Sending EMS heartbeat.")
+				EmsHeartbeat(driverName, api, config)
+			}
+		}()
 	}
 }
 

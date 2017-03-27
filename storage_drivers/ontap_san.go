@@ -82,8 +82,9 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 		return fmt.Errorf("Problem validating OntapSANStorageDriver error: %v", validationErr)
 	}
 
-	// log an informational message when this plugin starts
-	EmsInitialized(d.Name(), d.API)
+	// log an informational message on a heartbeat
+	EmsInitialized(d.Name(), d.API, config)
+	StartEmsHeartbeat(d.Name(), d.API, config)
 
 	d.Initialized = true
 	log.Infof("Successfully initialized Ontap SAN Docker driver version %v [%v]", DriverVersion, ExtendedDriverVersion)
