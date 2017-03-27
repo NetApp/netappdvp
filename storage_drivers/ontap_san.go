@@ -65,7 +65,6 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 	log.WithFields(log.Fields{
 		"Version":           config.Version,
 		"StorageDriverName": config.StorageDriverName,
-		"Debug":             config.Debug,
 		"DisableDelete":     config.DisableDelete,
 		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
 		"SnapshotPrefixRaw": string(config.SnapshotPrefixRaw),
@@ -87,7 +86,10 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 	StartEmsHeartbeat(d.Name(), d.API, config)
 
 	d.Initialized = true
-	log.Infof("Successfully initialized Ontap SAN Docker driver version %v [%v]", DriverVersion, ExtendedDriverVersion)
+	log.WithFields(log.Fields{
+		"driverVersion":         DriverVersion,
+		"extendedDriverVersion": ExtendedDriverVersion,
+	}).Info("Initialized Ontap SAN storage driver.")
 	return nil
 }
 

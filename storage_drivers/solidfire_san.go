@@ -72,7 +72,6 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 	log.WithFields(log.Fields{
 		"Version":           c.Version,
 		"StorageDriverName": c.StorageDriverName,
-		"Debug":             c.Debug,
 		"DisableDelete":     c.DisableDelete,
 		"StoragePrefixRaw":  string(c.StoragePrefixRaw),
 		"SnapshotPrefixRaw": string(c.SnapshotPrefixRaw),
@@ -167,7 +166,10 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 	//EmsInitialized(d.Name(), d.api)
 
 	d.Initialized = true
-	log.Infof("successfully initialized SolidFire Docker driver version %s [%s]", DriverVersion, ExtendedDriverVersion)
+	log.WithFields(log.Fields{
+		"driverVersion":         DriverVersion,
+		"extendedDriverVersion": ExtendedDriverVersion,
+	}).Info("Initialized SolidFire storage driver.")
 	return nil
 }
 

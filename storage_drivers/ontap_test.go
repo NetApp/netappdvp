@@ -33,7 +33,6 @@ func TestOntap_ValidateCommonSettings(t *testing.T) {
 	configMissingStorageDriverName := &CommonStorageDriverConfig{
 		Version:           1,
 		StorageDriverName: "", // emtpy on purpose
-		Debug:             false,
 		DisableDelete:     false,
 		StoragePrefixRaw:  []byte(`""`),
 		SnapshotPrefixRaw: []byte(`""`),
@@ -49,7 +48,6 @@ func TestOntap_ValidateCommonSettings(t *testing.T) {
 	configWithWrongVersion := &CommonStorageDriverConfig{
 		Version:           -1, // invalid number on purpose
 		StorageDriverName: OntapNASStorageDriverName,
-		Debug:             false,
 		DisableDelete:     false,
 		StoragePrefixRaw:  []byte(`""`),
 		SnapshotPrefixRaw: []byte(`""`),
@@ -65,7 +63,6 @@ func TestOntap_ValidateCommonSettings(t *testing.T) {
 	config := &CommonStorageDriverConfig{
 		Version:           ConfigVersion,
 		StorageDriverName: OntapNASStorageDriverName,
-		Debug:             false,
 		DisableDelete:     false,
 		StoragePrefixRaw:  []byte(`""`),
 		SnapshotPrefixRaw: []byte(`""`),

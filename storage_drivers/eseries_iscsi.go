@@ -67,7 +67,6 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	log.WithFields(log.Fields{
 		"Version":           config.Version,
 		"StorageDriverName": config.StorageDriverName,
-		"Debug":             config.Debug,
 		"DebugTraceFlags":   config.DebugTraceFlags,
 		"DisableDelete":     config.DisableDelete,
 		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
@@ -132,12 +131,10 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	}
 
 	d.Initialized = true
-
 	log.WithFields(log.Fields{
-		"DriverVersion":         DriverVersion,
-		"ExtendedDriverVersion": ExtendedDriverVersion,
-	}).Debug("Initialized E-Series Docker driver.")
-
+		"driverVersion":         DriverVersion,
+		"extendedDriverVersion": ExtendedDriverVersion,
+	}).Info("Initialized E-Series storage driver.")
 	return nil
 }
 

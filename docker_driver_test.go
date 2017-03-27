@@ -15,7 +15,6 @@ func newNdvpDriverWithPrefix(prefix string) *ndvpDriver {
 	commonConfig := &storage_drivers.CommonStorageDriverConfig{}
 	commonConfig.Version = 1
 	commonConfig.StorageDriverName = "ontap-nas"
-	commonConfig.Debug = false
 	commonConfig.DisableDelete = false
 	commonConfig.StoragePrefixRaw = []byte(prefix)
 

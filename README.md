@@ -228,8 +228,7 @@ sudo apt-get install -y nfs-common
 | Option            | Description                                                              | Example    |
 | ----------------- | ------------------------------------------------------------------------ | ---------- |
 | version           | Config file version number                                               | 1          |
-| storageDriverName | `ontap-nas`, `ontap-san`, `eseries-iscsi`, or `solidfire-san`            | ontap-nas  |
-| debug             | Turn debugging output on or off                                          | false      |
+| storageDriverName | `ontap-nas`, `ontap-san`, `eseries-iscsi`, or `solidfire-san`            | ontap-nas  |                                        | false      |
 | storagePrefix     | Optional prefix for volume names.  Default: "netappdvp_"                 | netappdvp_ |
 
 ### Storage Prefix
@@ -325,7 +324,6 @@ In addition to the global configuration values above, when using E-Series, these
 {
 	"version": 1,
 	"storageDriverName": "eseries-iscsi",
-	"debug": true,
 	"webProxyHostname": "localhost",
 	"webProxyPort": "8443",
 	"webProxyUseHTTP": false,
@@ -383,7 +381,6 @@ your old volumes that were mapped via the volume-name method.
 {
     "version": 1,
     "storageDriverName": "solidfire-san",
-    "debug": false,
     "Endpoint": "https://admin:admin@192.168.160.3/json-rpc/7.0",
     "SVIP": "10.0.0.7:3260",
     "TenantName": "docker",

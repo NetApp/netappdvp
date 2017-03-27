@@ -10,7 +10,6 @@ import (
 
 func newNfsTestConfig() (c *OntapStorageDriverConfig) {
 	c = &OntapStorageDriverConfig{}
-	c.Debug = true
 	c.Username = "user"
 	c.Password = "password"
 	c.ManagementLIF = "1.2.3.4"

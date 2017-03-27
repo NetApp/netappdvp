@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/apis/sfapi"
 )
 
@@ -23,7 +24,7 @@ var ExtendedDriverVersion = "native"
 type CommonStorageDriverConfig struct {
 	Version           int             `json:"version"`
 	StorageDriverName string          `json:"storageDriverName"`
-	Debug             bool            `json:"debug"`
+	Debug             bool            `json:"debug"`           // Unsupported!
 	DebugTraceFlags   map[string]bool `json:"debugTraceFlags"` // Example: {"api":false, "method":true}
 	DisableDelete     bool            `json:"disableDelete"`
 	StoragePrefixRaw  json.RawMessage `json:"storagePrefix,string"`
@@ -48,6 +49,12 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 	// validate config file version information
 	if config.Version != ConfigVersion {
 		return nil, fmt.Errorf("Unexpected config file version;  found %v expected %v", config.Version, ConfigVersion)
+	}
+
+	// warn if using debug in the config file
+	if config.Debug {
+		log.Warnf("The debug setting in the configuration file is now ignored; use the command " +
+			"line --debug switch instead.")
 	}
 
 	return config, nil
