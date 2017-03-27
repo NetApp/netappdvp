@@ -15,6 +15,9 @@ import (
 	"github.com/netapp/netappdvp/utils"
 )
 
+// OntapNASStorageDriverName is the constant name for this Ontap NAS storage driver
+const OntapNASStorageDriverName = "ontap-nas"
+
 func init() {
 	nas := &OntapNASStorageDriver{}
 	nas.Initialized = false
@@ -22,14 +25,19 @@ func init() {
 	log.Debugf("Registered driver '%v'", nas.Name())
 }
 
-// OntapNASStorageDriverName is the constant name for this Ontap NAS storage driver
-const OntapNASStorageDriverName = "ontap-nas"
-
 // OntapNASStorageDriver is for NFS storage provisioning
 type OntapNASStorageDriver struct {
 	Initialized bool
 	Config      OntapStorageDriverConfig
 	API         *ontap.Driver
+}
+
+func (d *OntapNASStorageDriver) GetConfig() *OntapStorageDriverConfig {
+	return &d.Config
+}
+
+func (d *OntapNASStorageDriver) GetAPI() *ontap.Driver {
+	return d.API
 }
 
 // Name is for returning the name of this driver

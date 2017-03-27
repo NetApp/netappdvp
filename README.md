@@ -254,7 +254,7 @@ plugin using the default prefix.  Be very careful when using pre-existing volume
 
 ## ONTAP Config File Variables
 
-In addition to the global configuration values above, when using clustered Data ONTAP, these options are avaialble.
+In addition to the global configuration values above, when using clustered Data ONTAP, these options are available.
 
 | Option            | Description                                                              | Example    |
 | ----------------- | ------------------------------------------------------------------------ | ---------- |

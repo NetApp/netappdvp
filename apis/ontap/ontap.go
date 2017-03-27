@@ -3,10 +3,15 @@
 package ontap
 
 import (
+	"fmt"
+	"reflect"
 	"sync"
 
+	"github.com/blang/semver"
 	"github.com/netapp/netappdvp/azgo"
 )
+
+const maxZapiRecords int = 0xfffffffe
 
 // DriverConfig holds the configuration data for Driver objects
 type DriverConfig struct {
@@ -38,6 +43,108 @@ func NewDriver(config DriverConfig) *Driver {
 	}
 	return d
 }
+
+// GetClonedZapiRunner returns a clone of the ZapiRunner configured on this driver.
+func (d Driver) GetClonedZapiRunner() *azgo.ZapiRunner {
+	clone := new(azgo.ZapiRunner)
+	*clone = *d.zr
+	return clone
+}
+
+// GetNontunneledZapiRunner returns a clone of the ZapiRunner configured on this driver with the SVM field cleared so ZAPI calls
+// made with the resulting runner aren't tunneled.  Note that the calls could still go directly to either a cluster or
+// vserver management LIF.
+func (d Driver) GetNontunneledZapiRunner() *azgo.ZapiRunner {
+	clone := new(azgo.ZapiRunner)
+	*clone = *d.zr
+	clone.SVM = ""
+	return clone
+}
+
+// NewZapiError accepts the Response value from any AZGO call, extracts the status, reason, and errno values, and returns a ZapiError.
+// TODO: Replace reflection with relevant enhancements in AZGO generator.
+func NewZapiError(response interface{}) (err ZapiError) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = ZapiError{}
+		}
+	}()
+
+	val := reflect.ValueOf(response)
+
+	err = ZapiError{
+		val.FieldByName("ResultStatusAttr").String(),
+		val.FieldByName("ResultReasonAttr").String(),
+		val.FieldByName("ResultErrnoAttr").String(),
+	}
+
+	return
+}
+
+// ZapiError encapsulates the status, reason, and errno values from a ZAPI invocation, and it provides helper methods for detecting
+// common error conditions.
+type ZapiError struct {
+	status string
+	reason string
+	code   string
+}
+
+func (e ZapiError) IsPassed() bool {
+	return e.status == "passed"
+}
+func (e ZapiError) Error() string {
+	if e.IsPassed() {
+		return "API status: passed"
+	}
+	return fmt.Sprintf("API status: %s, Reason: %s, Code: %s", e.status, e.reason, e.code)
+}
+func (e ZapiError) IsPrivilegeError() bool {
+	return e.code == azgo.EAPIPRIVILEGE
+}
+func (e ZapiError) IsScopeError() bool {
+	return e.code == azgo.EAPIPRIVILEGE || e.code == azgo.EAPINOTFOUND
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// API feature operations BEGIN
+
+type ontapApiFeature string
+
+// Define new version-specific feature constants here
+const (
+	MINIMUM_ONTAPI_VERSION ontapApiFeature = "MINIMUM_ONTAPI_VERSION"
+	VSERVER_SHOW_AGGR      ontapApiFeature = "VSERVER_SHOW_AGGR"
+)
+
+// Indicate the minimum Ontapi version for each feature here
+var ontapAPIFeatures = map[ontapApiFeature]semver.Version{
+	MINIMUM_ONTAPI_VERSION: semver.MustParse("1.30.0"), // cDOT 8.3.0
+	VSERVER_SHOW_AGGR:      semver.MustParse("1.100.0"),
+}
+
+// SupportsApiFeature returns true if the Ontapi version supports the supplied feature
+func (d Driver) SupportsApiFeature(feature ontapApiFeature) bool {
+
+	ontapiVersion, err := d.SystemGetOntapiVersion()
+	if err != nil {
+		return false
+	}
+
+	ontapiSemVer, err := semver.Make(fmt.Sprintf("%s.0", ontapiVersion))
+	if err != nil {
+		return false
+	}
+
+	if minVersion, ok := ontapAPIFeatures[feature]; ok {
+		return ontapiSemVer.GTE(minVersion)
+	} else {
+		return false
+	}
+}
+
+// API feature operations END
+/////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
 // IGROUP operations BEGIN
@@ -84,7 +191,7 @@ func (d Driver) IgroupDestroy(initiatorGroupName string) (response azgo.IgroupDe
 // IgroupList lists initiator groups
 func (d Driver) IgroupList() (response azgo.IgroupGetIterResponse, err error) {
 	response, err = azgo.NewIgroupGetIterRequest().
-		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
 		ExecuteUsing(d.zr)
 	return
 }
@@ -257,7 +364,7 @@ func (d Driver) VolumeList(prefix string) (response azgo.VolumeGetIterResponse, 
 	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*viat)
 
 	response, err = azgo.NewVolumeGetIterRequest().
-		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
 		SetQuery(*query).
 		ExecuteUsing(d.zr)
 	return
@@ -283,7 +390,7 @@ func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGe
 	query := azgo.NewSnapshotInfoType().SetVolume(volumeName)
 
 	response, err = azgo.NewSnapshotGetIterRequest().
-		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
 		SetQuery(*query).
 		ExecuteUsing(d.zr)
 	return
@@ -298,12 +405,87 @@ func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGe
 // IscsiServiceGetIterRequest returns information about an iSCSI target
 func (d Driver) IscsiServiceGetIterRequest() (response azgo.IscsiServiceGetIterResponse, err error) {
 	response, err = azgo.NewIscsiServiceGetIterRequest().
-		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
 		ExecuteUsing(d.zr)
 	return
 }
 
 // ISCSI operations END
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// VSERVER operations BEGIN
+
+// VserverGetIterRequest returns the vservers on the system
+// equivalent to filer::> vserver show
+func (d Driver) VserverGetIterRequest() (response azgo.VserverGetIterResponse, err error) {
+	response, err = azgo.NewVserverGetIterRequest().
+		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
+		ExecuteUsing(d.zr)
+	return
+}
+
+// GetVserverAggregateNames returns an array of names of the aggregates assigned to the configured vserver.
+// The vserver-get-iter API works with either cluster or vserver scope, so the ZAPI runner may or may not
+// be configured for tunneling; using the query parameter ensures we address only the configured vserver.
+func (d Driver) GetVserverAggregateNames() ([]string, error) {
+
+	// Get just the SVM of interest
+	query := azgo.NewVserverInfoType()
+	query.SetVserverName(d.config.SVM)
+
+	response, err := azgo.NewVserverGetIterRequest().SetMaxRecords(maxZapiRecords).SetQuery(*query).ExecuteUsing(d.zr)
+	if err != nil {
+		return nil, err
+	}
+	if response.Result.NumRecords() != 1 {
+		return nil, fmt.Errorf("Could not find SVM %s.", d.config.SVM)
+	}
+
+	// Get the aggregates assigned to the SVM
+	aggrNames := make([]string, 0, 10)
+	for _, vserver := range response.Result.AttributesList() {
+		aggrList := vserver.VserverAggrInfoList()
+		for _, aggr := range aggrList {
+			aggrNames = append(aggrNames, string(aggr.AggrName()))
+		}
+	}
+
+	return aggrNames, nil
+}
+
+// VserverShowAggrGetIterRequest returns the aggregates on the vserver.  Requires ONTAP 9 or later.
+// equivalent to filer::> vserver show-aggregates
+func (d Driver) VserverShowAggrGetIterRequest() (response azgo.VserverShowAggrGetIterResponse, err error) {
+
+	response, err = azgo.NewVserverShowAggrGetIterRequest().
+		SetMaxRecords(maxZapiRecords).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// VSERVER operations END
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// AGGREGATE operations BEGIN
+
+// AggrGetIterRequest returns the aggregates on the system
+// equivalent to filer::> storage aggregate show
+func (d Driver) AggrGetIterRequest() (response azgo.AggrGetIterResponse, err error) {
+
+	// If we tunnel to an SVM, which is the default case, this API will never work.
+	// It will still fail if the non-tunneled ZapiRunner addresses a vserver management LIF,
+	// but that possibility must be handled by the caller.
+	zr := d.GetNontunneledZapiRunner()
+
+	response, err = azgo.NewAggrGetIterRequest().
+		SetMaxRecords(maxZapiRecords).
+		ExecuteUsing(zr)
+	return
+}
+
+// AGGREGATE operations END
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
@@ -313,7 +495,7 @@ func (d Driver) IscsiServiceGetIterRequest() (response azgo.IscsiServiceGetIterR
 // equivalent to filer::> net interface list
 func (d Driver) NetInterfaceGet() (response azgo.NetInterfaceGetIterResponse, err error) {
 	response, err = azgo.NewNetInterfaceGetIterRequest().
-		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
+		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
 		ExecuteUsing(d.zr)
 	return
 }
@@ -325,13 +507,23 @@ func (d Driver) SystemGetVersion() (response azgo.SystemGetVersionResponse, err 
 	return
 }
 
-// VserverGetIterRequest returns the vservers on the system
-// equivalent to filer::> vserver show
-func (d Driver) VserverGetIterRequest() (response azgo.VserverGetIterResponse, err error) {
-	response, err = azgo.NewVserverGetIterRequest().
-		SetMaxRecords(0xffffffff - 1). // Is there any value in iterating?
-		ExecuteUsing(d.zr)
-	return
+// GetOntapiVersion gets the ONTAPI version using the credentials, and caches & returns the result.
+func (d Driver) SystemGetOntapiVersion() (string, error) {
+
+	if d.zr.OntapiVersion == "" {
+		result, err := azgo.NewSystemGetOntapiVersionRequest().ExecuteUsing(d.zr)
+		if err != nil {
+			return "", err
+		} else if result.Result.ResultStatusAttr != "passed" {
+			return "", fmt.Errorf("Could not read ONTAPI version. %s", result.Result.ResultReasonAttr)
+		}
+
+		major := result.Result.MajorVersion()
+		minor := result.Result.MinorVersion()
+		d.zr.OntapiVersion = fmt.Sprintf("%d.%d", major, minor)
+	}
+
+	return d.zr.OntapiVersion, nil
 }
 
 // EmsAutosupportLog generates an auto support message with the supplied parameters

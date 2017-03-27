@@ -36,6 +36,14 @@ type OntapSANStorageDriver struct {
 	API         *ontap.Driver
 }
 
+func (d *OntapSANStorageDriver) GetConfig() *OntapStorageDriverConfig {
+	return &d.Config
+}
+
+func (d *OntapSANStorageDriver) GetAPI() *ontap.Driver {
+	return d.API
+}
+
 // Name is for returning the name of this driver
 func (d OntapSANStorageDriver) Name() string {
 	return OntapSANStorageDriverName

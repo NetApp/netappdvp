@@ -3,6 +3,7 @@
 package storage_drivers
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -13,6 +14,12 @@ import (
 	"github.com/netapp/netappdvp/azgo"
 )
 
+type OntapStorageDriver interface {
+	GetConfig() *OntapStorageDriverConfig
+	GetAPI() *ontap.Driver
+	Name() string
+}
+
 // InitializeOntapDriver will attempt to derive the SVM to use if not provided
 func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, error) {
 	api := ontap.NewDriver(ontap.DriverConfig{
@@ -21,6 +28,15 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 		Username:      config.Username,
 		Password:      config.Password,
 	})
+
+	ontapi, err := api.SystemGetOntapiVersion()
+	if err != nil {
+		return nil, fmt.Errorf("Could not determine Data ONTAP API version. %v", err)
+	}
+	if !api.SupportsApiFeature(ontap.MINIMUM_ONTAPI_VERSION) {
+		return nil, errors.New("Data ONTAP 8.3 or later is required.")
+	}
+	log.WithField("Ontapi", ontapi).Debug("Data ONTAP API version.")
 
 	if config.SVM != "" {
 		log.Debugf("Using specified SVM: %v", config.SVM)
@@ -33,7 +49,7 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 		return nil, fmt.Errorf("Error enumerating SVMs:  status: %v error: %v", response1.Result.ResultStatusAttr, err)
 	}
 	if response1.Result.NumRecords() != 1 {
-		return nil, fmt.Errorf("Cannot derive SVM to use, please specify SVM in config file.")
+		return nil, errors.New("Cannot derive SVM to use, please specify SVM in config file.")
 	}
 
 	// update everything to use our derived svm
@@ -44,6 +60,7 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 		Username:      config.Username,
 		Password:      config.Password,
 	})
+	api.SystemGetOntapiVersion()
 	log.Debugf("Using derived SVM: %v", config.SVM)
 	return api, nil
 }
@@ -75,7 +92,7 @@ func CreateOntapClone(name, source, snapshot, newSnapshotPrefix string, api *ont
 		return fmt.Errorf("Error searching for existing volume: error: %v", err)
 	}
 	if isPassed(response.Result.ResultStatusAttr) {
-		return fmt.Errorf("Volume already exists")
+		return fmt.Errorf("Volume %s already exists", name)
 	}
 
 	// If no specific snapshot was requested, create one
@@ -92,7 +109,7 @@ func CreateOntapClone(name, source, snapshot, newSnapshotPrefix string, api *ont
 	response2, err2 := api.VolumeCloneCreate(name, source, snapshot)
 	if !isPassed(response2.Result.ResultStatusAttr) || err2 != nil {
 		if response2.Result.ResultErrnoAttr == azgo.EOBJECTNOTFOUND {
-			return fmt.Errorf("Snapshot does not exist in volume")
+			return fmt.Errorf("Snapshot %s does not exist in volume %s", snapshot, source)
 		} else {
 			return fmt.Errorf("Error creating clone: status: %v error: %v", response2.Result.ResultStatusAttr, err2)
 		}

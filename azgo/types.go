@@ -588,6 +588,126 @@ func (o *VserverInfoType) SetVserverType(newValue string) *VserverInfoType {
 	return o
 }
 
+// SnaplocktypeType is a structure to represent a snaplocktype ZAPI object
+type SnaplocktypeType string
+
+// AggregatetypeType is a structure to represent a aggregatetype ZAPI object
+type AggregatetypeType string
+
+// ShowAggregatesType is a structure to represent a show-aggregates ZAPI object
+type ShowAggregatesType struct {
+	XMLName xml.Name `xml:"show-aggregates"`
+
+	AggregateNamePtr *AggrNameType      `xml:"aggregate-name"`
+	AggregateTypePtr *AggregatetypeType `xml:"aggregate-type"`
+	AvailableSizePtr *SizeType          `xml:"available-size"`
+	SnaplockTypePtr  *SnaplocktypeType  `xml:"snaplock-type"`
+	VserverNamePtr   *string            `xml:"vserver-name"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *ShowAggregatesType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewShowAggregatesType is a factory method for creating new instances of ShowAggregatesType objects
+func NewShowAggregatesType() *ShowAggregatesType { return &ShowAggregatesType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o ShowAggregatesType) String() string {
+	var buffer bytes.Buffer
+	if o.AggregateNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "aggregate-name", *o.AggregateNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("aggregate-name: nil\n"))
+	}
+	if o.AggregateTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "aggregate-type", *o.AggregateTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("aggregate-type: nil\n"))
+	}
+	if o.AvailableSizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "available-size", *o.AvailableSizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("available-size: nil\n"))
+	}
+	if o.SnaplockTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "snaplock-type", *o.SnaplockTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("snaplock-type: nil\n"))
+	}
+	if o.VserverNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver-name", *o.VserverNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver-name: nil\n"))
+	}
+	return buffer.String()
+}
+
+// AggregateName is a fluent style 'getter' method that can be chained
+func (o *ShowAggregatesType) AggregateName() AggrNameType {
+	r := *o.AggregateNamePtr
+	return r
+}
+
+// SetAggregateName is a fluent style 'setter' method that can be chained
+func (o *ShowAggregatesType) SetAggregateName(newValue AggrNameType) *ShowAggregatesType {
+	o.AggregateNamePtr = &newValue
+	return o
+}
+
+// AggregateType is a fluent style 'getter' method that can be chained
+func (o *ShowAggregatesType) AggregateType() AggregatetypeType {
+	r := *o.AggregateTypePtr
+	return r
+}
+
+// SetAggregateType is a fluent style 'setter' method that can be chained
+func (o *ShowAggregatesType) SetAggregateType(newValue AggregatetypeType) *ShowAggregatesType {
+	o.AggregateTypePtr = &newValue
+	return o
+}
+
+// AvailableSize is a fluent style 'getter' method that can be chained
+func (o *ShowAggregatesType) AvailableSize() SizeType {
+	r := *o.AvailableSizePtr
+	return r
+}
+
+// SetAvailableSize is a fluent style 'setter' method that can be chained
+func (o *ShowAggregatesType) SetAvailableSize(newValue SizeType) *ShowAggregatesType {
+	o.AvailableSizePtr = &newValue
+	return o
+}
+
+// SnaplockType is a fluent style 'getter' method that can be chained
+func (o *ShowAggregatesType) SnaplockType() SnaplocktypeType {
+	r := *o.SnaplockTypePtr
+	return r
+}
+
+// SetSnaplockType is a fluent style 'setter' method that can be chained
+func (o *ShowAggregatesType) SetSnaplockType(newValue SnaplocktypeType) *ShowAggregatesType {
+	o.SnaplockTypePtr = &newValue
+	return o
+}
+
+// VserverName is a fluent style 'getter' method that can be chained
+func (o *ShowAggregatesType) VserverName() string {
+	r := *o.VserverNamePtr
+	return r
+}
+
+// SetVserverName is a fluent style 'setter' method that can be chained
+func (o *ShowAggregatesType) SetVserverName(newValue string) *ShowAggregatesType {
+	o.VserverNamePtr = &newValue
+	return o
+}
+
 type AggrAttributesType struct {
 	XMLName               xml.Name                `xml:"aggr-attributes"`
 	AggrRaidAttributesPtr *AggrRaidAttributesType `xml:"aggr-raid-attributes"`

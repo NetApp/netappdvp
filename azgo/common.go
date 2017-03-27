@@ -21,6 +21,7 @@ type ZapiRunner struct {
 	Username      string
 	Password      string
 	Secure        bool
+	OntapiVersion string
 }
 
 // SendZapi sends the provided ZAPIRequest to the Ontap system
