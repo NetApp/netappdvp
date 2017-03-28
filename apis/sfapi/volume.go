@@ -159,7 +159,7 @@ func (c *Client) CloneVolume(req *CloneVolumeRequest) (vol Volume, err error) {
 	for retry < 5 {
 		response, cloneError = c.Request("CloneVolume", req, NewReqID())
 		if cloneError != nil && strings.Contains(cloneError.Error(), "SliceNotRegistered") {
-			log.Warningf("detected SliceNotRegistered on Clone operation, retrying in %+v secons", (2 + retry))
+			log.Warningf("detected SliceNotRegistered on Clone operation, retrying in %+v seconds", (2 + retry))
 			time.Sleep(time.Second * time.Duration(2+retry))
 			retry += 1
 		} else {
@@ -184,7 +184,7 @@ func (c *Client) CloneVolume(req *CloneVolumeRequest) (vol Volume, err error) {
 		if err == nil {
 			break
 		}
-		log.Warningf("failed to get volume by ID, retrying in %+v secons", (2 + retry))
+		log.Warningf("failed to get volume by ID, retrying in %+v seconds", (2 + retry))
 		time.Sleep(time.Second * time.Duration(2+retry))
 		retry += 1
 	}
