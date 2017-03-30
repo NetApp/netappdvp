@@ -76,6 +76,11 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string) error {
 		return fmt.Errorf("Problem while initializing, error: %v", err)
 	}
 
+	defaultsErr := PopulateConfigurationDefaults(&d.Config)
+	if defaultsErr != nil {
+		return fmt.Errorf("Cannot populate configuration defaults, error: %v", defaultsErr)
+	}
+
 	validationErr := d.Validate()
 	if validationErr != nil {
 		return fmt.Errorf("Problem validating OntapSANStorageDriver error: %v", validationErr)
@@ -175,13 +180,16 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 		return fmt.Errorf("Volume already exists")
 	}
 
-	// get options with default values if not specified in config file
-	volumeSize := utils.GetV(opts, "size", "1g")
-	spaceReserve := utils.GetV(opts, "spaceReserve", "none")
-	snapshotPolicy := utils.GetV(opts, "snapshotPolicy", "none")
-	unixPermissions := utils.GetV(opts, "unixPermissions", "---rwxr-xr-x")
-	exportPolicy := utils.GetV(opts, "exportPolicy", "default")
+	// get options with default fallback values
+	// see also: ontap_common.go#PopulateConfigurationDefaults
+	volumeSize := utils.GetV(opts, "size", d.Config.VolumeSize)
+	spaceReserve := utils.GetV(opts, "spaceReserve", d.Config.SpaceReserve)
+	snapshotPolicy := utils.GetV(opts, "snapshotPolicy", d.Config.SnapshotPolicy)
+	unixPermissions := utils.GetV(opts, "unixPermissions", d.Config.UnixPermissions)
+	snapshotDir := utils.GetV(opts, "snapshotDir", d.Config.SnapshotDir)
+	exportPolicy := utils.GetV(opts, "exportPolicy", d.Config.ExportPolicy)
 	aggregate := utils.GetV(opts, "aggregate", d.Config.Aggregate)
+	securityStyle := utils.GetV(opts, "securityStyle", d.Config.SecurityStyle)
 
 	log.WithFields(log.Fields{
 		"name":            name,
@@ -189,12 +197,14 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 		"spaceReserve":    spaceReserve,
 		"snapshotPolicy":  snapshotPolicy,
 		"unixPermissions": unixPermissions,
+		"snapshotDir":     snapshotDir,
 		"exportPolicy":    exportPolicy,
 		"aggregate":       aggregate,
+		"securityStyle":   securityStyle,
 	}).Debug("Creating volume with values")
 
 	// create the volume
-	response1, error1 := d.API.VolumeCreate(name, aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy)
+	response1, error1 := d.API.VolumeCreate(name, aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
 	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
 		if response1.Result.ResultErrnoAttr != azgo.EAPIERROR {
 			return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)

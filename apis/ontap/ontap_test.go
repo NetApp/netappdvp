@@ -380,7 +380,7 @@ func TestVolumeAndSnapshot(t *testing.T) {
 	exportPolicy := "default"
 
 	// check bad volume name fails
-	response, err := d.VolumeCreate("bad/bad", aggr, "1g", "none", "none", unixPerms, exportPolicy)
+	response, err := d.VolumeCreate("bad/bad", aggr, "1g", "none", "none", unixPerms, exportPolicy, "unix")
 	if response.Result.ResultErrnoAttr != azgo.EAPIERROR {
 		t.Error("Expected to receive invalid api error for name 'bad/bad'")
 	}
@@ -389,7 +389,7 @@ func TestVolumeAndSnapshot(t *testing.T) {
 	}
 
 	// check bad unix permissions fails
-	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", "bad", exportPolicy)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", "bad", exportPolicy, "unix")
 	if response.Result.ResultErrnoAttr != azgo.EINVALIDINPUTERROR {
 		t.Error("Expected to receive invalid input error for invalid unix permissions 'bad'")
 	}
@@ -398,7 +398,7 @@ func TestVolumeAndSnapshot(t *testing.T) {
 	}
 
 	// check missing aggregate fails
-	response, err = d.VolumeCreate(volName, "missingAggrBad", "1g", "none", "none", unixPerms, exportPolicy)
+	response, err = d.VolumeCreate(volName, "missingAggrBad", "1g", "none", "none", unixPerms, exportPolicy, "unix")
 	if response.Result.ResultErrnoAttr != azgo.EAGGRDOESNOTEXIST {
 		t.Error("Expected to receive aggr doesn't exist error for invalid aggregrate 'missingAggrBad'")
 	}
@@ -407,7 +407,7 @@ func TestVolumeAndSnapshot(t *testing.T) {
 	}
 
 	// check bad size fails
-	response, err = d.VolumeCreate(volName, aggr, "badSize", "none", "none", unixPerms, exportPolicy)
+	response, err = d.VolumeCreate(volName, aggr, "badSize", "none", "none", unixPerms, exportPolicy, "unix")
 	if response.Result.ResultErrnoAttr != azgo.EINVALIDINPUTERROR {
 		t.Error("Expected to receive error for invalid size 'badSize'")
 	}
@@ -416,7 +416,7 @@ func TestVolumeAndSnapshot(t *testing.T) {
 	}
 
 	// check bad space reserve fails
-	response, err = d.VolumeCreate(volName, aggr, "1g", "badSpaceReserve", "none", unixPerms, exportPolicy)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "badSpaceReserve", "none", unixPerms, exportPolicy, "unix")
 	if response.Result.ResultErrnoAttr != azgo.EINVALIDINPUTERROR {
 		t.Error("Expected to receive error for invalid space reserve 'badSpaceReserve'")
 	}
@@ -425,7 +425,7 @@ func TestVolumeAndSnapshot(t *testing.T) {
 	}
 
 	// check bad snapshotPolicy fails
-	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "badSnapshotPolicy", unixPerms, exportPolicy)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "badSnapshotPolicy", unixPerms, exportPolicy, "unix")
 	if response.Result.ResultErrnoAttr != azgo.EAPIERROR {
 		t.Error("Expected to receive error for invalid snapshot policy 'badSnapshotPolicy'")
 	}
@@ -434,7 +434,7 @@ func TestVolumeAndSnapshot(t *testing.T) {
 	}
 
 	// check create passes
-	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", unixPerms, exportPolicy)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", unixPerms, exportPolicy, "unix")
 	if response.Result.ResultStatusAttr != "passed" {
 		t.Error("Expected to create volume")
 	}
@@ -443,7 +443,7 @@ func TestVolumeAndSnapshot(t *testing.T) {
 	}
 
 	// check double create fails
-	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", unixPerms, exportPolicy)
+	response, err = d.VolumeCreate(volName, aggr, "1g", "none", "none", unixPerms, exportPolicy, "unix")
 	if response.Result.ResultErrnoAttr != azgo.EONTAPI_EEXIST {
 		t.Error("Expected to receive error for creating an already existing volume")
 	}

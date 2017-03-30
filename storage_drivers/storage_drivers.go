@@ -71,6 +71,13 @@ type OntapStorageDriverConfig struct {
 	Password                  string `json:"password"`
 	Aggregate                 string `json:"aggregate"`
 	UsageHeartbeat            string `json:"usageHeartbeat"` // in hours, default to 24.0
+	VolumeSize                string `json:"volumeSize"`
+	SpaceReserve              string `json:"spaceReserve"`
+	SnapshotPolicy            string `json:"snapshotPolicy"`
+	UnixPermissions           string `json:"unixPermissions"`
+	SnapshotDir               string `json:"snapshotDir"`
+	ExportPolicy              string `json:"exportPolicy"`
+	SecurityStyle             string `json:"securityStyle"`
 }
 
 // ESeriesStorageDriverConfig holds settings for ESeriesStorageDriver

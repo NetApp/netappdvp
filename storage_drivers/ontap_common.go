@@ -65,6 +65,47 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 	return api, nil
 }
 
+const DefaultVolumeSize = "1g"
+const DefaultSpaceReserve = "none"
+const DefaultSnapshotPolicy = "none"
+const DefaultUnixPermissions = "---rwxrwxrwx"
+const DefaultSnapshotDir = "false"
+const DefaultExportPolicy = "default"
+const DefaultSecurityStyle = "unix"
+
+// PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
+func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
+	if config.VolumeSize == "" {
+		config.VolumeSize = DefaultVolumeSize
+	}
+
+	if config.SpaceReserve == "" {
+		config.SpaceReserve = DefaultSpaceReserve
+	}
+
+	if config.SnapshotPolicy == "" {
+		config.SnapshotPolicy = DefaultSnapshotPolicy
+	}
+
+	if config.UnixPermissions == "" {
+		config.UnixPermissions = DefaultUnixPermissions
+	}
+
+	if config.SnapshotDir == "" {
+		config.SnapshotDir = DefaultSnapshotDir
+	}
+
+	if config.ExportPolicy == "" {
+		config.ExportPolicy = DefaultExportPolicy
+	}
+
+	if config.SecurityStyle == "" {
+		config.SecurityStyle = DefaultSecurityStyle
+	}
+
+	return nil
+}
+
 // EmsInitialized logs an ASUP message that this docker volume plugin has been initialized
 // view them via filer::> event log show -severity NOTICE
 func EmsInitialized(driverName string, api *ontap.Driver, config *OntapStorageDriverConfig) {
