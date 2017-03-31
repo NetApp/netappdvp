@@ -69,17 +69,17 @@ func (d *OntapNASStorageDriver) Initialize(configJSON string) error {
 	d.Config = *config
 	d.API, err = InitializeOntapDriver(d.Config)
 	if err != nil {
-		return fmt.Errorf("Problem while initializing, error: %v", err)
+		return fmt.Errorf("Problem while initializing: %v", err)
 	}
 
 	defaultsErr := PopulateConfigurationDefaults(&d.Config)
 	if defaultsErr != nil {
-		return fmt.Errorf("Cannot populate configuration defaults, error: %v", defaultsErr)
+		return fmt.Errorf("Cannot populate configuration defaults: %v", defaultsErr)
 	}
 
 	validationErr := d.Validate()
 	if validationErr != nil {
-		return fmt.Errorf("Problem validating OntapNASStorageDriver error: %v", validationErr)
+		return fmt.Errorf("Problem validating OntapNASStorageDriver: %v", validationErr)
 	}
 
 	// log an informational message on a heartbeat

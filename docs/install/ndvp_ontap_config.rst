@@ -24,7 +24,7 @@ nDVP does not need full permissions on the ONTAP cluster and should not be used 
   security login role create -vserver [VSERVER] -role ndvp_role -cmddirname "lun" -access all
   
   # create a new nDVP user with nDVP role
-  security login create -vserver [VSERVER] -username ndvp_user -role ndvp_role -application ontapi -authmethod password 
+  security login create -vserver [VSERVER] -username ndvp_user -role ndvp_role -application ontapi -authmethod password
 
 Configuration File Options
 --------------------------
@@ -45,6 +45,18 @@ In addition to the global configuration values above, when using clustered Data 
 | ``password``          | Password to connect to the storage device                                | netapp123  |
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``aggregate``         | Aggregate to use for volume/LUN provisioning                             | aggr1      |
++-----------------------+--------------------------------------------------------------------------+------------+
+| ``spaceReserve``      | Space reservation mode; "none" (thin provisioned) or "volume" (thick)    | none       |
++-----------------------+--------------------------------------------------------------------------+------------+
+| ``snapshotPolicy``    | Snapshot policy to use, default is "none"                                | none       |
++-----------------------+--------------------------------------------------------------------------+------------+
+| ``unixPermissions``   | NAS option for provisioned NFS volumes, defaults to "777"                | 777        |
++-----------------------+--------------------------------------------------------------------------+------------+
+| ``snapshotDir``       | NAS option for access to the .snapshot directory, defaults to "false"    | false      |
++-----------------------+--------------------------------------------------------------------------+------------+
+| ``exportPolicy``      | NAS option for the NFS export policy to use, defaults to "default"       | default    |
++-----------------------+--------------------------------------------------------------------------+------------+
+| ``securityStyle``     | NAS option for access to the provisioned NFS volume, defaults to "unix"  | mixed      |
 +-----------------------+--------------------------------------------------------------------------+------------+
 
 Example ONTAP Config Files
