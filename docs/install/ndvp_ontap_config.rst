@@ -29,7 +29,7 @@ nDVP does not need full permissions on the ONTAP cluster and should not be used 
 Configuration File Options
 --------------------------
 
-In addition to the global configuration values above, when using clustered Data ONTAP, these options are available.
+In addition to the global configuration values above, when using clustered Data ONTAP, these top level options are available.
 
 +-----------------------+--------------------------------------------------------------------------+------------+
 | Option                | Description                                                              | Example    |
@@ -46,6 +46,12 @@ In addition to the global configuration values above, when using clustered Data 
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``aggregate``         | Aggregate to use for volume/LUN provisioning                             | aggr1      |
 +-----------------------+--------------------------------------------------------------------------+------------+
+
+Also, when using clustered Data ONTAP, these default option settings are available to avoid having to specify them on every volume create.
+
++-----------------------+--------------------------------------------------------------------------+------------+
+| Defaults Option       | Description                                                              | Example    |
++=======================+==========================================================================+============+
 | ``spaceReserve``      | Space reservation mode; "none" (thin provisioned) or "volume" (thick)    | none       |
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``snapshotPolicy``    | Snapshot policy to use, default is "none"                                | none       |
@@ -74,7 +80,11 @@ Example ONTAP Config Files
       "svm": "svm_nfs",
       "username": "vsadmin",
       "password": "netapp123",
-      "aggregate": "aggr1"
+      "aggregate": "aggr1",
+      "defaults": {
+  	      "spaceReserve": "none",
+  	      "exportPolicy": "default"
+  	  }
   }
 
 **iSCSI Example for ontap-san driver**

@@ -62,22 +62,26 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 
 // OntapStorageDriverConfig holds settings for OntapStorageDrivers
 type OntapStorageDriverConfig struct {
-	CommonStorageDriverConfig        // embedded types replicate all fields
-	ManagementLIF             string `json:"managementLIF"`
-	DataLIF                   string `json:"dataLIF"`
-	IgroupName                string `json:"igroupName"`
-	SVM                       string `json:"svm"`
-	Username                  string `json:"username"`
-	Password                  string `json:"password"`
-	Aggregate                 string `json:"aggregate"`
-	UsageHeartbeat            string `json:"usageHeartbeat"` // in hours, default to 24.0
-	VolumeSize                string `json:"volumeSize"`
-	SpaceReserve              string `json:"spaceReserve"`
-	SnapshotPolicy            string `json:"snapshotPolicy"`
-	UnixPermissions           string `json:"unixPermissions"`
-	SnapshotDir               string `json:"snapshotDir"`
-	ExportPolicy              string `json:"exportPolicy"`
-	SecurityStyle             string `json:"securityStyle"`
+	CommonStorageDriverConfig               // embedded types replicate all fields
+	ManagementLIF                    string `json:"managementLIF"`
+	DataLIF                          string `json:"dataLIF"`
+	IgroupName                       string `json:"igroupName"`
+	SVM                              string `json:"svm"`
+	Username                         string `json:"username"`
+	Password                         string `json:"password"`
+	Aggregate                        string `json:"aggregate"`
+	UsageHeartbeat                   string `json:"usageHeartbeat"` // in hours, default to 24.0
+	OntapStorageDriverConfigDefaults `json:"defaults"`
+}
+
+type OntapStorageDriverConfigDefaults struct {
+	VolumeSize      string `json:"volumeSize"`
+	SpaceReserve    string `json:"spaceReserve"`
+	SnapshotPolicy  string `json:"snapshotPolicy"`
+	UnixPermissions string `json:"unixPermissions"`
+	SnapshotDir     string `json:"snapshotDir"`
+	ExportPolicy    string `json:"exportPolicy"`
+	SecurityStyle   string `json:"securityStyle"`
 }
 
 // ESeriesStorageDriverConfig holds settings for ESeriesStorageDriver
