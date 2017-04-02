@@ -216,8 +216,8 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 
 	v, err := d.getVolume(name)
 	if err == nil && v.VolumeID != 0 {
-		log.Infof("found existing Volume by name: %s", name)
-		return nil
+		log.Warningf("found existing Volume by name: %s", name)
+		return errors.New("volume with requested name already exists")
 	}
 
 	formatOpts(opts)
@@ -279,8 +279,8 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	// Check to see if the clone already exists
 	v, err := d.getVolume(name)
 	if err == nil && v.VolumeID != 0 {
-		// The clone already exists; skip and call it a success
-		return nil
+		log.Warningf("found existing Volume by name: %s", name)
+		return errors.New("volume with requested name already exists")
 	}
 
 	// Get the volume ID for the source volume
