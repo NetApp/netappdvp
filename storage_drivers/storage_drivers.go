@@ -67,6 +67,7 @@ type OntapStorageDriverConfig struct {
 	DataLIF                   string `json:"dataLIF"`
 	IgroupName                string `json:"igroupName"`
 	SVM                       string `json:"svm"`
+	ExportPolicy		  string `json:"exportpolicy"`
 	Username                  string `json:"username"`
 	Password                  string `json:"password"`
 	Aggregate                 string `json:"aggregate"`
