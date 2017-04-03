@@ -242,7 +242,8 @@ Docker Managed Plugin Method (Docker >= 1.13 / 17.03)
 **nDVP Specific Plugin Startup Options**
 
 * ``--config`` - Specify the configuration file the plugin will use.  Only the file name should be specified, e.g. ``gold.json``, the location must be ``/etc/netappdvp`` on the host system.  The default is ``config.json``.
-* ``--debug`` - Specify whether debug logging is enabled.  Default is false.
+* ``--log-level`` - Specify the logging level (``debug``, ``info``, ``warn``, ``error``, ``fatal``).  The default is ``info``.
+* ``--debug`` - Specify whether debug logging is enabled.  Default is false.  Overrides --log-level if true.
 
 **Installing the Managed Plugin**
    

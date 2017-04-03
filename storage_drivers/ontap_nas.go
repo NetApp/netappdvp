@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -158,7 +159,7 @@ loop2:
 }
 
 // Create a volume with the specified options
-func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) error {
+func (d *OntapNASStorageDriver) Create(name string, sizeBytes uint64, opts map[string]string) error {
 	log.Debugf("OntapNASStorageDriver#Create(%v)", name)
 
 	// If the volume already exists, bail out
@@ -169,7 +170,7 @@ func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) erro
 
 	// get options with default fallback values
 	// see also: ontap_common.go#PopulateConfigurationDefaults
-	volumeSize := utils.GetV(opts, "size", d.Config.VolumeSize)
+	size := strconv.FormatUint(sizeBytes, 10)
 	spaceReserve := utils.GetV(opts, "spaceReserve", d.Config.SpaceReserve)
 	snapshotPolicy := utils.GetV(opts, "snapshotPolicy", d.Config.SnapshotPolicy)
 	unixPermissions := utils.GetV(opts, "unixPermissions", d.Config.UnixPermissions)
@@ -180,7 +181,7 @@ func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) erro
 
 	log.WithFields(log.Fields{
 		"name":            name,
-		"volumeSize":      volumeSize,
+		"size":            size,
 		"spaceReserve":    spaceReserve,
 		"snapshotPolicy":  snapshotPolicy,
 		"unixPermissions": unixPermissions,
@@ -191,7 +192,7 @@ func (d *OntapNASStorageDriver) Create(name string, opts map[string]string) erro
 	}).Debug("Creating volume with values")
 
 	// create the volume
-	response1, error1 := d.API.VolumeCreate(name, aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
+	response1, error1 := d.API.VolumeCreate(name, aggregate, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
 	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
 		if response1.Result.ResultErrnoAttr != azgo.EAPIERROR {
 			return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)

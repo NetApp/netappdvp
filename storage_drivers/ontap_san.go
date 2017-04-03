@@ -171,7 +171,7 @@ func (d *OntapSANStorageDriver) Validate() error {
 }
 
 // Create a volume+LUN with the specified options
-func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) error {
+func (d *OntapSANStorageDriver) Create(name string, sizeBytes uint64, opts map[string]string) error {
 	log.Debugf("OntapSANStorageDriver#Create(%v)", name)
 
 	// If the volume already exists, bail out
@@ -182,7 +182,7 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 
 	// get options with default fallback values
 	// see also: ontap_common.go#PopulateConfigurationDefaults
-	volumeSize := utils.GetV(opts, "size", d.Config.VolumeSize)
+	size := strconv.FormatUint(sizeBytes, 10)
 	spaceReserve := utils.GetV(opts, "spaceReserve", d.Config.SpaceReserve)
 	snapshotPolicy := utils.GetV(opts, "snapshotPolicy", d.Config.SnapshotPolicy)
 	unixPermissions := utils.GetV(opts, "unixPermissions", d.Config.UnixPermissions)
@@ -193,7 +193,7 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 
 	log.WithFields(log.Fields{
 		"name":            name,
-		"volumeSize":      volumeSize,
+		"size":            size,
 		"spaceReserve":    spaceReserve,
 		"snapshotPolicy":  snapshotPolicy,
 		"unixPermissions": unixPermissions,
@@ -204,7 +204,7 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 	}).Debug("Creating volume with values")
 
 	// create the volume
-	response1, error1 := d.API.VolumeCreate(name, aggregate, volumeSize, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
+	response1, error1 := d.API.VolumeCreate(name, aggregate, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
 	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
 		if response1.Result.ResultErrnoAttr != azgo.EAPIERROR {
 			return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
@@ -222,18 +222,8 @@ func (d *OntapSANStorageDriver) Create(name string, opts map[string]string) erro
 	osType := "linux"
 	spaceReserved := false
 
-	// lunSize takes some effort; we must convert user friendly strings to total bytes; ex "4KB" -> 4096
-	convertedSize, convertErr := utils.ConvertSizeToBytes(volumeSize)
-	if convertErr != nil {
-		return fmt.Errorf("Cannot convert size to bytes: %v error: %v", volumeSize, convertErr)
-	}
-	lunSize, atoiErr := strconv.Atoi(convertedSize)
-	if atoiErr != nil {
-		return fmt.Errorf("Cannot convert size to bytes: %v error: %v", volumeSize, atoiErr)
-	}
-
 	// create the lun
-	response2, err2 := d.API.LunCreate(lunPath, lunSize, osType, spaceReserved)
+	response2, err2 := d.API.LunCreate(lunPath, int(sizeBytes), osType, spaceReserved)
 	if !isPassed(response2.Result.ResultStatusAttr) || err2 != nil {
 		return fmt.Errorf("Error creating LUN\n%verror: %v", response2.Result, err2)
 	}

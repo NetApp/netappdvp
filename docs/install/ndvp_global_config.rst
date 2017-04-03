@@ -10,10 +10,18 @@ These configuration variables apply to all nDVP configurations, regardless of th
 +-----------------------+-----------------------------------------------------------------------------------+-------------+
 | ``storageDriverName`` | ``ontap-nas``, ``ontap-san``, ``eseries-iscsi``, or ``solidfire-san``             | ontap-nas   |
 +-----------------------+-----------------------------------------------------------------------------------+-------------+
-| ``debug``             | Turn debugging output on or off                                                   | false       |
-+-----------------------+-----------------------------------------------------------------------------------+-------------+
 | ``storagePrefix``     | Optional prefix for volume names.  Default: "netappdvp\_"                         | netappdvp\_ |
 +-----------------------+-----------------------------------------------------------------------------------+-------------+
+
+Also, default option settings are available to avoid having to specify them on every volume create.  The ``size``
+option is available for all controller types.  See the ONTAP config section for an example of how to set the default
+volume size.
+
++-----------------------+--------------------------------------------------------------------------+------------+
+| Defaults Option       | Description                                                              | Example    |
++=======================+==========================================================================+============+
+| ``size``              | Optional default size for new volumes.  Default: "1G"                    | 10G        |
++-----------------------+--------------------------------------------------------------------------+------------+
 
 **Storage Prefix**
 

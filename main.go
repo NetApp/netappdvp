@@ -100,7 +100,7 @@ func main() {
 	if *port != "" {
 		log.Error(h.ServeTCP(*driverID, ":"+*port, nil))
 	} else {
-		log.Error(h.ServeUnix(*driverID, 0)) // 0  is the unix group to start as (root gid)
+		log.Error(h.ServeUnix(*driverID, 0)) // 0 is the unix group to start as (root gid)
 	}
 
 	log.Fatal("Unexpected exit")

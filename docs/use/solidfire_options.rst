@@ -12,8 +12,7 @@ The first step to defining a QoS service level with the SolidFire driver is to c
 .. code-block:: json
 
    {
-       ...
-       ...
+       "...": "..."
        "Types": [
            {
                "Type": "Bronze",
@@ -46,10 +45,8 @@ In the above configuration we have three policy definitions: *Bronze*, *Silver*,
 
 .. code-block:: bash
 
-   # create a 10GB Gold volume
-   docker volume create -d solidfire --name sfGold -o type=Gold -o size=10
+   # create a 10GiB Gold volume
+   docker volume create -d solidfire --name sfGold -o type=Gold -o size=10G
 
-   # create a 100GB Bronze volume
-   docker volume create -d solidfire --name sfBronze -o type=Bronze -o size=100
-
-**Note:** Size here is always specified in Gigabytes, therefore no unit indicator is needed.
+   # create a 100GiB Bronze volume
+   docker volume create -d solidfire --name sfBronze -o type=Bronze -o size=100G

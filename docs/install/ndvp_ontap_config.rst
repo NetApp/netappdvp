@@ -72,32 +72,33 @@ Example ONTAP Config Files
 
 .. code-block:: json
 
-  {
-      "version": 1,
-      "storageDriverName": "ontap-nas",
-      "managementLIF": "10.0.0.1",
-      "dataLIF": "10.0.0.2",
-      "svm": "svm_nfs",
-      "username": "vsadmin",
-      "password": "netapp123",
-      "aggregate": "aggr1",
-      "defaults": {
-  	      "spaceReserve": "none",
-  	      "exportPolicy": "default"
-  	  }
-  }
+    {
+        "version": 1,
+        "storageDriverName": "ontap-nas",
+        "managementLIF": "10.0.0.1",
+        "dataLIF": "10.0.0.2",
+        "svm": "svm_nfs",
+        "username": "vsadmin",
+        "password": "netapp123",
+        "aggregate": "aggr1",
+        "defaults": {
+          "size": "10G",
+          "spaceReserve": "none",
+          "exportPolicy": "default"
+        }
+    }
 
 **iSCSI Example for ontap-san driver**
 
 .. code-block:: json
 
-  {
-      "version": 1,
-      "storageDriverName": "ontap-san",
-      "managementLIF": "10.0.0.1",
-      "dataLIF": "10.0.0.3",
-      "svm": "svm_iscsi",
-      "username": "vsadmin",
-      "password": "netapp123",
-      "aggregate": "aggr1"
-  }
+    {
+        "version": 1,
+        "storageDriverName": "ontap-san",
+        "managementLIF": "10.0.0.1",
+        "dataLIF": "10.0.0.3",
+        "svm": "svm_iscsi",
+        "username": "vsadmin",
+        "password": "netapp123",
+        "aggregate": "aggr1"
+    }

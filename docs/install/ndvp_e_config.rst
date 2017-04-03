@@ -43,7 +43,6 @@ Example E-Series Config File
   {
     "version": 1,
     "storageDriverName": "eseries-iscsi",
-    "debug": true,
     "webProxyHostname": "localhost",
     "webProxyPort": "8443",
     "webProxyUseHTTP": false,
@@ -66,11 +65,11 @@ configuration file to a regular expression that matches the desired pools.
 When creating a docker volume you can specify the volume size as well as the disk media type using the
 ``-o`` option and the tags ``size`` and ``mediaType``. Valid values for media type are ``hdd`` and ``ssd``. Note that
 these are optional; if unspecified, the defaults will be a *1 GB* volume allocated from an *HDD pool*. An example
-of using these tags to create a 2 GB volume from an SSD-based pool:
+of using these tags to create a 2 GiB volume from an SSD-based pool:
 
-  .. code-blog:: bash
+  .. code-block:: bash
 
-     docker volume create -d netapp --name my_vol -o size=2g -o mediaType=ssd
+     docker volume create -d netapp --name my_vol -o size=2G -o mediaType=ssd
 
 The E-series Docker driver will detect and use any preexisting Host definitions without modification, and
 the driver will automatically define Host and Host Group objects as needed. The host type for hosts created

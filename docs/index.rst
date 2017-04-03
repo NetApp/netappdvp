@@ -14,5 +14,3 @@ Multiple instances of the nDVP can run concurrently on the same host.  This allo
    install/index
    use/index
    support
-   
-

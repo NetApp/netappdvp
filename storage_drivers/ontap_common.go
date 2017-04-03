@@ -65,7 +65,6 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 	return api, nil
 }
 
-const DefaultVolumeSize = "1g"
 const DefaultSpaceReserve = "none"
 const DefaultSnapshotPolicy = "none"
 const DefaultUnixPermissions = "---rwxrwxrwx"
@@ -75,9 +74,6 @@ const DefaultSecurityStyle = "unix"
 
 // PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
 func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
-	if config.VolumeSize == "" {
-		config.VolumeSize = DefaultVolumeSize
-	}
 
 	if config.SpaceReserve == "" {
 		config.SpaceReserve = DefaultSpaceReserve

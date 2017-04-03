@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/alecthomas/units"
 	"github.com/netapp/netappdvp/apis/sfapi"
 	"github.com/netapp/netappdvp/utils"
 )
@@ -24,29 +23,12 @@ func init() {
 	log.Debugf("registered driver '%s'", san.Name())
 }
 
-func formatOpts(opts map[string]string) {
-	// NOTE(jdg): For now we just want to minimize issues like case usage for
-	// the two basic opts most used (size and type).  Going forward we can add
-	// all sorts of things here based on what we decide to add as valid opts
-	// during create and even other calls
-	for k, v := range opts {
-		if strings.EqualFold(k, "size") {
-			opts["size"] = v
-		} else if strings.EqualFold(k, "type") {
-			opts["type"] = v
-		} else if strings.EqualFold(k, "qos") {
-			opts["qos"] = v
-		}
-	}
-}
-
 // SolidfireSANStorageDriver is for iSCSI storage provisioning
 type SolidfireSANStorageDriver struct {
 	Initialized      bool
 	Config           SolidfireStorageDriverConfig
 	Client           *sfapi.Client
 	TenantID         int64
-	DefaultVolSz     int64
 	VagID            int64
 	LegacyNamePrefix string
 	InitiatorIFace   string
@@ -84,12 +66,10 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 
 	// create a new sfapi.Config object from the read in json config file
 	endpoint := c.EndPoint
-	defaultSizeGiB := c.DefaultVolSz * int64(units.GiB)
 	svip := c.SVIP
 	cfg := sfapi.Config{
 		TenantName:       c.TenantName,
 		EndPoint:         c.EndPoint,
-		DefaultVolSz:     defaultSizeGiB,
 		SVIP:             c.SVIP,
 		InitiatorIFace:   c.InitiatorIFace,
 		Types:            c.Types,
@@ -99,14 +79,13 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 
 	log.WithFields(log.Fields{
 		"endpoint":          endpoint,
-		"defaultSizeGiB":    defaultSizeGiB,
 		"svip":              svip,
 		"cfg":               cfg,
 		"defaultTenantName": defaultTenantName,
 	}).Debug("About to call NewFromParameters")
 
 	// create a new sfapi.Client object for interacting with the SolidFire storage system
-	client, _ := sfapi.NewFromParameters(endpoint, defaultSizeGiB, svip, cfg, defaultTenantName)
+	client, _ := sfapi.NewFromParameters(endpoint, svip, cfg, defaultTenantName)
 	req := sfapi.GetAccountByNameRequest{
 		Name: c.TenantName,
 	}
@@ -139,19 +118,17 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 		client.VolumeTypes = c.Types
 	}
 
-	defaultVolSize := int64(1)
 	if c.DefaultVolSz != 0 {
-		defaultVolSize = defaultSizeGiB
+		log.Warn("Configuration file setting DefaultVolSz is deprecated " +
+			"and will be ignored.  Use defaults:{size} instead.")
 	}
 
 	d.TenantID = tenantID
 	d.Client = client
-	d.DefaultVolSz = defaultVolSize
 	d.InitiatorIFace = iscsiInterface
 	d.LegacyNamePrefix = legacyNamePrefix
 	log.WithFields(log.Fields{
 		"TenantID":       tenantID,
-		"DefaultVolSz":   defaultVolSize,
 		"InitiatorIFace": iscsiInterface,
 	}).Debug("Driver initialized with the following settings")
 
@@ -204,12 +181,11 @@ func MakeSolidFireName(name string) string {
 }
 
 // Create a SolidFire volume
-func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) error {
+func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts map[string]string) error {
 	log.Debugf("SolidfireSANStorageDriver#Create(%s)", name)
 
 	var req sfapi.CreateVolumeRequest
 	var qos sfapi.QoS
-	var vsz int64
 	var meta = map[string]string{"platform": "Docker-NDVP",
 		"ndvp-version": DriverVersion + " [" + ExtendedDriverVersion + "]",
 		"docker-name":  name}
@@ -220,23 +196,9 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 		return errors.New("volume with requested name already exists")
 	}
 
-	formatOpts(opts)
-	log.Debugf("options after conversion: %+v", opts)
-	if opts["size"] != "" {
-		s, _ := strconv.ParseInt(opts["size"], 10, 64)
-		log.Infof("received size request in Create: %s ", s)
-		vsz = int64(units.GiB) * s
-	} else {
-		// NOTE(jdg): We need to cleanup the conversions and such when we read
-		// in from the config file, it's sort of ugly.  BUT, just remember that
-		// when we pull the value from d.DefaultVolSz it's already been
-		// multiplied
-		vsz = d.DefaultVolSz
-		log.Infof("creating with default size of: %d", vsz)
-	}
-
-	if opts["qos"] != "" {
-		iops := strings.Split(opts["qos"], ",")
+	qos_opt := utils.GetV(opts, "qos", "")
+	if qos_opt != "" {
+		iops := strings.Split(qos_opt, ",")
 		qos.MinIOPS, _ = strconv.ParseInt(iops[0], 10, 64)
 		qos.MaxIOPS, _ = strconv.ParseInt(iops[1], 10, 64)
 		qos.BurstIOPS, _ = strconv.ParseInt(iops[2], 10, 64)
@@ -244,9 +206,10 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 		log.Infof("received qos opts in Create: %+v", req.Qos)
 	}
 
-	if opts["type"] != "" {
+	type_opt := utils.GetV(opts, "type", "")
+	if type_opt != "" {
 		for _, t := range *d.Client.VolumeTypes {
-			if strings.EqualFold(t.Type, opts["type"]) {
+			if strings.EqualFold(t.Type, type_opt) {
 				req.Qos = t.QOS
 				log.Infof("received Type opts in Create and set QoS: %+v", req.Qos)
 				break
@@ -254,7 +217,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, opts map[string]string) 
 		}
 	}
 
-	req.TotalSize = vsz
+	req.TotalSize = int64(sizeBytes)
 	req.AccountID = d.TenantID
 	req.Name = MakeSolidFireName(name)
 	req.Attributes = meta

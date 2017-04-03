@@ -33,12 +33,15 @@ func TestConvertSizeToBytes(t *testing.T) {
 
 	d := make(map[string]string)
 	d["512"] = "512"
-	d["1kB"] = "1024"
+	d["1KB"] = "1000"
+	d["1Ki"] = "1024"
+	d["1KiB"] = "1024"
 	d["4k"] = "4096"
-	d["1GB"] = "1073741824"
-	d["1gb"] = "1073741824"
+	d["1gi"] = "1073741824"
+	d["1Gi"] = "1073741824"
+	d["1GiB"] = "1073741824"
+	d["1gb"] = "1000000000"
 	d["1g"] = "1073741824"
-	d["2GB"] = "2147483648"
 
 	for k, v := range d {
 		s, err := ConvertSizeToBytes(k)
@@ -46,14 +49,6 @@ func TestConvertSizeToBytes(t *testing.T) {
 			t.Errorf("Encountered '%v' running ConvertSizeToBytes('%v')", err, k)
 		} else if s != v {
 			t.Errorf("Expected ConvertSizeToBytes('%v') == '%v' but was %v", k, v, s)
-		}
-	}
-	for k, v := range d {
-		s, err := ConvertSizeToBytes64(k)
-		if err != nil {
-			t.Errorf("Encountered '%v' running ConvertSizeToBytes64('%v')", err, k)
-		} else if s != v {
-			t.Errorf("Expected ConvertSizeToBytes64('%v') == '%v' but was %v", k, v, s)
 		}
 	}
 }

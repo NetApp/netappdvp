@@ -112,17 +112,22 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 	opts := r.Options
 	target := d.volumeName(r.Name)
 
+	sizeBytes, err := utils.GetVolumeSizeBytes(opts, d.config.Size)
+	if err != nil {
+		return volume.Response{Err: fmt.Sprintf("Error creating volume: %v", err)}
+	}
 	var createErr error
 
 	// If 'from' is specified, create a snapshot and a clone rather than a new empty volume
-	if from, ok := opts["from"]; ok {
+	from := utils.GetV(opts, "from", "")
+	if from != "" {
 		source := d.volumeName(from)
 
 		// If 'fromSnapshot' is specified, we use the existing snapshot instead
-		snapshot := opts["fromSnapshot"]
+		snapshot := utils.GetV(opts, "fromSnapshot", "")
 		createErr = d.sd.CreateClone(target, source, snapshot, d.snapshotPrefix())
 	} else {
-		createErr = d.sd.Create(target, opts)
+		createErr = d.sd.Create(target, sizeBytes, opts)
 	}
 
 	if createErr != nil {

@@ -20,20 +20,13 @@ Using these options during the docker volume create operation is super simple, j
 
 .. code-block:: bash
 
-   # create a 10GB volume
-   docker volume create -d netapp --name demo -o size=10g
+   # create a 10GiB volume
+   docker volume create -d netapp --name demo -o size=10G
 
-   # create a 100GB volume with snapshots
-   docker volume create -d netapp --name demo -o size=100g -o snapshotPolicy=default
+   # create a 100GiB volume with snapshots
+   docker volume create -d netapp --name demo -o size=100G -o snapshotPolicy=default
 
    # create a volume which has the setUID bit enabled
    docker volume create -d netapp --name demo -o unixPermissions=4755
 
-Note that the size option follows the standard ONTAP scheme where the letter at the end signifies units:
-
-* k = Kilobytes
-* m = Megabytes
-* g = Gigabytes
-* t = Terabytes
-
-If no unit is provided the default is bytes, and the minimum volume size is 20MB.
+The minimum volume size is 20MiB.

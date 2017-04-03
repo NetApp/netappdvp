@@ -15,7 +15,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/alecthomas/units"
 )
 
 // Client is used to send API requests to a SolidFire system system
@@ -23,7 +22,6 @@ type Client struct {
 	SVIP              string
 	Endpoint          string
 	DefaultAPIPort    int
-	DefaultVolSize    int64 //bytes
 	DefaultAccountID  int64
 	DefaultTenantName string
 	VolumeTypes       *[]VolType
@@ -34,7 +32,6 @@ type Client struct {
 type Config struct {
 	TenantName       string
 	EndPoint         string
-	DefaultVolSz     int64 //Default volume size in GiB
 	MountPoint       string
 	SVIP             string
 	InitiatorIFace   string //iface to use of iSCSI initiator
@@ -53,17 +50,14 @@ var (
 	svip              string
 	configFile        string
 	defaultTenantName string
-	defaultSizeGiB    int64
 	cfg               Config
 )
 
 // NewFromParameters is a factory method to create a new sfapi.Client object using the supplied parameters
-func NewFromParameters(pendpoint string, pdefaultSizeGiB int64, psvip string, pcfg Config, pdefaultTenantName string) (c *Client, err error) {
+func NewFromParameters(pendpoint string, psvip string, pcfg Config, pdefaultTenantName string) (c *Client, err error) {
 	rand.Seed(time.Now().UTC().UnixNano())
-	defSize := pdefaultSizeGiB * int64(units.GiB)
 	SFClient := &Client{
 		Endpoint:          pendpoint,
-		DefaultVolSize:    defSize,
 		SVIP:              psvip,
 		Config:            &pcfg,
 		DefaultAPIPort:    443,

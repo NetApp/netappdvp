@@ -609,7 +609,7 @@ func (d ESeriesAPIDriver) EnsureHostForIQN(iqn string) (HostEx, error) {
 func (d ESeriesAPIDriver) createNameForHost(iqn string) string {
 
 	// Get unique hostname suffix up to 10 chars, either the last part of the IQN or a random sequence
-	var uniqueSuffix = utils.RandomNumericString(10)
+	var uniqueSuffix = utils.RandomString(10)
 	index := strings.LastIndex(iqn, ":")
 	if (index >= 0) && (len(iqn) > index+2) {
 		uniqueSuffix = iqn[index+1:]
@@ -621,7 +621,7 @@ func (d ESeriesAPIDriver) createNameForHost(iqn string) string {
 	// Pick a host name, incorporating the local hostname value if possible
 	hostname, err := os.Hostname()
 	if err != nil {
-		hostname = utils.RandomNumericString(30)
+		hostname = utils.RandomString(30)
 	}
 
 	// Use as much of the hostname as will fit

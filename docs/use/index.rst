@@ -8,9 +8,12 @@ Volume Driver CLI Options
 
 Each storage driver has a different set of options which can be provided at volume creation time to customize the outcome.  Refer to the documentation below for your configured storage system to determine which options apply.
 
-* :ref:`ontap_vol_opts`
-* :ref:`sf_vol_opts`
-* :ref:`es_vol_opts`
+.. toctree::
+   :maxdepth: 1
+
+   ontap_options
+   solidfire_options
+   eseries_options
 
 Create a Volume
 ---------------
@@ -25,8 +28,19 @@ Create a Volume
 
 If no options are specified, the defaults for the driver are used.  The defaults are documented on the page for the storage driver you're using below.
 
+The default volume size may be overridden per volume as follows:
+
+.. code-block:: bash
+
+   # create a 20GiB volume with an nDVP driver
+   docker volume create -d netapp --name my_vol --opt size=20G
+
+Volume sizes are expressed as strings containing an integer value with optional units (e.g. "10G", "20GB", "3TiB").
+If no units are specified, the default is 'G'.  Size units may be expressed either as powers of 2 (B, KiB, MiB, GiB, TiB)
+or powers of 10 (B, KB, MB, GB, TB).  Shorthand units use powers of 2 (G = GiB, T = TiB, ...).
+
 Destroy a Volume
--------------------
+----------------
 
 .. code-block:: bash
 

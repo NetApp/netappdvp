@@ -16,3 +16,5 @@
 to console and file.
 - Added default ONTAP volume creation options to config.json that were previously only available via '-o'.
 - Added ONTAP securityStyle option handling.
+- Added default volume size to config file.
+- Standardized volume size format across ONTAP, SolidFire, and E-series drivers.

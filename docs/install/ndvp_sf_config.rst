@@ -12,8 +12,6 @@ In addition to the global configuration values above, when using SolidFire, thes
 +-----------------------+-------------------------------------------------------------------------------+----------------------------+
 | ``TenantName``        | SF Tenant to use (created if not found)                                       | "docker"                   |
 +-----------------------+-------------------------------------------------------------------------------+----------------------------+
-| ``DefaultVolSz``      | Volume size in GiB                                                            | 1                          |
-+-----------------------+-------------------------------------------------------------------------------+----------------------------+
 | ``InitiatorIFace``    | Specify interface when restricting iSCSI traffic to non-default interface     | "default"                  |
 +-----------------------+-------------------------------------------------------------------------------+----------------------------+
 | ``Types``             | QoS specifications                                                            | See below                  |
@@ -34,11 +32,9 @@ Example Solidfire Config File
   {
       "version": 1,
       "storageDriverName": "solidfire-san",
-      "debug": false,
       "Endpoint": "https://admin:admin@192.168.160.3/json-rpc/7.0",
       "SVIP": "10.0.0.7:3260",
       "TenantName": "docker",
-      "DefaultVolSz": 1,
       "InitiatorIFace": "default",
       "Types": [
           {

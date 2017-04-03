@@ -9,6 +9,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/apis/sfapi"
+	"github.com/netapp/netappdvp/utils"
 )
 
 // ConfigVersion is the expected version specified in the config file
@@ -22,13 +23,18 @@ var ExtendedDriverVersion = "native"
 
 // CommonStorageDriverConfig holds settings in common across all StorageDrivers
 type CommonStorageDriverConfig struct {
-	Version           int             `json:"version"`
-	StorageDriverName string          `json:"storageDriverName"`
-	Debug             bool            `json:"debug"`           // Unsupported!
-	DebugTraceFlags   map[string]bool `json:"debugTraceFlags"` // Example: {"api":false, "method":true}
-	DisableDelete     bool            `json:"disableDelete"`
-	StoragePrefixRaw  json.RawMessage `json:"storagePrefix,string"`
-	SnapshotPrefixRaw json.RawMessage `json:"snapshotPrefix,string"`
+	Version                           int             `json:"version"`
+	StorageDriverName                 string          `json:"storageDriverName"`
+	Debug                             bool            `json:"debug"`           // Unsupported!
+	DebugTraceFlags                   map[string]bool `json:"debugTraceFlags"` // Example: {"api":false, "method":true}
+	DisableDelete                     bool            `json:"disableDelete"`
+	StoragePrefixRaw                  json.RawMessage `json:"storagePrefix,string"`
+	SnapshotPrefixRaw                 json.RawMessage `json:"snapshotPrefix,string"`
+	CommonStorageDriverConfigDefaults `json:"defaults"`
+}
+
+type CommonStorageDriverConfigDefaults struct {
+	Size string `json:"size"`
 }
 
 // ValidateCommonSettings attempts to "partially" decode the JSON into just the settings in CommonStorageDriverConfig
@@ -57,6 +63,17 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 			"line --debug switch instead.")
 	}
 
+	// ensure the default volume size is valid, using a default of 1g if not set
+	if config.Size == "" {
+		config.Size = "1G"
+		log.WithField("size", config.Size).Debug("Setting default volume size.")
+	} else {
+		_, err = utils.ConvertSizeToBytes(config.Size)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid config value for default volume size: %v", err)
+		}
+	}
+
 	return config, nil
 }
 
@@ -75,7 +92,6 @@ type OntapStorageDriverConfig struct {
 }
 
 type OntapStorageDriverConfigDefaults struct {
-	VolumeSize      string `json:"volumeSize"`
 	SpaceReserve    string `json:"spaceReserve"`
 	SnapshotPolicy  string `json:"snapshotPolicy"`
 	UnixPermissions string `json:"unixPermissions"`
@@ -116,7 +132,7 @@ type SolidfireStorageDriverConfig struct {
 	CommonStorageDriverConfig // embedded types replicate all fields
 	TenantName                string
 	EndPoint                  string
-	DefaultVolSz              int64 //Default volume size in GiB
+	DefaultVolSz              int64 //Default volume size in GiB (deprecated)
 	SVIP                      string
 	InitiatorIFace            string //iface to use of iSCSI initiator
 	Types                     *[]sfapi.VolType
@@ -137,7 +153,7 @@ type StorageDriver interface {
 	Name() string
 	Initialize(string) error
 	Validate() error
-	Create(name string, opts map[string]string) error
+	Create(name string, sizeBytes uint64, opts map[string]string) error
 	CreateClone(name, source, snapshot, newSnapshotPrefix string) error
 	Destroy(name string) error
 	Attach(name, mountpoint string, opts map[string]string) error

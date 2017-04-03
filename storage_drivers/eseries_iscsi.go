@@ -169,7 +169,7 @@ func (d *ESeriesStorageDriver) Validate() error {
 // Create is called by Docker to create a container volume. Besides the volume name, a few optional parameters such as size
 // and disk media type may be provided in the opts map. If more than one pool on the storage controller can satisfy the request, the
 // one with the most free space is selected.
-func (d *ESeriesStorageDriver) Create(name string, opts map[string]string) error {
+func (d *ESeriesStorageDriver) Create(name string, sizeBytes uint64, opts map[string]string) error {
 
 	if d.Config.DebugTraceFlags["method"] {
 		fields := log.Fields{
@@ -182,24 +182,13 @@ func (d *ESeriesStorageDriver) Create(name string, opts map[string]string) error
 		defer log.WithFields(fields).Debug("<<<< Create")
 	}
 
-	// Get size in bytes, or default to 1GB if not specified
-	volumeSize := utils.GetV(opts, "size", "1g")
-	volumeSizeBytesString, err := utils.ConvertSizeToBytes64(volumeSize)
-	if err != nil {
-		return fmt.Errorf("Invalid size '%s' specified. %v", volumeSize, err)
-	}
-	volumeSizeBytes, err := strconv.ParseUint(volumeSizeBytesString, 10, 64)
-	if err != nil {
-		return fmt.Errorf("Invalid size '%s' specified. %v", volumeSizeBytesString, err)
-	}
-
 	// Get media type, or default to "hdd" if not specified
 	mediaType := utils.GetV(opts, "mediaType", "hdd")
 
 	// Get pool name, or default to all pools if not specified
 	poolName := utils.GetV(opts, "pool", "")
 
-	pools, err := d.API.GetVolumePools(mediaType, volumeSizeBytes, poolName)
+	pools, err := d.API.GetVolumePools(mediaType, sizeBytes, poolName)
 	if err != nil {
 		return fmt.Errorf("Create failed. %v", err)
 	} else if len(pools) == 0 {
@@ -213,15 +202,14 @@ func (d *ESeriesStorageDriver) Create(name string, opts map[string]string) error
 	pool := pools[0]
 
 	// Create the volume
-	vol, err := d.API.CreateVolume(name, pool.VolumeGroupRef, volumeSizeBytes, mediaType)
+	vol, err := d.API.CreateVolume(name, pool.VolumeGroupRef, sizeBytes, mediaType)
 	if err != nil {
 		return fmt.Errorf("Could not create volume %s. %v", name, err)
 	}
 
 	log.WithFields(log.Fields{
 		"Name":      name,
-		"Size":      volumeSize,
-		"SizeBytes": volumeSizeBytes,
+		"Size":      sizeBytes,
 		"MediaType": mediaType,
 		"VolumeRef": vol.VolumeRef,
 		"Pool":      pool.Label,
