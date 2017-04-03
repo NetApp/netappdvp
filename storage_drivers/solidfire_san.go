@@ -401,7 +401,6 @@ func (d *SolidfireSANStorageDriver) DefaultSnapshotPrefix() string {
 // Return the list of volumes according to backend device
 func (d *SolidfireSANStorageDriver) List(prefix string) (vols []string, err error) {
 	var req sfapi.ListVolumesForAccountRequest
-
 	req.AccountID = d.TenantID
 	volumes, err := d.Client.ListVolumesForAccount(&req)
 	for _, v := range volumes {
@@ -448,37 +447,45 @@ func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot,
 
 // Test for the existence of a volume
 func (d *SolidfireSANStorageDriver) Get(name string) error {
-	log.Debugf("SolidfireSANStorageDriver#Get(%v)", name)
-
 	_, err := d.getVolume(name)
-	if err != nil {
-		log.Errorf("error encountered fetching volume: %+v", err)
-		return errors.New("volume not found")
-	}
-	return nil
+	return err
 }
 
-// Get volume using a couple of different methods to support changes after upgrades
-func (d *SolidfireSANStorageDriver) getVolume(name string) (v sfapi.Volume, err error) {
-	// By default we now use the attributes which is the raw docker name so we
-	// can ignore the prefix/translation nonsense for the first go around
-	v, err = d.Client.GetVolumeByDockerName(name, d.TenantID)
+func (d *SolidfireSANStorageDriver) getVolume(name string) (sfapi.Volume, error) {
+	var vols []sfapi.Volume
+	var req sfapi.ListVolumesForAccountRequest
 
-	// Ok, the volume may not exist which we expect in a number of cases, but
-	// now we have the annoying challenge of determining, was this in fact
-	// because it DNE, or is it a problem with legacy volume-name munging?
-	if (err != nil) && (d.LegacyNamePrefix != "") {
-		// We'll allow a user to specify the old naming convention in their SF
-		// config and use that to try and find by name using the old
-		// translation method, note that we default this prefix to 'netappdvp-'
-		legacyName := d.LegacyNamePrefix + name
-		legacyName = MakeSolidFireName(legacyName)
-		log.Debugf("Attempting failed search using legacy-name: %s", legacyName)
-		v, err = d.Client.GetVolumeByName(legacyName, d.TenantID)
-	}
+	// I know, I know... just use V8 of the API and let the Cluster filter on
+	// things like Name; trouble is we completely screwed up Name usage so we
+	// can't trust it.  We now have a few possibilities including Name,
+	// Name-With-Prefix and Attributes.  It could be any of the 3.  At some
+	// point let's fix that and just use something efficient like Name and be
+	// done with it. Otherwise, we just get all for the account and iterate
+	// which isn't terrible.
+	req.AccountID = d.TenantID
+	volumes, err := d.Client.ListVolumesForAccount(&req)
 	if err != nil {
-		log.Errorf("failed to retrieve volume: %s (%+v)", name, err)
-		return v, errors.New("volume not found")
+		log.Errorf("error encountered requesting volumes in SolidFire:getVolume: %+v", err)
+		return sfapi.Volume{}, errors.New("device reported API error")
 	}
-	return v, nil
+
+	legacyName := MakeSolidFireName(d.LegacyNamePrefix + name)
+	baseSFName := MakeSolidFireName(name)
+
+	for _, v := range volumes {
+		attrs, _ := v.Attributes.(map[string]interface{})
+		// We prefer attributes, so check that first, then pick up legacy
+		// volumes using Volume Name
+		if attrs["docker-name"] == name && v.Status == "active" {
+			log.Debugf("found volume by attributes: %+v", v)
+			vols = append(vols, v)
+		} else if (v.Name == legacyName || v.Name == baseSFName) && v.Status == "active" {
+			log.Warningf("found volume by name using deprecated Volume.Name mapping: %+v", v)
+			vols = append(vols, v)
+		}
+	}
+	if len(vols) == 0 {
+		return sfapi.Volume{}, errors.New("volume not found")
+	}
+	return vols[0], nil
 }

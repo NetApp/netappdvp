@@ -63,7 +63,6 @@ func Stat(fileName string) (string, error) {
 	if err == nil {
 		return string(out), err
 	} else {
-		log.Errorf("Error stating file %v: %v", fileName, err)
 		return string(out), err
 	}
 }
@@ -92,7 +91,7 @@ func WaitForPathToExist(fileName string, numTries int) bool {
 	for i := 0; i < numTries; i++ {
 		_, err := Stat(fileName)
 		if err == nil {
-			log.Debugf("path found for fileName: %v", fileName)
+			log.Debugf("path found for fileName on attempt %v of %v: %v", i, numTries, fileName)
 			return true
 		}
 		time.Sleep(time.Second)
