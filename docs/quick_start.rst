@@ -56,7 +56,7 @@ This quick start is targeted at the Docker Managed Plugin method (Docker >= 1.13
 
    .. code-block:: bash
    
-     docker plugin install store/netapp/ndvp-plugin:1.4.0 --alias netapp --grant-all-permissions
+     docker plugin install store/netapp/ndvp-plugin:17.04.0 --alias netapp --grant-all-permissions
 
 #. Begin using nDVP to consume storage from the configured system.
 

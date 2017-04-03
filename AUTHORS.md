@@ -11,6 +11,8 @@ add your name in alphabetical order with your first pull request:
     * Griffith, John
     * Hannon, Matthew
     * Hocutt, Jared
+    * Kerr, Andrew
+    * Knight, Clinton
     * Mueller, Garrett
     * Naylor, Brian
     * Rippy, Jonathan
