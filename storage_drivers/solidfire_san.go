@@ -190,7 +190,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 		"ndvp-version": DriverVersion + " [" + ExtendedDriverVersion + "]",
 		"docker-name":  name}
 
-	v, err := d.getVolume(name)
+	v, err := d.GetVolume(name)
 	if err == nil && v.VolumeID != 0 {
 		log.Warningf("found existing Volume by name: %s", name)
 		return errors.New("volume with requested name already exists")
@@ -240,14 +240,14 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 	}
 
 	// Check to see if the clone already exists
-	v, err := d.getVolume(name)
+	v, err := d.GetVolume(name)
 	if err == nil && v.VolumeID != 0 {
 		log.Warningf("found existing Volume by name: %s", name)
 		return errors.New("volume with requested name already exists")
 	}
 
 	// Get the volume ID for the source volume
-	v, err = d.getVolume(source)
+	v, err = d.GetVolume(source)
 	if err != nil || v.VolumeID == 0 {
 		log.Errorf("unable to locate requested source volume: %+v", err)
 		return errors.New("error performing clone operation, source volume not found")
@@ -279,7 +279,7 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnaps
 func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	log.Debugf("SolidfireSANStorageDriver#Destroy(%s)", name)
 
-	v, err := d.getVolume(name)
+	v, err := d.GetVolume(name)
 	if err != nil {
 		log.Errorf("unable to locate volume for delete operation: %+v", err)
 		return errors.New("volume not found")
@@ -301,7 +301,7 @@ func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 // Attach the lun
 func (d *SolidfireSANStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
 	log.Debugf("SolidfireSANStorageDriver#Attach(%s, %s, %+v)", name, mountpoint, opts)
-	v, err := d.getVolume(name)
+	v, err := d.GetVolume(name)
 	if err != nil {
 		log.Errorf("unable to locate volume for mount operation: %+v", err)
 		return errors.New("volume not found")
@@ -341,7 +341,7 @@ func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 		return errors.New("unable to unmount device")
 	}
 
-	v, err := d.getVolume(name)
+	v, err := d.GetVolume(name)
 	if err != nil {
 		log.Errorf("unable to locate volume: %+v", err)
 		return errors.New("volume not found")
@@ -382,7 +382,7 @@ func (d *SolidfireSANStorageDriver) List(prefix string) (vols []string, err erro
 // Return the list of snapshots associated with the named volume
 func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
 	log.Debugf("SolidfireSANStorageDriver#SnapshotList(%s)", name)
-	v, err := d.getVolume(name)
+	v, err := d.GetVolume(name)
 	if err != nil {
 		log.Errorf("unable to locate parent volume in snapshotlist: %+v", err)
 		return nil, errors.New("volume not found")
@@ -410,11 +410,11 @@ func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot,
 
 // Test for the existence of a volume
 func (d *SolidfireSANStorageDriver) Get(name string) error {
-	_, err := d.getVolume(name)
+	_, err := d.GetVolume(name)
 	return err
 }
 
-func (d *SolidfireSANStorageDriver) getVolume(name string) (sfapi.Volume, error) {
+func (d *SolidfireSANStorageDriver) GetVolume(name string) (sfapi.Volume, error) {
 	var vols []sfapi.Volume
 	var req sfapi.ListVolumesForAccountRequest
 
