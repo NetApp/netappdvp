@@ -241,9 +241,9 @@ Docker Managed Plugin Method (Docker >= 1.13 / 17.03)
 
 **nDVP Specific Plugin Startup Options**
 
-* ``--config`` - Specify the configuration file the plugin will use.  Only the file name should be specified, e.g. ``gold.json``, the location must be ``/etc/netappdvp`` on the host system.  The default is ``config.json``.
-* ``--log-level`` - Specify the logging level (``debug``, ``info``, ``warn``, ``error``, ``fatal``).  The default is ``info``.
-* ``--debug`` - Specify whether debug logging is enabled.  Default is false.  Overrides --log-level if true.
+* ``config`` - Specify the configuration file the plugin will use.  Only the file name should be specified, e.g. ``gold.json``, the location must be ``/etc/netappdvp`` on the host system.  The default is ``config.json``.
+* ``log-level`` - Specify the logging level (``debug``, ``info``, ``warn``, ``error``, ``fatal``).  The default is ``info``.
+* ``debug`` - Specify whether debug logging is enabled.  Default is false.  Overrides log-level if true.
 
 **Installing the Managed Plugin**
    
@@ -255,7 +255,7 @@ Docker Managed Plugin Method (Docker >= 1.13 / 17.03)
    
    If your version is out of date, `follow the instructions for your distribution <https://docs.docker.com/engine/installation/>`_ to install or update.
 
-#. Create a configuration file.  The config file must be located in the ``/etc/netappdvp`` directory.  The default filename is ``config.json``, however you can use any name you choose by specifying the ``--config`` option with the file name.  Be sure to use the correct options for your storage system.
+#. Create a configuration file.  The config file must be located in the ``/etc/netappdvp`` directory.  The default filename is ``config.json``, however you can use any name you choose by specifying the ``config`` option with the file name.  Be sure to use the correct options for your storage system.
 
    .. code-block:: bash
    
@@ -280,7 +280,7 @@ Docker Managed Plugin Method (Docker >= 1.13 / 17.03)
 
    .. code-block:: bash
    
-     docker plugin install netapp/ndvp-plugin:17.04 --alias netapp --grant-all-permissions
+     docker plugin install --grant-all-permissions --alias netapp netapp/ndvp-plugin:17.04
 
 #. Begin using nDVP to consume storage from the configured system.
 
