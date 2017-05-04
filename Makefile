@@ -1,6 +1,6 @@
 # Copyright 2016 NetApp, Inc. All Rights Reserved.
 GOOS=linux
-GOARCH=amd64
+GOARCH=amd64 d
 GOGC=""
 
 # BUILD_TAG is intended to be an optional environment variable that uniquely
@@ -11,7 +11,7 @@ GO=docker run --rm \
 	-e GOOS=$(GOOS) \
 	-e GOARCH=$(GOARCH) \
 	-e GOGC=$(GOGC) \
-	-v $(GO_PATH_VOLUME):/go \
+	-v $(GO_PATH_VOLUME):/go \ 
 	-v "$(PWD)":/go/src/github.com/netapp/netappdvp \
 	-w /go/src/github.com/netapp/netappdvp \
 	golang:1.6 go
