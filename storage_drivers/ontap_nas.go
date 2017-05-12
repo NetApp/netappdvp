@@ -255,14 +255,15 @@ func (d *OntapNASStorageDriver) Destroy(name string) error {
 func (d *OntapNASStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
 	log.Debugf("OntapNASStorageDriver#Attach(%v, %v, %v)", name, mountpoint, opts)
 
-	ip := d.Config.DataLIF
+	nfsServer := d.Config.DataLIF
+	nfsMountOptions := d.Config.NfsMountOptions
 
 	var cmd string
 	switch runtime.GOOS {
 	case utils.Linux:
-		cmd = fmt.Sprintf("mount -o nfsvers=3 %s:/%s %s", ip, name, mountpoint)
+		cmd = fmt.Sprintf("mount -v %s %s:/%s %s", nfsMountOptions, nfsServer, name, mountpoint)
 	case utils.Darwin:
-		cmd = fmt.Sprintf("mount -o rw -t nfs %s:/%s %s", ip, name, mountpoint)
+		cmd = fmt.Sprintf("mount -v -o rw %s -t nfs %s:/%s %s", nfsMountOptions, nfsServer, name, mountpoint)
 	default:
 		return fmt.Errorf("Unsupported operating system: %v", runtime.GOOS)
 	}

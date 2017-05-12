@@ -71,6 +71,7 @@ const DefaultUnixPermissions = "---rwxrwxrwx"
 const DefaultSnapshotDir = "false"
 const DefaultExportPolicy = "default"
 const DefaultSecurityStyle = "unix"
+const DefaultNfsMountOptions = "-o nfsvers=3"
 
 // PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
 func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
@@ -97,6 +98,10 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 
 	if config.SecurityStyle == "" {
 		config.SecurityStyle = DefaultSecurityStyle
+	}
+
+	if config.NfsMountOptions == "" {
+		config.NfsMountOptions = DefaultNfsMountOptions
 	}
 
 	return nil

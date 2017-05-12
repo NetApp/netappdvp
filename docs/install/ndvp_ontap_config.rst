@@ -47,6 +47,14 @@ In addition to the global configuration values above, when using clustered Data 
 | ``aggregate``         | Aggregate to use for volume/LUN provisioning                             | aggr1      |
 +-----------------------+--------------------------------------------------------------------------+------------+
 
+For the ontap-nas driver, an additional top level option is available. For NFS host configuration, see also: http://www.netapp.com/us/media/tr-4067.pdf
+
++-----------------------+--------------------------------------------------------------------------+------------+
+| Option                | Description                                                              | Example    |
++=======================+==========================================================================+============+
+| ``nfsMountOptions``   | Fine grained control of NFS mount options; defaults to "-o nfsvers=3"    |-o nfsvers=4|
++-----------------------+--------------------------------------------------------------------------+------------+
+
 Also, when using clustered Data ONTAP, these default option settings are available to avoid having to specify them on every volume create.
 
 +-----------------------+--------------------------------------------------------------------------+------------+
