@@ -149,6 +149,7 @@ type SolidfireStorageDriverConfig struct {
 	InitiatorIFace             string //iface to use of iSCSI initiator
 	Types                      *[]sfapi.VolType
 	LegacyNamePrefix           string //name prefix used in earlier ndvp versions
+	AccessGroups               []int64
 }
 
 // CommonSnapshot contains the normalized volume snapshot format we report to Docker

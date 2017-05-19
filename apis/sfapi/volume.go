@@ -123,12 +123,8 @@ func (c *Client) CreateVolume(createReq *CreateVolumeRequest) (vol Volume, err e
 	return vol, err
 }
 
-// AddVolumeToAccessGroup tbd
-func (c *Client) AddVolumeToAccessGroup(groupID int64, volIDs []int64) (err error) {
-	req := &AddVolumesToVolumeAccessGroupRequest{
-		VolumeAccessGroupID: groupID,
-		Volumes:             volIDs,
-	}
+// AddVolumesToAccessGroup tbd
+func (c *Client) AddVolumesToAccessGroup(req *AddVolumesToVolumeAccessGroupRequest) (err error) {
 	_, err = c.Request("AddVolumesToVolumeAccessGroup", req, NewReqID())
 	if err != nil {
 		log.Errorf("error response from Add to VAG request: %+v ", err)

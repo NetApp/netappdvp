@@ -26,6 +26,7 @@ type Client struct {
 	DefaultTenantName string
 	VolumeTypes       *[]VolType
 	Config            *Config
+	AccessGroups      []int64
 }
 
 // Config holds the configuration data for the Client to communicate with a SolidFire storage system
@@ -37,6 +38,7 @@ type Config struct {
 	InitiatorIFace   string //iface to use of iSCSI initiator
 	Types            *[]VolType
 	LegacyNamePrefix string
+	AccessGroups     []int64
 }
 
 // VolType holds quality of service configuration data

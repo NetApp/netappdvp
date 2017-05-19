@@ -29,7 +29,7 @@ type SolidfireSANStorageDriver struct {
 	Config           SolidfireStorageDriverConfig
 	Client           *sfapi.Client
 	TenantID         int64
-	VagID            int64
+	AccessGroups     []int64
 	LegacyNamePrefix string
 	InitiatorIFace   string
 }
@@ -77,6 +77,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string, commonConfig *
 		InitiatorIFace:   c.InitiatorIFace,
 		Types:            c.Types,
 		LegacyNamePrefix: c.LegacyNamePrefix,
+		AccessGroups:     c.AccessGroups,
 	}
 	defaultTenantName := c.TenantName
 
@@ -119,6 +120,10 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string, commonConfig *
 
 	if c.Types != nil {
 		client.VolumeTypes = c.Types
+	}
+
+	if c.AccessGroups != nil {
+		client.AccessGroups = c.AccessGroups
 	}
 
 	if c.DefaultVolSz != 0 {
