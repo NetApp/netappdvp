@@ -48,10 +48,11 @@ func (d *OntapNASStorageDriver) Name() string {
 }
 
 // Initialize from the provided config
-func (d *OntapNASStorageDriver) Initialize(configJSON string) error {
+func (d *OntapNASStorageDriver) Initialize(configJSON string, commonConfig *CommonStorageDriverConfig) error {
 	log.Debugf("OntapNASStorageDriver#Initialize(...)")
 
 	config := &OntapStorageDriverConfig{}
+	config.CommonStorageDriverConfig = commonConfig
 
 	// decode configJSON into OntapStorageDriverConfig object
 	err := json.Unmarshal([]byte(configJSON), &config)
@@ -63,8 +64,6 @@ func (d *OntapNASStorageDriver) Initialize(configJSON string) error {
 		"Version":           config.Version,
 		"StorageDriverName": config.StorageDriverName,
 		"DisableDelete":     config.DisableDelete,
-		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
-		"SnapshotPrefixRaw": string(config.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into ontapConfig")
 
 	d.Config = *config
@@ -78,20 +77,21 @@ func (d *OntapNASStorageDriver) Initialize(configJSON string) error {
 		return fmt.Errorf("Cannot populate configuration defaults: %v", defaultsErr)
 	}
 
+	log.WithFields(log.Fields{
+		"StoragePrefix": *d.Config.StoragePrefix,
+	}).Debugf("Configuration defaults")
+
 	validationErr := d.Validate()
 	if validationErr != nil {
 		return fmt.Errorf("Problem validating OntapNASStorageDriver: %v", validationErr)
 	}
 
 	// log an informational message on a heartbeat
-	EmsInitialized(d.Name(), d.API, config)
-	StartEmsHeartbeat(d.Name(), d.API, config)
+	EmsInitialized(d.Name(), d.API, &d.Config)
+	StartEmsHeartbeat(d.Name(), d.API, &d.Config)
 
 	d.Initialized = true
-	log.WithFields(log.Fields{
-		"driverVersion":         DriverVersion,
-		"extendedDriverVersion": ExtendedDriverVersion,
-	}).Info("Initialized Ontap NAS storage driver.")
+
 	return nil
 }
 
@@ -224,8 +224,8 @@ func (d *OntapNASStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 }
 
 // Create a volume clone
-func (d *OntapNASStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
-	return CreateOntapClone(name, source, snapshot, newSnapshotPrefix, d.API)
+func (d *OntapNASStorageDriver) CreateClone(name, source, snapshot string) error {
+	return CreateOntapClone(name, source, snapshot, d.API)
 }
 
 // Destroy the volume
@@ -291,24 +291,14 @@ func (d *OntapNASStorageDriver) Detach(name, mountpoint string) error {
 	return nil
 }
 
-// DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
-func (d *OntapNASStorageDriver) DefaultStoragePrefix() string {
-	return "netappdvp_"
-}
-
-// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
-func (d *OntapNASStorageDriver) DefaultSnapshotPrefix() string {
-	return "netappdvp_"
-}
-
 // Return the list of snapshots associated with the named volume
 func (d *OntapNASStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
 	return GetSnapshotList(name, d.API)
 }
 
 // Return the list of volumes associated with this tenant
-func (d *OntapNASStorageDriver) List(prefix string) ([]string, error) {
-	return GetVolumeList(prefix, d.API)
+func (d *OntapNASStorageDriver) List() ([]string, error) {
+	return GetVolumeList(d.API, &d.Config)
 }
 
 // Test for the existence of a volume

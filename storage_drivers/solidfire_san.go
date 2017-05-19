@@ -40,9 +40,10 @@ func (d SolidfireSANStorageDriver) Name() string {
 }
 
 // Initialize from the provided config
-func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
+func (d *SolidfireSANStorageDriver) Initialize(configJSON string, commonConfig *CommonStorageDriverConfig) error {
 	log.Debug("SolidfireSANStorageDriver#Initialize(...)")
 	c := &SolidfireStorageDriverConfig{}
+	c.CommonStorageDriverConfig = commonConfig
 
 	// decode supplied configJSON string into SolidfireStorageDriverConfig object
 	err := json.Unmarshal([]byte(configJSON), &c)
@@ -55,9 +56,11 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 		"Version":           c.Version,
 		"StorageDriverName": c.StorageDriverName,
 		"DisableDelete":     c.DisableDelete,
-		"StoragePrefixRaw":  string(c.StoragePrefixRaw),
-		"SnapshotPrefixRaw": string(c.SnapshotPrefixRaw),
 	}).Debugf("Reparsed into solidfireConfig")
+
+	// SF prefix is always empty
+	prefix := ""
+	c.StoragePrefix = &prefix
 
 	log.Debugf("Decoded to %+v", c)
 	d.Config = *c
@@ -143,10 +146,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string) error {
 	//EmsInitialized(d.Name(), d.api)
 
 	d.Initialized = true
-	log.WithFields(log.Fields{
-		"driverVersion":         DriverVersion,
-		"extendedDriverVersion": ExtendedDriverVersion,
-	}).Info("Initialized SolidFire storage driver.")
+
 	return nil
 }
 
@@ -229,8 +229,8 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 }
 
 // Create a volume clone
-func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
-	log.Debugf("SolidfireSANStorageDriver#CreateClone(%s, %s, %s, %s)", name, source, snapshot, newSnapshotPrefix)
+func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot string) error {
+	log.Debugf("SolidfireSANStorageDriver#CreateClone(%s, %s, %s)", name, source, snapshot)
 
 	var req sfapi.CloneVolumeRequest
 	var meta = map[string]string{
@@ -351,18 +351,8 @@ func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 	return nil
 }
 
-// DefaultStoragePrefix is the driver specific prefix for created storage, can be overridden in the config file
-func (d *SolidfireSANStorageDriver) DefaultStoragePrefix() string {
-	return ""
-}
-
-// DefaultSnapshotPrefix is the driver specific prefix for created snapshots, can be overridden in the config file
-func (d *SolidfireSANStorageDriver) DefaultSnapshotPrefix() string {
-	return ""
-}
-
 // Return the list of volumes according to backend device
-func (d *SolidfireSANStorageDriver) List(prefix string) (vols []string, err error) {
+func (d *SolidfireSANStorageDriver) List() (vols []string, err error) {
 	var req sfapi.ListVolumesForAccountRequest
 	req.AccountID = d.TenantID
 	volumes, err := d.Client.ListVolumesForAccount(&req)

@@ -76,29 +76,35 @@ func main() {
 		}).Fatal("Unknown storage driver in configuration file.")
 	}
 
+	// Determine path to Docker volumes
+	volumePath := filepath.Join(volume.DefaultDockerRootDirectory, *driverID)
+
+	log.WithFields(log.Fields{
+		"version":       storage_drivers.DriverVersion,
+		"mode":          storage_drivers.ExtendedDriverVersion,
+		"storageDriver": commonConfig.StorageDriverName,
+		"volumeDriver":  *driverID,
+		"port":          *port,
+	}).Info("Initializing storage driver")
+
 	// Initialize the specified storage driver which also triggers a call to Validate
-	if err := storageDriver.Initialize(configJSON); err != nil {
+	if err := storageDriver.Initialize(configJSON, commonConfig); err != nil {
 		log.WithFields(log.Fields{
 			"storageDriverName": commonConfig.StorageDriverName,
 			"error":             err,
 		}).Fatal("Problem initializing storage driver.")
 	}
 
-	// Determine path to Docker volumes
-	volumePath := filepath.Join(volume.DefaultDockerRootDirectory, *driverID)
-	log.WithFields(log.Fields{
-		"storageDriverName": commonConfig.StorageDriverName,
-		"volumePath":        volumePath,
-		"volumeDriver":      *driverID,
-		"port":              *port,
-	}).Info("Starting NetApp Docker Volume Plugin.")
-
 	// Plugin connection registered in /var/run/docker/plugins
 	d, err := newNetAppDockerVolumePlugin(volumePath, *commonConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	log.Infof("Initalized driver; plugin ready!")
+
 	h := volume.NewHandler(d)
+
 	if *port != "" {
 		log.Error(h.ServeTCP(*driverID, ":"+*port, nil))
 	} else {

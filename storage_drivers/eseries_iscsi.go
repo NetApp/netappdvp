@@ -46,7 +46,7 @@ func (d *ESeriesStorageDriver) Protocol() string {
 }
 
 // Initialize from the provided config
-func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
+func (d *ESeriesStorageDriver) Initialize(configJSON string, commonConfig *CommonStorageDriverConfig) error {
 
 	// Trace logging hasn't been set up yet, so always do it here
 	fields := log.Fields{
@@ -57,6 +57,7 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	defer log.WithFields(fields).Debug("<<<< Initialize")
 
 	config := &ESeriesStorageDriverConfig{}
+	config.CommonStorageDriverConfig = commonConfig
 
 	// Decode configJSON into ESeriesStorageDriverConfig object
 	err := json.Unmarshal([]byte(configJSON), &config)
@@ -64,16 +65,11 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 		return fmt.Errorf("Could not decode JSON configuration. %v", err)
 	}
 
-	log.WithFields(log.Fields{
-		"Version":           config.Version,
-		"StorageDriverName": config.StorageDriverName,
-		"DebugTraceFlags":   config.DebugTraceFlags,
-		"DisableDelete":     config.DisableDelete,
-		"StoragePrefixRaw":  string(config.StoragePrefixRaw),
-		"SnapshotPrefixRaw": string(config.SnapshotPrefixRaw),
-	}).Debug("Reparsed into ESeriesStorageDriverConfig")
-
 	// Apply config defaults
+	if config.StoragePrefix == nil {
+		prefix := DefaultStoragePrefix
+		config.StoragePrefix = &prefix
+	}
 	if config.AccessGroup == "" {
 		config.AccessGroup = DefaultAccessGroupName
 	}
@@ -88,6 +84,14 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	if config.HostData_IP != "" && config.HostDataIP == "" {
 		config.HostDataIP = config.HostData_IP
 	}
+
+	log.WithFields(log.Fields{
+		"Version":           config.Version,
+		"StorageDriverName": config.StorageDriverName,
+		"DebugTraceFlags":   config.DebugTraceFlags,
+		"DisableDelete":     config.DisableDelete,
+		"StoragePrefix":     *config.StoragePrefix,
+	}).Debug("Reparsed into ESeriesStorageDriverConfig")
 
 	d.Config = *config
 
@@ -131,10 +135,7 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string) error {
 	}
 
 	d.Initialized = true
-	log.WithFields(log.Fields{
-		"driverVersion":         DriverVersion,
-		"extendedDriverVersion": ExtendedDriverVersion,
-	}).Info("Initialized E-Series storage driver.")
+
 	return nil
 }
 
@@ -451,16 +452,6 @@ func (d *ESeriesStorageDriver) Detach(name, mountpoint string) error {
 	return nil
 }
 
-// DefaultStoragePrefix returns the driver specific prefix for created storage, which may be overridden in the config file.
-func (d *ESeriesStorageDriver) DefaultStoragePrefix() string {
-	return "netappdvp_"
-}
-
-// DefaultSnapshotPrefix returns the driver specific prefix for created snapshots, which may be overridden in the config file.
-func (d *ESeriesStorageDriver) DefaultSnapshotPrefix() string {
-	return "netappdvp_"
-}
-
 // SnapshotList returns the list of snapshots associated with the named volume. The E-series volume plugin does not support snapshots,
 // so this method always returns an empty array.
 func (d *ESeriesStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
@@ -480,16 +471,15 @@ func (d *ESeriesStorageDriver) SnapshotList(name string) ([]CommonSnapshot, erro
 
 // CreateClone creates a new volume from the named volume, either by direct clone or from the named snapshot. The E-series volume plugin
 // does not support cloning or snapshots, so this method always returns an error.
-func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot, newSnapshotPrefix string) error {
+func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot string) error {
 
 	if d.Config.DebugTraceFlags["method"] {
 		fields := log.Fields{
-			"Method":         "CreateClone",
-			"Type":           "ESeriesStorageDriver",
-			"name":           name,
-			"source":         source,
-			"snapshot":       snapshot,
-			"snapshotPrefix": newSnapshotPrefix,
+			"Method":   "CreateClone",
+			"Type":     "ESeriesStorageDriver",
+			"name":     name,
+			"source":   source,
+			"snapshot": snapshot,
 		}
 		log.WithFields(fields).Debug(">>>> CreateClone")
 		defer log.WithFields(fields).Debug("<<<< CreateClone")
@@ -499,7 +489,8 @@ func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot, newSnapshotPr
 }
 
 // Return the list of volumes associated with this tenant
-func (d *ESeriesStorageDriver) List(prefix string) ([]string, error) {
+func (d *ESeriesStorageDriver) List() ([]string, error) {
+	prefix := *d.Config.StoragePrefix
 
 	if d.Config.DebugTraceFlags["method"] {
 		fields := log.Fields{

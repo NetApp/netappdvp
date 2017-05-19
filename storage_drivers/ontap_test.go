@@ -34,8 +34,7 @@ func TestOntap_ValidateCommonSettings(t *testing.T) {
 		Version:           1,
 		StorageDriverName: "", // emtpy on purpose
 		DisableDelete:     false,
-		StoragePrefixRaw:  []byte(`""`),
-		SnapshotPrefixRaw: []byte(`""`),
+		StoragePrefix:     "",
 	}
 
 	json, err := encodeConfig(configMissingStorageDriverName)
@@ -49,8 +48,7 @@ func TestOntap_ValidateCommonSettings(t *testing.T) {
 		Version:           -1, // invalid number on purpose
 		StorageDriverName: OntapNASStorageDriverName,
 		DisableDelete:     false,
-		StoragePrefixRaw:  []byte(`""`),
-		SnapshotPrefixRaw: []byte(`""`),
+		StoragePrefix:     "",
 	}
 
 	json, err = encodeConfig(configWithWrongVersion)
@@ -64,8 +62,7 @@ func TestOntap_ValidateCommonSettings(t *testing.T) {
 		Version:           ConfigVersion,
 		StorageDriverName: OntapNASStorageDriverName,
 		DisableDelete:     false,
-		StoragePrefixRaw:  []byte(`""`),
-		SnapshotPrefixRaw: []byte(`""`),
+		StoragePrefix:     "",
 	}
 
 	json, err = encodeConfig(config)

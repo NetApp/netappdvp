@@ -75,6 +75,10 @@ const DefaultNfsMountOptions = "-o nfsvers=3"
 
 // PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
 func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
+	if config.StoragePrefix == nil {
+		prefix := DefaultStoragePrefix
+		config.StoragePrefix = &prefix
+	}
 
 	if config.SpaceReserve == "" {
 		config.SpaceReserve = DefaultSpaceReserve
@@ -139,7 +143,7 @@ func EmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorageDriv
 	}
 
 	message := driverName + " docker volume plugin, version " + FullDriverVersion + " [" + ExtendedDriverVersion + "] build " +
-		BuildVersion + " SVM[" + config.SVM + "] StoragePrefix[" + string(config.StoragePrefixRaw) + "]"
+		BuildVersion + " SVM[" + config.SVM + "] StoragePrefix[" + *config.StoragePrefix + "]"
 
 	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "heartbeat", myHostname,
 		message,
@@ -178,8 +182,8 @@ func StartEmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorag
 }
 
 // Create a volume clone
-func CreateOntapClone(name, source, snapshot, newSnapshotPrefix string, api *ontap.Driver) error {
-	log.Debugf("OntapCommon#CreateOntapClone(%v, %v, %v, %v)", name, source, snapshot, newSnapshotPrefix)
+func CreateOntapClone(name, source, snapshot string, api *ontap.Driver) error {
+	log.Debugf("OntapCommon#CreateOntapClone(%v, %v, %v)", name, source, snapshot)
 
 	// If the specified volume already exists, return an error
 	response, err := api.VolumeSize(name)
@@ -193,7 +197,7 @@ func CreateOntapClone(name, source, snapshot, newSnapshotPrefix string, api *ont
 	// If no specific snapshot was requested, create one
 	if snapshot == "" {
 		// This is golang being stupid: https://golang.org/pkg/time/#Time.Format
-		snapshot = newSnapshotPrefix + time.Now().UTC().Format("20060102T150405Z")
+		snapshot = time.Now().UTC().Format("20060102T150405Z")
 		response, err := api.SnapshotCreate(snapshot, source)
 		if !isPassed(response.Result.ResultStatusAttr) || err != nil {
 			return fmt.Errorf("Error creating snapshot: status: %v error: %v", response.Result.ResultStatusAttr, err)
@@ -244,8 +248,10 @@ func GetSnapshotList(name string, api *ontap.Driver) ([]CommonSnapshot, error) {
 }
 
 // Return the list of volumes associated with the tenant
-func GetVolumeList(prefix string, api *ontap.Driver) ([]string, error) {
+func GetVolumeList(api *ontap.Driver, config *OntapStorageDriverConfig) ([]string, error) {
 	log.Debugf("OntapCommon#GetVolumeList()")
+
+	prefix := *config.StoragePrefix
 
 	response, err := api.VolumeList(prefix)
 	if !isPassed(response.Result.ResultStatusAttr) || err != nil {

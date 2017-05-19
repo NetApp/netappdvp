@@ -30,6 +30,9 @@ var BuildTime = "unknown"
 // ExtendedDriverVersion can be overridden by embeddors such as Trident to uniquify the version string
 var ExtendedDriverVersion = "native"
 
+// DefaultStoragePrefix can be overridden by Trident too. God.
+var DefaultStoragePrefix = "netappdvp_"
+
 // CommonStorageDriverConfig holds settings in common across all StorageDrivers
 type CommonStorageDriverConfig struct {
 	Version                           int             `json:"version"`
@@ -37,8 +40,7 @@ type CommonStorageDriverConfig struct {
 	Debug                             bool            `json:"debug"`           // Unsupported!
 	DebugTraceFlags                   map[string]bool `json:"debugTraceFlags"` // Example: {"api":false, "method":true}
 	DisableDelete                     bool            `json:"disableDelete"`
-	StoragePrefixRaw                  json.RawMessage `json:"storagePrefix,string"`
-	SnapshotPrefixRaw                 json.RawMessage `json:"snapshotPrefix,string"`
+	StoragePrefix                     *string         `json:"storagePrefix"`
 	CommonStorageDriverConfigDefaults `json:"defaults"`
 }
 
@@ -88,7 +90,7 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 
 // OntapStorageDriverConfig holds settings for OntapStorageDrivers
 type OntapStorageDriverConfig struct {
-	CommonStorageDriverConfig               // embedded types replicate all fields
+	*CommonStorageDriverConfig              // embedded types replicate all fields
 	ManagementLIF                    string `json:"managementLIF"`
 	DataLIF                          string `json:"dataLIF"`
 	IgroupName                       string `json:"igroupName"`
@@ -112,7 +114,7 @@ type OntapStorageDriverConfigDefaults struct {
 
 // ESeriesStorageDriverConfig holds settings for ESeriesStorageDriver
 type ESeriesStorageDriverConfig struct {
-	CommonStorageDriverConfig
+	*CommonStorageDriverConfig
 
 	// Web Proxy Services Info
 	WebProxyHostname  string `json:"webProxyHostname"`
@@ -139,14 +141,14 @@ type ESeriesStorageDriverConfig struct {
 
 // SolidfireStorageDriverConfig holds settings for SolidfireStorageDrivers
 type SolidfireStorageDriverConfig struct {
-	CommonStorageDriverConfig // embedded types replicate all fields
-	TenantName                string
-	EndPoint                  string
-	DefaultVolSz              int64 //Default volume size in GiB (deprecated)
-	SVIP                      string
-	InitiatorIFace            string //iface to use of iSCSI initiator
-	Types                     *[]sfapi.VolType
-	LegacyNamePrefix          string //name prefix used in earlier ndvp versions
+	*CommonStorageDriverConfig // embedded types replicate all fields
+	TenantName                 string
+	EndPoint                   string
+	DefaultVolSz               int64 //Default volume size in GiB (deprecated)
+	SVIP                       string
+	InitiatorIFace             string //iface to use of iSCSI initiator
+	Types                      *[]sfapi.VolType
+	LegacyNamePrefix           string //name prefix used in earlier ndvp versions
 }
 
 // CommonSnapshot contains the normalized volume snapshot format we report to Docker
@@ -161,16 +163,14 @@ var Drivers = make(map[string]StorageDriver)
 // StorageDriver provides a common interface for storage related operations
 type StorageDriver interface {
 	Name() string
-	Initialize(string) error
+	Initialize(string, *CommonStorageDriverConfig) error
 	Validate() error
 	Create(name string, sizeBytes uint64, opts map[string]string) error
-	CreateClone(name, source, snapshot, newSnapshotPrefix string) error
+	CreateClone(name, source, snapshot string) error
 	Destroy(name string) error
 	Attach(name, mountpoint string, opts map[string]string) error
 	Detach(name, mountpoint string) error
-	DefaultStoragePrefix() string
-	DefaultSnapshotPrefix() string
 	SnapshotList(name string) ([]CommonSnapshot, error)
-	List(prefix string) ([]string, error)
+	List() ([]string, error)
 	Get(name string) error
 }

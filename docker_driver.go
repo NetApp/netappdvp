@@ -22,57 +22,12 @@ type ndvpDriver struct {
 	sd     storage_drivers.StorageDriver
 }
 
-// TODO: The volume prefix should  be part of the driver config and used only internally in the driver APIs.
-func (d *ndvpDriver) volumePrefix() string {
-	defaultPrefix := d.sd.DefaultStoragePrefix()
-	prefixToUse := defaultPrefix
-	storagePrefixRaw := d.config.StoragePrefixRaw // this is a raw version of the json value, we will get quotes in it
-	if len(storagePrefixRaw) >= 2 {
-		s := string(storagePrefixRaw)
-		if s == "\"\"" || s == "" {
-			prefixToUse = ""
-			//log.Debugf("storagePrefix is specified as \"\", using no prefix")
-		} else {
-			// trim quotes from start and end of string
-			prefixToUse = s[1 : len(s)-1]
-			//log.Debugf("storagePrefix is specified, using prefix: %v", prefixToUse)
-		}
-	} else {
-		prefixToUse = defaultPrefix
-		//log.Debugf("storagePrefix is unspecified, using default prefix: %v", prefixToUse)
-	}
-
-	return prefixToUse
-}
-
 func (d *ndvpDriver) volumeName(name string) string {
-	prefixToUse := d.volumePrefix()
+	prefixToUse := *d.config.StoragePrefix
 	if strings.HasPrefix(name, prefixToUse) {
 		return name
 	}
 	return prefixToUse + name
-}
-
-func (d *ndvpDriver) snapshotPrefix() string {
-	defaultPrefix := d.sd.DefaultSnapshotPrefix()
-	prefixToUse := defaultPrefix
-	snapshotPrefixRaw := d.config.SnapshotPrefixRaw // this is a raw version of the json value, we will get quotes in it
-	if len(snapshotPrefixRaw) >= 2 {
-		s := string(snapshotPrefixRaw)
-		if s == "\"\"" || s == "" {
-			prefixToUse = ""
-			//log.Debugf("snapshotPrefix is specified as \"\", using no prefix")
-		} else {
-			// trim quotes from start and end of string
-			prefixToUse = s[1 : len(s)-1]
-			//log.Debugf("snapshotPrefix is specified, using prefix: %v", prefixToUse)
-		}
-	} else {
-		prefixToUse = defaultPrefix
-		//log.Debugf("snapshotPrefix is unspecified, using default prefix: %v", prefixToUse)
-	}
-
-	return prefixToUse
 }
 
 func (d *ndvpDriver) mountpoint(name string) string {
@@ -125,7 +80,7 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 
 		// If 'fromSnapshot' is specified, we use the existing snapshot instead
 		snapshot := utils.GetV(opts, "fromSnapshot", "")
-		createErr = d.sd.CreateClone(target, source, snapshot, d.snapshotPrefix())
+		createErr = d.sd.CreateClone(target, source, snapshot)
 	} else {
 		createErr = d.sd.Create(target, sizeBytes, opts)
 	}
@@ -325,7 +280,7 @@ func (d ndvpDriver) List(r volume.Request) volume.Response {
 	log.Debugf("List(%v)", r)
 
 	var volumes []*volume.Volume
-	vols, err := d.sd.List(d.volumePrefix())
+	vols, err := d.sd.List()
 	if err != nil {
 		return volume.Response{Err: fmt.Sprintf("Unable to retrieve volume list, error: %v", err)}
 	}
