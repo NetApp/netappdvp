@@ -33,7 +33,9 @@ func main() {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
 	if *printVersion == true {
-		fmt.Printf("NetApp Docker Volume Plugin version %v\n", storage_drivers.DriverVersion)
+		fmt.Printf("NetApp Docker Volume Plugin\nVersion: %v\n", storage_drivers.FullDriverVersion)
+		fmt.Printf("Build: %v\n", storage_drivers.BuildVersion)
+		fmt.Printf("Built: %v\n", storage_drivers.BuildTime)
 		os.Exit(0)
 	}
 

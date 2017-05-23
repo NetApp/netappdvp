@@ -2,6 +2,13 @@
 GOOS=linux
 GOARCH=amd64
 GOGC=""
+GITHASH?=`git rev-parse HEAD || echo unknown`
+BUILD_TYPE?=custom
+BUILD_TYPE_REV?=0
+BUILD_TIME=`date`
+
+# Go compiler flags need to be properly encapsulated with double quotes to handle spaces in values
+BUILD_FLAGS="-X \"main.GitHash=$(GITHASH)\" -X \"main.BuildType=$(BUILD_TYPE)\" -X \"main.BuildTypeRev=$(BUILD_TYPE_REV)\" -X \"main.BuildTime=$(BUILD_TIME)\""
 
 # BUILD_TAG is intended to be an optional environment variable that uniquely
 # identifies the build instance. It is intended to enable concurrent builds
@@ -32,7 +39,7 @@ get:
 
 build: get *.go
 	@mkdir -p $(PWD)/bin
-	@$(GO) build -x -o /go/src/github.com/netapp/netappdvp/bin/netappdvp
+	@$(GO) build -ldflags $(BUILD_FLAGS) -x -o /go/src/github.com/netapp/netappdvp/bin/netappdvp
 
 install: build
 	@$(GO) install

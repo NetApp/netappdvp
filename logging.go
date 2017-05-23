@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/netapp/netappdvp/storage_drivers"
 	"github.com/netapp/netappdvp/utils"
 )
 
@@ -49,6 +50,9 @@ func initLogging() error {
 	log.WithFields(log.Fields{
 		"logLevel":        log.GetLevel().String(),
 		"logFileLocation": logFileHook.GetLocation(),
+		"driverVersion":   storage_drivers.FullDriverVersion,
+		"driverBuild":     storage_drivers.BuildVersion,
+		"buildTime":       storage_drivers.BuildTime,
 	}).Info("Initialized logging.")
 
 	return nil

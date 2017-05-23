@@ -16,7 +16,16 @@ import (
 const ConfigVersion = 1
 
 // DriverVersion is the actual release version number
-const DriverVersion = "17.04.0"
+const DriverVersion = "17.07.0"
+
+// FullDriverVersion is the DriverVersion as well as any pre-release tags
+var FullDriverVersion = DriverVersion
+
+// BuildVersion is the extended release version with build information
+var BuildVersion = "unknown"
+
+// BuildTime is the date and time the binary was built, if known
+var BuildTime = "unknown"
 
 // ExtendedDriverVersion can be overridden by embeddors such as Trident to uniquify the version string
 var ExtendedDriverVersion = "native"
