@@ -2,7 +2,16 @@
 
 [Releases](https://github.com/NetApp/netappdvp/releases)
 
-## Changes since 1.4.0
+## Changes since 17.04.0
+
+**Fixes:**
+
+**Enhancements:**
+
+- Capture and report build version information
+
+
+## 17.04.0
 
 **Fixes:**
 

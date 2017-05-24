@@ -113,7 +113,7 @@ func EmsInitialized(driverName string, api *ontap.Driver, config *OntapStorageDr
 		myHostname = "unknown"
 	}
 
-	message := driverName + " docker volume plugin initialized, version " + DriverVersion + " [" + ExtendedDriverVersion + "]"
+	message := driverName + " docker volume plugin initialized, version " + FullDriverVersion + " [" + ExtendedDriverVersion + "] build " + BuildVersion
 	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "initialized", myHostname,
 		message,
 		1, "netappdvp", 5)
@@ -133,7 +133,8 @@ func EmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorageDriv
 		myHostname = "unknown"
 	}
 
-	message := driverName + " docker volume plugin, version " + DriverVersion + " [" + ExtendedDriverVersion + "] SVM[" + config.SVM + "] StoragePrefix[" + string(config.StoragePrefixRaw) + "]"
+	message := driverName + " docker volume plugin, version " + FullDriverVersion + " [" + ExtendedDriverVersion + "] build " +
+		BuildVersion + " SVM[" + config.SVM + "] StoragePrefix[" + string(config.StoragePrefixRaw) + "]"
 
 	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "heartbeat", myHostname,
 		message,
