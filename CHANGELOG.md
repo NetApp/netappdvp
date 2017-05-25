@@ -8,6 +8,7 @@
 
 **Enhancements:**
 
+- Updated builds to use Go 1.8
 
 ## 17.04.0
 

@@ -21,7 +21,7 @@ GO=docker run --rm \
 	-v $(GO_PATH_VOLUME):/go \
 	-v "$(PWD)":/go/src/github.com/netapp/netappdvp \
 	-w /go/src/github.com/netapp/netappdvp \
-	golang:1.6 go
+	golang:1.8 go
 
 .PHONY=clean default fmt get install test
 
