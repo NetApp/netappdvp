@@ -6,6 +6,8 @@
 
 **Fixes:**
 
+- Increased wait time for SolidFire devices to appear
+
 **Enhancements:**
 
 - Capture and report build version information

@@ -85,7 +85,7 @@ func GetInitiatorIqns() ([]string, error) {
 	return iqns, nil
 }
 
-// WaitForPathToExist retries every second, up to numTries times, for the specified fileName to show up
+// WaitForPathToExist retries every second, up to numTries times, with increasing backoff, for the specified fileName to show up
 func WaitForPathToExist(fileName string, numTries int) bool {
 	log.Debugf("Begin osutils.waitForPathToExist fileName: %v", fileName)
 	for i := 0; i < numTries; i++ {
@@ -94,7 +94,7 @@ func WaitForPathToExist(fileName string, numTries int) bool {
 			log.Debugf("path found for fileName on attempt %v of %v: %v", i, numTries, fileName)
 			return true
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * time.Duration(2+i))
 	}
 	log.Warnf("osutils.waitForPathToExist giving up looking for fileName: %v", fileName)
 	return false

@@ -71,12 +71,21 @@ func (c *Client) CloneVolume(req *CloneVolumeRequest) (vol Volume, err error) {
 	// We'll do a backoff retry loop here, at some point would be handy go have
 	// a global util for us to use for any call
 	retry := 0
-	for retry < 5 {
+	for retry < 10 {
 		response, cloneError = c.Request("CloneVolume", req, NewReqID())
-		if cloneError != nil && strings.Contains(cloneError.Error(), "SliceNotRegistered") {
-			log.Warningf("detected SliceNotRegistered on Clone operation, retrying in %+v seconds", (2 + retry))
-			time.Sleep(time.Second * time.Duration(2+retry))
-			retry += 1
+		if cloneError != nil {
+			errorMessage := cloneError.Error()
+			if strings.Contains(errorMessage, "SliceNotRegistered") {
+				log.Warningf("detected SliceNotRegistered on Clone operation, retrying in %+v seconds", (2 + retry))
+				time.Sleep(time.Second * time.Duration(2+retry))
+				retry += 1
+			} else if strings.Contains(errorMessage, "xInvalidParameter") {
+				log.Warningf("detected xInvalidParameter on Clone operation, retrying in %+v seconds", (2 + retry))
+				time.Sleep(time.Second * time.Duration(2+retry))
+				retry += 1
+			} else {
+				break
+			}
 		} else {
 			break
 		}
@@ -212,7 +221,7 @@ func (c *Client) AttachVolume(v *Volume, iface string) (path, device string, err
 		log.Errorf("failed to login with CHAP credentials: %+v ", err)
 		return path, device, err
 	}
-	if utils.WaitForPathToExist(path, 5) {
+	if utils.WaitForPathToExist(path, 10) {
 		device = strings.TrimSpace(utils.GetDeviceFileFromIscsiPath(path))
 		return path, device, nil
 	}
