@@ -5,6 +5,7 @@
 ## Changes since 17.04.0
 
 **Fixes:**
+- Increased wait time for SolidFire devices to appear
 
 **Enhancements:**
 
