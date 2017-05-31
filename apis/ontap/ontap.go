@@ -301,6 +301,14 @@ func (d Driver) VolumeCloneCreate(name, source, snapshot string) (response azgo.
 	return
 }
 
+// VolumeCloneSplitStart splits a cloned volume from its parent
+func (d Driver) VolumeCloneSplitStart(name string) (response azgo.VolumeCloneSplitStartResponse, err error) {
+	response, err = azgo.NewVolumeCloneSplitStartRequest().
+		SetVolume(name).
+		ExecuteUsing(d.zr)
+	return
+}
+
 // VolumeDisableSnapshotDirectoryAccess disables access to the ".snapshot" directory
 // Disable '.snapshot' to allow official mysql container's chmod-in-init to work
 func (d Driver) VolumeDisableSnapshotDirectoryAccess(name string) (response azgo.VolumeModifyIterResponse, err error) {

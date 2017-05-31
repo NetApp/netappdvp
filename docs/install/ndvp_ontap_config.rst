@@ -64,6 +64,8 @@ Also, when using clustered Data ONTAP, these default option settings are availab
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``snapshotPolicy``    | Snapshot policy to use, default is "none"                                | none       |
 +-----------------------+--------------------------------------------------------------------------+------------+
+| ``splitOnClone``      | Split a clone from its parent upon creation, defaults to "false"         | false      |
++-----------------------+--------------------------------------------------------------------------+------------+
 | ``unixPermissions``   | NAS option for provisioned NFS volumes, defaults to "777"                | 777        |
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``snapshotDir``       | NAS option for access to the .snapshot directory, defaults to "false"    | false      |

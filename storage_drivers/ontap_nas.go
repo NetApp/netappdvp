@@ -224,8 +224,17 @@ func (d *OntapNASStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 }
 
 // Create a volume clone
-func (d *OntapNASStorageDriver) CreateClone(name, source, snapshot string) error {
-	return CreateOntapClone(name, source, snapshot, d.API)
+func (d *OntapNASStorageDriver) CreateClone(name, source, snapshot string, opts map[string]string) error {
+
+	split, err := strconv.ParseBool(utils.GetV(opts, "splitOnClone", d.Config.SplitOnClone))
+	if err != nil {
+		return fmt.Errorf("Invalid boolean value for splitOnClone: %v", err)
+	}
+
+	log.WithFields(log.Fields{
+		"splitOnClone": split,
+	}).Debug("Creating volume clone with values")
+	return CreateOntapClone(name, source, snapshot, split, d.API)
 }
 
 // Destroy the volume

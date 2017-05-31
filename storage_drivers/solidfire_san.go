@@ -234,7 +234,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 }
 
 // Create a volume clone
-func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot string) error {
+func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot string, opts map[string]string) error {
 	log.Debugf("SolidfireSANStorageDriver#CreateClone(%s, %s, %s)", name, source, snapshot)
 
 	var req sfapi.CloneVolumeRequest

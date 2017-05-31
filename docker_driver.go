@@ -80,7 +80,7 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 
 		// If 'fromSnapshot' is specified, we use the existing snapshot instead
 		snapshot := utils.GetV(opts, "fromSnapshot", "")
-		createErr = d.sd.CreateClone(target, source, snapshot)
+		createErr = d.sd.CreateClone(target, source, snapshot, opts)
 	} else {
 		createErr = d.sd.Create(target, sizeBytes, opts)
 	}

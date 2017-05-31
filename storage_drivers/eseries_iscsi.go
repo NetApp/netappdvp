@@ -471,7 +471,7 @@ func (d *ESeriesStorageDriver) SnapshotList(name string) ([]CommonSnapshot, erro
 
 // CreateClone creates a new volume from the named volume, either by direct clone or from the named snapshot. The E-series volume plugin
 // does not support cloning or snapshots, so this method always returns an error.
-func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot string) error {
+func (d *ESeriesStorageDriver) CreateClone(name, source, snapshot string, opts map[string]string) error {
 
 	if d.Config.DebugTraceFlags["method"] {
 		fields := log.Fields{

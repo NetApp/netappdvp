@@ -72,6 +72,7 @@ const DefaultSnapshotDir = "false"
 const DefaultExportPolicy = "default"
 const DefaultSecurityStyle = "unix"
 const DefaultNfsMountOptions = "-o nfsvers=3"
+const DefaultSplitOnClone = "false"
 
 // PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
 func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
@@ -106,6 +107,15 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 
 	if config.NfsMountOptions == "" {
 		config.NfsMountOptions = DefaultNfsMountOptions
+	}
+
+	if config.SplitOnClone == "" {
+		config.SplitOnClone = DefaultSplitOnClone
+	} else {
+		_, err := strconv.ParseBool(config.SplitOnClone)
+		if err != nil {
+			return fmt.Errorf("Invalid boolean value for splitOnClone: %v", err)
+		}
 	}
 
 	return nil
@@ -182,7 +192,7 @@ func StartEmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorag
 }
 
 // Create a volume clone
-func CreateOntapClone(name, source, snapshot string, api *ontap.Driver) error {
+func CreateOntapClone(name, source, snapshot string, split bool, api *ontap.Driver) error {
 	log.Debugf("OntapCommon#CreateOntapClone(%v, %v, %v)", name, source, snapshot)
 
 	// If the specified volume already exists, return an error
@@ -218,6 +228,14 @@ func CreateOntapClone(name, source, snapshot string, api *ontap.Driver) error {
 	response3, err3 := api.VolumeMount(name, "/"+name)
 	if !isPassed(response3.Result.ResultStatusAttr) || err3 != nil {
 		return fmt.Errorf("Error mounting volume to junction: status: %v error: %v", response3.Result.ResultStatusAttr, err3)
+	}
+
+	// Split the clone if requested
+	if split {
+		response4, err4 := api.VolumeCloneSplitStart(name)
+		if !isPassed(response4.Result.ResultStatusAttr) || err4 != nil {
+			return fmt.Errorf("Error splitting clone: status: %v error: %v", response4.Result.ResultStatusAttr, err4)
+		}
 	}
 
 	return nil
