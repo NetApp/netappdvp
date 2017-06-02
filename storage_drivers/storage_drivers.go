@@ -40,7 +40,8 @@ type CommonStorageDriverConfig struct {
 	Debug                             bool            `json:"debug"`           // Unsupported!
 	DebugTraceFlags                   map[string]bool `json:"debugTraceFlags"` // Example: {"api":false, "method":true}
 	DisableDelete                     bool            `json:"disableDelete"`
-	StoragePrefix                     *string         `json:"storagePrefix"`
+	StoragePrefixRaw                  json.RawMessage `json:"storagePrefix,string"`
+	StoragePrefix                     *string         `json:"-"`
 	CommonStorageDriverConfigDefaults `json:"defaults"`
 }
 
@@ -82,6 +83,15 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 		_, err = utils.ConvertSizeToBytes(config.Size)
 		if err != nil {
 			return nil, fmt.Errorf("Invalid config value for default volume size: %v", err)
+		}
+	}
+
+	// maintain three possible prefix states: nil, "", "<value>"
+	if len(config.StoragePrefixRaw) > 0 {
+		// Trident wrote braces here that meant 'nil'
+		if config.StoragePrefixRaw[0] != '{' {
+			rawstr := string(config.StoragePrefixRaw[1 : len(config.StoragePrefixRaw)-1])
+			config.StoragePrefix = &rawstr
 		}
 	}
 
