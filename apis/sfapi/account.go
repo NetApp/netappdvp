@@ -13,6 +13,11 @@ import (
 func (c *Client) AddAccount(req *AddAccountRequest) (accountID int64, err error) {
 	var result AddAccountResult
 	response, err := c.Request("AddAccount", req, NewReqID())
+	if err != nil {
+		log.Errorf("error detected in AddAccount API response: %+v", err)
+		return 0, errors.New("device API error")
+	}
+
 	if err := json.Unmarshal([]byte(response), &result); err != nil {
 		log.Errorf("error detected in AddAccount API response: %+v", err)
 		return 0, errors.New("device API error")

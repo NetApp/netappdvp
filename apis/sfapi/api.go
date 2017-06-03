@@ -98,6 +98,16 @@ func (c *Client) Request(method string, params interface{}, id int) (response []
 		return nil, errors.New("device API error")
 	}
 
+	// sometimes people are goofy and don't RTM, so they don't set up the base
+	// account with the right permissions, this catches that and publishes it
+	// for the world to see.  Yes, we could just deubg log the response all the
+	// time and we used to do that, but it results in WAY too much noise in the
+	// logs
+	if strings.Contains(resp.Status, "Unauthorized") {
+		log.Errorf("attempted command returned unauthorized, command: %+v, response: %+v", method, resp.Status)
+		return nil, errors.New("unauthorized request")
+	}
+
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
