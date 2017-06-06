@@ -9,6 +9,7 @@
 
 **Enhancements:**
 
+- Allow customizing NFS mount options via config file
 - Updated builds to use Go 1.8
 
 ## 17.04.0
