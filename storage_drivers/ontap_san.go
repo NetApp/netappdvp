@@ -312,7 +312,7 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 		}
 	}
 
-	// lookp host iqns
+	// lookup host iqns
 	iqns, errIqn := utils.GetInitiatorIqns()
 	if errIqn != nil {
 		return fmt.Errorf("Problem determining host initiator iqns error: %v", errIqn)
@@ -328,37 +328,11 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 		}
 	}
 
-	// check if already mapped, so we don't map again
-	lunID := 0
-	alreadyMapped := false
-	response5, _ := d.API.LunMapListInfo(lunPath)
-	if response5.Result.ResultStatusAttr == "passed" {
-		if response5.Result.InitiatorGroups() != nil {
-			if len(response5.Result.InitiatorGroups()) > 0 {
-				lunID = response5.Result.InitiatorGroups()[0].LunId()
-				alreadyMapped = true
-				log.Debugf("found already mapped lunID: %v", lunID)
-			}
-		}
+	// map LUN
+	lunID, err := d.API.LunMapIfNotMapped(igroupName, lunPath)
+	if err != nil {
+		return err
 	}
-
-	// map IFF not already mapped
-	if !alreadyMapped {
-		// spin until we get a lunId that works
-		// TODO find one directly instead of spinning-and-looking for one?
-		for i := 0; i < 4096; i++ {
-			response4, err4 := d.API.LunMap(igroupName, lunPath, i)
-			if response4.Result.ResultStatusAttr == "passed" {
-				lunID = i
-				break
-			}
-
-			if response4.Result.ResultErrnoAttr != azgo.EVDISK_ERROR_INITGROUP_HAS_LUN {
-				return fmt.Errorf("Problem mapping lun: %v error: %v", lunPath, err4)
-			}
-		}
-	}
-	log.Debugf("using lunID == %v ", lunID)
 
 	// perform discovery to see the created/mapped LUN
 	utils.IscsiRescan()

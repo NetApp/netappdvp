@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/blang/semver"
 	"github.com/netapp/netappdvp/azgo"
 )
@@ -231,6 +232,65 @@ func (d Driver) LunMap(initiatorGroupName, lunPath string, lunID int) (response 
 		SetLunId(lunID).
 		ExecuteUsing(d.zr)
 	return
+}
+
+// LunMap maps a LUN in an initiator group, allowing ONTAP to choose an available LUN ID
+// equivalent to filer::> lun map -vserver iscsi_vs -path /vol/v/lun1 -igroup docker
+func (d Driver) LunMapAutoID(initiatorGroupName, lunPath string) (response azgo.LunMapResponse, err error) {
+	response, err = azgo.NewLunMapRequest().
+		SetInitiatorGroup(initiatorGroupName).
+		SetPath(lunPath).
+		ExecuteUsing(d.zr)
+	return
+}
+
+func (d Driver) LunMapIfNotMapped(initiatorGroupName, lunPath string) (int, error) {
+
+	// Read LUN maps to see if the LUN is already mapped to the igroup
+	lunMapListResponse, err := d.LunMapListInfo(lunPath)
+	if err != nil {
+		return -1, fmt.Errorf("Problem reading maps for LUN %s: %v", lunPath, err)
+	} else if lunMapListResponse.Result.ResultStatusAttr != "passed" {
+		return -1, fmt.Errorf("Problem reading maps for LUN %s: %+v", lunPath, lunMapListResponse.Result)
+	}
+
+	lunID := 0
+	alreadyMapped := false
+	for _, igroup := range lunMapListResponse.Result.InitiatorGroups() {
+		if igroup.InitiatorGroupName() == initiatorGroupName {
+
+			lunID = igroup.LunId()
+			alreadyMapped = true
+
+			log.WithFields(log.Fields{
+				"lun":    lunPath,
+				"igroup": initiatorGroupName,
+				"id":     lunID,
+			}).Debug("LUN already mapped.")
+
+			break
+		}
+	}
+
+	// Map IFF not already mapped
+	if !alreadyMapped {
+		lunMapResponse, err := d.LunMapAutoID(initiatorGroupName, lunPath)
+		if err != nil {
+			return -1, fmt.Errorf("Problem mapping LUN %s: %v", lunPath, err)
+		} else if lunMapResponse.Result.ResultStatusAttr != "passed" {
+			return -1, fmt.Errorf("Problem mapping LUN %s: %+v", lunPath, lunMapResponse.Result)
+		}
+
+		lunID = lunMapResponse.Result.LunIdAssigned()
+
+		log.WithFields(log.Fields{
+			"lun":    lunPath,
+			"igroup": initiatorGroupName,
+			"id":     lunID,
+		}).Debug("LUN mapped.")
+	}
+
+	return lunID, nil
 }
 
 // LunMapListInfo returns lun mapping information for the specified lun

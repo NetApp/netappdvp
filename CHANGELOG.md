@@ -12,6 +12,7 @@
 - Allow customizing NFS mount options via config file
 - Updated builds to use Go 1.8
 - Allow ONTAP to split a clone from its parent upon creation
+- Improve efficiency of ONTAP LUN ID selection
 
 ## 17.04.0
 
