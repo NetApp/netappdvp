@@ -427,14 +427,21 @@ func (d Driver) VolumeDestroy(name string, force bool) (response azgo.VolumeDest
 	return
 }
 
-// VolumeList lists volumes
+// VolumeList returns the names of all FlexVols whose names match the supplied prefix
 func (d Driver) VolumeList(prefix string) (response azgo.VolumeGetIterResponse, err error) {
-	viat := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(prefix + "*"))
-	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*viat)
+
+	// Limit the FlexVols to those matching the name prefix
+	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(prefix + "*"))
+	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*queryVolIdAttrs)
+
+	// Limit the returned data to only the FlexVol names
+	desiredVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName("")
+	desiredAttributes := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*desiredVolIdAttrs)
 
 	response, err = azgo.NewVolumeGetIterRequest().
 		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
 		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
 		ExecuteUsing(d.zr)
 	return
 }
