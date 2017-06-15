@@ -6,14 +6,31 @@ Support for the NetApp Docker Volume Plugin is provided on a best effort basis t
 Troubleshooting
 ---------------
 
-* Ensure debug logging is turned on (it is enabled by default) for the ndvp daemon instance using the ``--debug`` command line option when starting.
-* For the traditional install (Docker <= 1.12), check the logs at ``/var/log/netappdvp`` on the host.
-* To retrive the logs from the container for the managed plugin (Docker >= 1.13 / 17.03):
-  
+The plugin has been built with a comprehensive logging capability that should help you diagnose most of the issues you are likely to come across. The method you use to access or tune those logs varies based on how you are running the plugin.
+
+If you are running nDVP using the recommended managed plugin method (i.e., using ``docker plugin`` commands), the plugin is running in a container and the logs are available inside. Accessing those logs requires a little detective work because plugin containers are hidden from ``docker ps`` output:
+
   .. code-block:: bash
+
+     # find the plugin container's abbreviated ID
+     docker plugin ls
      
-     # find the container
-     docker-runc list
+     # find the plugin container's full ID
+     docker-runc list | grep <abbreviated ID>
      
      # view the logs in the container
-     docker-runc exec -t <container id> cat /var/log/netappdvp/netapp.log
+     docker-runc exec -t <full ID> cat /var/log/netappdvp/netapp.log
+
+The standard logging level should allow you to diagnose most issues. If you find that's not enough, you can enable debug logging:
+
+  .. code-block:: bash
+
+     # install the plugin with debug logging enabled
+     docker plugin create netapp/ndvp-plugin:<version> --alias <alias> debug=true
+
+     # or, enable debug logging on one that's already installed
+     docker plugin disable <plugin>
+     docker plugin set <plugin> debug=true
+     docker plugin enable <plugin>
+
+If you are not running as a managed plugin, the logs are available in the host's ``/var/log/netappdvp`` directory. If you need to enable debug logging, specify ``-debug`` when you run the plugin.
