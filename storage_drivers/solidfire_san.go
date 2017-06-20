@@ -344,15 +344,19 @@ func (d *SolidfireSANStorageDriver) Destroy(name string) error {
 	log.Debugf("SolidfireSANStorageDriver#Destroy(%s)", name)
 
 	v, err := d.GetVolume(name)
-	if err != nil {
+	if err != nil && err.Error() != "volume not found" {
 		log.Errorf("unable to locate volume for delete operation: %+v", err)
-		return errors.New("volume not found")
+		return err
+	} else if err != nil {
+		// Volume wasn't found. No action needs to be taken.
+		log.Warnf("volume doesn't exist")
+		return nil
 	}
 	d.Client.DetachVolume(v)
 	err = d.Client.DeleteVolume(v.VolumeID)
 	if err != nil {
-		// FIXME(jdg): Check if it's a "DNE" error in that case we're golden
 		log.Errorf("error during delete operation: %+v", err)
+		return err
 	}
 
 	// perform rediscovery to remove the deleted LUN
