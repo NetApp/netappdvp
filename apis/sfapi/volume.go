@@ -223,3 +223,12 @@ func (c *Client) AttachVolume(v *Volume, iface string) (path, device string, err
 	}
 	return path, device, nil
 }
+
+func (c *Client) ModifyVolume(req *ModifyVolumeRequest) (err error) {
+	_, err = c.Request("ModifyVolume", req, NewReqID())
+	if err != nil {
+		log.Errorf("error response from ModifyVolume request: %+v ", err)
+		return errors.New("device API error")
+	}
+	return err
+}

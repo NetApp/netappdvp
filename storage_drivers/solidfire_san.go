@@ -34,6 +34,31 @@ type SolidfireSANStorageDriver struct {
 	InitiatorIFace   string
 }
 
+func parseQOS(qos_opt string) (qos sfapi.QoS, err error) {
+	iops := strings.Split(qos_opt, ",")
+	qos.MinIOPS, err = strconv.ParseInt(iops[0], 10, 64)
+	qos.MaxIOPS, err = strconv.ParseInt(iops[1], 10, 64)
+	qos.BurstIOPS, err = strconv.ParseInt(iops[2], 10, 64)
+	return qos, err
+}
+
+func parseType(vTypes []sfapi.VolType, typeName string) (qos sfapi.QoS, err error) {
+	foundType := false
+	for _, t := range vTypes {
+		if strings.EqualFold(t.Type, typeName) {
+			qos = t.QOS
+			log.Infof("received Type opts in Create and set QoS: %+v", qos)
+			foundType = true
+			break
+		}
+	}
+	if foundType == false {
+		log.Errorf("specified type label not found: %v", typeName)
+		err = errors.New("specified type not found")
+	}
+	return qos, err
+}
+
 // Name is for returning the name of this driver
 func (d SolidfireSANStorageDriver) Name() string {
 	return SolidfireSANStorageDriverName
@@ -203,25 +228,24 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 
 	qos_opt := utils.GetV(opts, "qos", "")
 	if qos_opt != "" {
-		iops := strings.Split(qos_opt, ",")
-		qos.MinIOPS, _ = strconv.ParseInt(iops[0], 10, 64)
-		qos.MaxIOPS, _ = strconv.ParseInt(iops[1], 10, 64)
-		qos.BurstIOPS, _ = strconv.ParseInt(iops[2], 10, 64)
-		req.Qos = qos
-		log.Infof("received qos opts in Create: %+v", req.Qos)
+		qos, err = parseQOS(qos_opt)
+		if err != nil {
+			return err
+		}
 	}
 
 	type_opt := utils.GetV(opts, "type", "")
 	if type_opt != "" {
-		for _, t := range *d.Client.VolumeTypes {
-			if strings.EqualFold(t.Type, type_opt) {
-				req.Qos = t.QOS
-				log.Infof("received Type opts in Create and set QoS: %+v", req.Qos)
-				break
-			}
+		if qos.MinIOPS != 0 {
+			log.Warningf("qos values appear to have been set using -o qos, but type is set as well, overriding with type option")
+		}
+		qos, err = parseType(*d.Client.VolumeTypes, type_opt)
+		if err != nil {
+			return err
 		}
 	}
 
+	req.Qos = qos
 	req.TotalSize = int64(sizeBytes)
 	req.AccountID = d.TenantID
 	req.Name = MakeSolidFireName(name)
@@ -272,10 +296,45 @@ func (d *SolidfireSANStorageDriver) CreateClone(name, source, snapshot string, o
 	req.VolumeID = v.VolumeID
 	req.Name = MakeSolidFireName(name)
 	req.Attributes = meta
-	_, err = d.Client.CloneVolume(&req)
+	vol, err := d.Client.CloneVolume(&req)
 	if err != nil {
 		log.Errorf("failed to create clone: %+v", err)
 		return errors.New("error performing clone operation")
+	}
+
+	var modifyReq sfapi.ModifyVolumeRequest
+	var qos sfapi.QoS
+	modifyReq.VolumeID = vol.VolumeID
+	doModify := false
+
+	qos_opt := utils.GetV(opts, "qos", "")
+	if qos_opt != "" {
+		doModify = true
+		qos, err = parseQOS(qos_opt)
+		if err != nil {
+			return err
+		}
+	}
+
+	type_opt := utils.GetV(opts, "type", "")
+	if type_opt != "" {
+		doModify = true
+		if qos.MinIOPS != 0 {
+			log.Warningf("qos values appear to have been set using -o qos, but type is set as well, overriding with type option")
+		}
+		qos, err = parseType(*d.Client.VolumeTypes, type_opt)
+		if err != nil {
+			return err
+		}
+	}
+
+	if doModify {
+		modifyReq.Qos = qos
+		err = d.Client.ModifyVolume(&modifyReq)
+		if err != nil {
+			log.Errorf("failed to update QoS on clone: %+v", err)
+			return errors.New("error performing clone operation")
+		}
 	}
 	return nil
 }
