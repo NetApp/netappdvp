@@ -50,3 +50,10 @@ In the above configuration we have three policy definitions: *Bronze*, *Silver*,
 
    # create a 100GiB Bronze volume
    docker volume create -d solidfire --name sfBronze -o type=Bronze -o size=100G
+
+Other SolidFire Create Options
+==============================
+
+Volume create options for SolidFire:
+* ``size`` - the size of the volume, defaults to 1GiB or config entry ``... "defaults": {"size": "5G"}``
+* ``blocksize`` - use either ``512`` or ``4096``, defaults to 512 or config entry ``DefaultBockSize``

@@ -91,6 +91,12 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string, commonConfig *
 	d.Config = *c
 
 	var tenantID int64
+	var defaultBlockSize int64
+	defaultBlockSize = 512
+	if c.DefaultBlockSize == 4096 {
+		defaultBlockSize = 4096
+	}
+	log.Infof("default BlockSize for SolidFire volumes is set to: %+v", defaultBlockSize)
 
 	// create a new sfapi.Config object from the read in json config file
 	endpoint := c.EndPoint
@@ -103,6 +109,7 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string, commonConfig *
 		Types:            c.Types,
 		LegacyNamePrefix: c.LegacyNamePrefix,
 		AccessGroups:     c.AccessGroups,
+		DefaultBlockSize: defaultBlockSize,
 	}
 	defaultTenantName := c.TenantName
 
@@ -244,6 +251,25 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 			return err
 		}
 	}
+
+	// Use whatever is set in the config as default
+	if d.Client.DefaultBlockSize == 4096 {
+		req.Enable512e = false
+	} else {
+		req.Enable512e = true
+	}
+
+	// Now check if they specified a blksz and use it if they did
+	blockSizeOpt := utils.GetV(opts, "blocksize", "")
+	log.Errorf("opts is: %+v\nParsed blocksizeopt is: %+v", opts, blockSizeOpt)
+	if blockSizeOpt != "" {
+		if blockSizeOpt == "4096" {
+			req.Enable512e = false
+		} else {
+			req.Enable512e = true
+		}
+	}
+	log.Debugf("set enable512e to: %+v", req.Enable512e)
 
 	req.Qos = qos
 	req.TotalSize = int64(sizeBytes)

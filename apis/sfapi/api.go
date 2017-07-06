@@ -27,6 +27,7 @@ type Client struct {
 	VolumeTypes       *[]VolType
 	Config            *Config
 	AccessGroups      []int64
+	DefaultBlockSize  int64
 }
 
 // Config holds the configuration data for the Client to communicate with a SolidFire storage system
@@ -39,6 +40,7 @@ type Config struct {
 	Types            *[]VolType
 	LegacyNamePrefix string
 	AccessGroups     []int64
+	DefaultBlockSize int64
 }
 
 // VolType holds quality of service configuration data
@@ -65,6 +67,7 @@ func NewFromParameters(pendpoint string, psvip string, pcfg Config, pdefaultTena
 		DefaultAPIPort:    443,
 		VolumeTypes:       pcfg.Types,
 		DefaultTenantName: pdefaultTenantName,
+		DefaultBlockSize:  pcfg.DefaultBlockSize,
 	}
 	return SFClient, nil
 }

@@ -161,6 +161,7 @@ type SolidfireStorageDriverConfig struct {
 	Types                      *[]sfapi.VolType
 	LegacyNamePrefix           string //name prefix used in earlier ndvp versions
 	AccessGroups               []int64
+	DefaultBlockSize           int64 //blocksize to use on create when not specified  (512|4096, 512 is default)
 }
 
 // CommonSnapshot contains the normalized volume snapshot format we report to Docker
