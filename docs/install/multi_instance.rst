@@ -9,13 +9,13 @@ Multiple instances of nDVP are needed when you desire to have multiple storage c
    
    .. code-block:: bash
    
-      docker plugin install --grant-all-permissions --alias silver netapp/ndvp-plugin:17.04 config=silver.json
+      docker plugin install --grant-all-permissions --alias silver netapp/ndvp-plugin:17.07 config=silver.json
    
 #. Launch the second instance, specifying a different alias and configuration file
    
    .. code-block:: bash
    
-      docker plugin install --grant-all-permissions --alias gold netapp/ndvp-plugin:17.04 config=gold.json
+      docker plugin install --grant-all-permissions --alias gold netapp/ndvp-plugin:17.07 config=gold.json
 
 #. Create volumes specifying the alias as the driver name
    

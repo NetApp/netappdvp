@@ -143,8 +143,8 @@ Traditional Install Method (Docker <= 1.12)
    .. code-block:: bash
 
       # download and unpack the application
-      wget https://github.com/NetApp/netappdvp/releases/download/v17.04.0/netappdvp-17.04.0.tar.gz
-      tar zxf netappdvp-17.04.0.tar.gz
+      wget https://github.com/NetApp/netappdvp/releases/download/v17.07.0/netappdvp-17.07.0.tar.gz
+      tar zxf netappdvp-17.07.0.tar.gz
 
       # move to a location in the bin path
       sudo mv netappdvp /usr/local/bin
@@ -280,7 +280,7 @@ Docker Managed Plugin Method (Docker >= 1.13 / 17.03)
 
    .. code-block:: bash
    
-     docker plugin install --grant-all-permissions --alias netapp netapp/ndvp-plugin:17.04
+     docker plugin install --grant-all-permissions --alias netapp netapp/ndvp-plugin:17.07
 
 #. Begin using nDVP to consume storage from the configured system.
 

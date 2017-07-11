@@ -14,6 +14,9 @@
 - Allow ONTAP to split a clone from its parent upon creation
 - Improved efficiency of ONTAP LUN ID selection
 - Improved efficiency of ONTAP volume list
+- Solidfire volumes now have 512e enabled by default (previously defaulted to 4k block size)
+- Added options to toggle Solidfire's 512e setting in config file and at volume create time
+- Added the ability to override QoS values when cloning a volume or snapshot on Solidfire
 
 ## 17.04.0
 
