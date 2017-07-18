@@ -261,7 +261,7 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 
 	// Now check if they specified a blksz and use it if they did
 	blockSizeOpt := utils.GetV(opts, "blocksize", "")
-	log.Errorf("opts is: %+v\nParsed blocksizeopt is: %+v", opts, blockSizeOpt)
+	log.Debugf("opts is: %+v\nParsed blocksizeopt is: %+v", opts, blockSizeOpt)
 	if blockSizeOpt != "" {
 		if blockSizeOpt == "4096" {
 			req.Enable512e = false
