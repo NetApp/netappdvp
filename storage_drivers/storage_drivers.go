@@ -50,6 +50,7 @@ type CommonStorageDriverConfig struct {
 	DisableDelete                     bool            `json:"disableDelete"`
 	StoragePrefixRaw                  json.RawMessage `json:"storagePrefix,string"`
 	StoragePrefix                     *string         `json:"-"`
+	SerialNumbers                     []string        `json:"-"`
 	CommonStorageDriverConfigDefaults `json:"defaults"`
 }
 

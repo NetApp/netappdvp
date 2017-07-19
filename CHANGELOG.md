@@ -7,6 +7,7 @@
 **Fixes:**
 
 **Enhancements:**
+- Added controller serial numbers to logs
 
 ## 17.07.0
 

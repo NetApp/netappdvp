@@ -98,7 +98,7 @@ func (d *SolidfireSANStorageDriver) Initialize(
 	if c.DefaultBlockSize == 4096 {
 		defaultBlockSize = 4096
 	}
-	log.Infof("default BlockSize for SolidFire volumes is set to: %+v", defaultBlockSize)
+	log.WithField("defaultBlockSize", defaultBlockSize).Info("Set default block size for SolidFire volumes.")
 
 	// create a new sfapi.Config object from the read in json config file
 	endpoint := c.EndPoint
@@ -188,6 +188,23 @@ func (d *SolidfireSANStorageDriver) Initialize(
 			return errors.New("no iSCSI support on this host")
 		}
 	}
+
+	// log cluster node serial numbers
+	c.SerialNumbers = make([]string, 0, 0)
+	hwInfo, err := d.Client.GetClusterHardwareInfo()
+	if err != nil {
+		log.Errorf("unable to determine controller serial numbers: %+v ", err)
+	} else {
+		if nodes, ok := hwInfo.Nodes.(map[string]interface{}); ok {
+			for _, node := range nodes {
+				serialNumber, ok := node.(map[string]interface{})["serial"].(string)
+				if ok && serialNumber != "" {
+					c.SerialNumbers = append(c.SerialNumbers, serialNumber)
+				}
+			}
+		}
+	}
+	log.WithField("serialNumbers", c.SerialNumbers).Info("Controller serial numbers.")
 
 	// log an informational message when this plugin starts
 	// TODO how does solidfire do this?

@@ -29,6 +29,39 @@ type MsgConnectResponse struct {
 	AlreadyExists bool   `json:"alreadyExists"`
 }
 
+type Controller struct {
+	Active                   bool   `json:"active"`
+	Quiesced                 bool   `json:"quiesced"`
+	Status                   string `json:"status"`
+	ControllerRef            string `json:"controllerRef"`
+	Manufacturer             string `json:"manufacturer"`
+	ManufacturerDate         string `json:"manufacturerDate"`
+	AppVersion               string `json:"appVersion"`
+	BootVersion              string `json:"bootVersion"`
+	ProductID                string `json:"productID"`
+	ProductRevLevel          string `json:"productRevLevel"`
+	SerialNumber             string `json:"serialNumber"`
+	BoardID                  string `json:"boardID"`
+	CacheMemorySize          int    `json:"cacheMemorySize"`
+	ProcessorMemorySize      int    `json:"processorMemorySize"`
+	Reserved1                string `json:"reserved1"`
+	Reserved2                string `json:"reserved2"`
+	HostBoardID              string `json:"hostBoardID"`
+	PhysicalCacheMemorySize  int    `json:"physicalCacheMemorySize"`
+	ReadyToRemove            bool   `json:"readyToRemove"`
+	BoardSubmodelID          string `json:"boardSubmodelID"`
+	SubmodelSupported        bool   `json:"submodelSupported"`
+	OemPartNumber            string `json:"oemPartNumber"`
+	PartNumber               string `json:"partNumber"`
+	BootTime                 string `json:"bootTime"`
+	ModelName                string `json:"modelName"`
+	FlashCacheMemorySize     int    `json:"flashCacheMemorySize"`
+	LocateInProgress         bool   `json:"locateInProgress"`
+	HasTrayIdentityIndicator bool   `json:"hasTrayIdentityIndicator"`
+	ControllerErrorMode      string `json:"controllerErrorMode"`
+	ID                       string `json:"id"`
+}
+
 type VolumeGroupEx struct {
 	IsOffline      bool   `json:"offline"`
 	WorldWideName  string `json:"worldWideName"`

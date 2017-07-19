@@ -312,6 +312,18 @@ type GetClusterCapacityResult struct {
 	} `json:"result"`
 }
 
+type GetClusterHardwareInfoResult struct {
+	Id     int `json:"id"`
+	Result struct {
+		ClusterHardwareInfo ClusterHardwareInfo `json:"clusterHardwareInfo"`
+	} `json:"result"`
+}
+
+type ClusterHardwareInfo struct {
+	Drives interface{} `json:"drives"`
+	Nodes  interface{} `json:"nodes"`
+}
+
 type ModifyVolumeRequest struct {
 	VolumeID   int64       `json:"volumeID"`
 	AccountID  int64       `json:"accountID,omitempty"`

@@ -138,6 +138,14 @@ func (d *ESeriesStorageDriver) Initialize(
 		return fmt.Errorf("Could not connect to Web Services Proxy. %v", err)
 	}
 
+	// Log controller serial numbers
+	d.Config.SerialNumbers, err = d.API.ListNodeSerialNumbers()
+	if err != nil {
+		log.Warnf("Could not determine controller serial numbers. %v", err)
+	} else {
+		log.WithField("serialNumbers", d.Config.SerialNumbers).Info("Controller serial numbers.")
+	}
+
 	d.Initialized = true
 
 	return nil

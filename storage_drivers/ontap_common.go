@@ -38,6 +38,14 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 	}
 	log.WithField("Ontapi", ontapi).Debug("Data ONTAP API version.")
 
+	// log cluster node serial numbers if we can get them
+	config.SerialNumbers, err = api.ListNodeSerialNumbers()
+	if err != nil {
+		log.Warnf("Could not determine controller serial numbers. %v", err)
+	} else {
+		log.WithField("serialNumbers", config.SerialNumbers).Info("Controller serial numbers.")
+	}
+
 	if config.SVM != "" {
 		log.Debugf("Using specified SVM: %v", config.SVM)
 		return api, nil

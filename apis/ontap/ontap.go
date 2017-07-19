@@ -3,6 +3,7 @@
 package ontap
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -600,6 +601,49 @@ func (d Driver) SystemGetOntapiVersion() (string, error) {
 	}
 
 	return d.zr.OntapiVersion, nil
+}
+
+func (d Driver) ListNodeSerialNumbers() ([]string, error) {
+
+	serialNumbers := make([]string, 0, 0)
+	zr := d.GetNontunneledZapiRunner()
+
+	// Limit the returned data to only the serial numbers
+	desiredAttributes := azgo.NewNodeDetailsInfoType().SetNodeSerialNumber("")
+
+	response, err := azgo.NewSystemNodeGetIterRequest().
+		SetDesiredAttributes(*desiredAttributes).
+		SetMaxRecords(maxZapiRecords).
+		ExecuteUsing(zr)
+
+	if err != nil {
+		return serialNumbers, err
+	}
+	if zerr := NewZapiError(response.Result); !zerr.IsPassed() {
+		return serialNumbers, zerr
+	}
+	if response.Result.NumRecords() == 0 {
+		return serialNumbers, errors.New("Could not get node info.")
+	}
+
+	// Get the serial numbers
+	for _, node := range response.Result.AttributesList() {
+		serialNumber := node.NodeSerialNumber()
+		if serialNumber != "" {
+			serialNumbers = append(serialNumbers, serialNumber)
+		}
+	}
+
+	if len(serialNumbers) == 0 {
+		return serialNumbers, errors.New("Could not get node serial numbers.")
+	}
+
+	log.WithFields(log.Fields{
+		"Count":         len(serialNumbers),
+		"SerialNumbers": serialNumbers,
+	}).Debug("Read serial numbers.")
+
+	return serialNumbers, nil
 }
 
 // EmsAutosupportLog generates an auto support message with the supplied parameters

@@ -265,6 +265,74 @@ func (d ESeriesAPIDriver) Connect() (string, error) {
 	return d.config.ArrayID, nil
 }
 
+// GetControllers returns an array containing all the controllers in the storage system.
+func (d ESeriesAPIDriver) GetControllers() ([]Controller, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "GetControllers",
+			"Type":   "ESeriesAPIDriver",
+		}
+		log.WithFields(fields).Debug(">>>> GetControllers")
+		defer log.WithFields(fields).Debug("<<<< GetControllers")
+	}
+
+	// Query volumes on array
+	response, responseBody, err := d.InvokeAPI(nil, "GET", "/controllers")
+	if err != nil {
+		return nil, errors.New("Failed to read controllers.")
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Failed to read controllers. Status code: %d", response.StatusCode)
+	}
+
+	controllers := make([]Controller, 0)
+	err = json.Unmarshal(responseBody, &controllers)
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse controller data: %s. %v", string(responseBody), err)
+	}
+
+	log.WithField("Count", len(controllers)).Debug("Read controllers.")
+
+	return controllers, nil
+}
+
+// ListNodeSerialNumbers returns an array containing the controller serial numbers for this storage system.
+func (d ESeriesAPIDriver) ListNodeSerialNumbers() ([]string, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "ListNodeSerialNumbers",
+			"Type":   "ESeriesAPIDriver",
+		}
+		log.WithFields(fields).Debug(">>>> ListNodeSerialNumbers")
+		defer log.WithFields(fields).Debug("<<<< ListNodeSerialNumbers")
+	}
+
+	serialNumbers := make([]string, 0, 0)
+
+	controllers, err := d.GetControllers()
+	if err != nil {
+		return serialNumbers, err
+	}
+
+	// Get the serial numbers
+	for _, controller := range controllers {
+		serialNumber := strings.TrimSpace(controller.SerialNumber)
+		if serialNumber != "" {
+			serialNumbers = append(serialNumbers, serialNumber)
+		}
+	}
+
+	log.WithFields(log.Fields{
+		"Count":         len(serialNumbers),
+		"SerialNumbers": serialNumbers,
+	}).Debug("Read serial numbers.")
+
+	return serialNumbers, nil
+}
+
 // GetVolumePools reads all pools on the array, including volume groups and dynamic disk pools. It then
 // filters them based on several selection parameters and returns the ones that match.
 func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uint64, poolName string) ([]VolumeGroupEx, error) {

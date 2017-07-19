@@ -5654,3 +5654,1104 @@ func (o *IscsiServiceInfoType) Vserver() string {
 	r := *o.VserverPtr
 	return r
 }
+
+// NodeDetailsInfoType is a structure to represent a node-details-info ZAPI object
+type NodeDetailsInfoType struct {
+	XMLName xml.Name `xml:"node-details-info"`
+
+	CpuBusytimePtr                 *int                        `xml:"cpu-busytime"`
+	CpuFirmwareReleasePtr          *string                     `xml:"cpu-firmware-release"`
+	EnvFailedFanCountPtr           *int                        `xml:"env-failed-fan-count"`
+	EnvFailedFanMessagePtr         *string                     `xml:"env-failed-fan-message"`
+	EnvFailedPowerSupplyCountPtr   *int                        `xml:"env-failed-power-supply-count"`
+	EnvFailedPowerSupplyMessagePtr *string                     `xml:"env-failed-power-supply-message"`
+	EnvOverTemperaturePtr          *bool                       `xml:"env-over-temperature"`
+	IsAllFlashOptimizedPtr         *bool                       `xml:"is-all-flash-optimized"`
+	IsDiffSvcsPtr                  *bool                       `xml:"is-diff-svcs"`
+	IsEpsilonNodePtr               *bool                       `xml:"is-epsilon-node"`
+	IsNodeClusterEligiblePtr       *bool                       `xml:"is-node-cluster-eligible"`
+	IsNodeHealthyPtr               *bool                       `xml:"is-node-healthy"`
+	MaximumAggregateSizePtr        *SizeType                   `xml:"maximum-aggregate-size"`
+	MaximumNumberOfVolumesPtr      *int                        `xml:"maximum-number-of-volumes"`
+	MaximumVolumeSizePtr           *SizeType                   `xml:"maximum-volume-size"`
+	NodePtr                        *NodeNameType               `xml:"node"`
+	NodeAssetTagPtr                *string                     `xml:"node-asset-tag"`
+	NodeLocationPtr                *string                     `xml:"node-location"`
+	NodeModelPtr                   *string                     `xml:"node-model"`
+	NodeNvramIdPtr                 *int                        `xml:"node-nvram-id"`
+	NodeOwnerPtr                   *string                     `xml:"node-owner"`
+	NodeSerialNumberPtr            *string                     `xml:"node-serial-number"`
+	NodeSystemIdPtr                *string                     `xml:"node-system-id"`
+	NodeUptimePtr                  *int                        `xml:"node-uptime"`
+	NodeUuidPtr                    *string                     `xml:"node-uuid"`
+	NodeVendorPtr                  *string                     `xml:"node-vendor"`
+	NvramBatteryStatusPtr          *NvramBatteryStatusEnumType `xml:"nvram-battery-status"`
+	ProductVersionPtr              *string                     `xml:"product-version"`
+	VmSystemDisksPtr               *VmSystemDisksType          `xml:"vm-system-disks"`
+	VmhostInfoPtr                  *VmhostInfoType             `xml:"vmhost-info"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *NodeDetailsInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewNodeDetailsInfoType is a factory method for creating new instances of NodeDetailsInfoType objects
+func NewNodeDetailsInfoType() *NodeDetailsInfoType { return &NodeDetailsInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o NodeDetailsInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.CpuBusytimePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "cpu-busytime", *o.CpuBusytimePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("cpu-busytime: nil\n"))
+	}
+	if o.CpuFirmwareReleasePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "cpu-firmware-release", *o.CpuFirmwareReleasePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("cpu-firmware-release: nil\n"))
+	}
+	if o.EnvFailedFanCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "env-failed-fan-count", *o.EnvFailedFanCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("env-failed-fan-count: nil\n"))
+	}
+	if o.EnvFailedFanMessagePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "env-failed-fan-message", *o.EnvFailedFanMessagePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("env-failed-fan-message: nil\n"))
+	}
+	if o.EnvFailedPowerSupplyCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "env-failed-power-supply-count", *o.EnvFailedPowerSupplyCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("env-failed-power-supply-count: nil\n"))
+	}
+	if o.EnvFailedPowerSupplyMessagePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "env-failed-power-supply-message", *o.EnvFailedPowerSupplyMessagePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("env-failed-power-supply-message: nil\n"))
+	}
+	if o.EnvOverTemperaturePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "env-over-temperature", *o.EnvOverTemperaturePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("env-over-temperature: nil\n"))
+	}
+	if o.IsAllFlashOptimizedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-all-flash-optimized", *o.IsAllFlashOptimizedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-all-flash-optimized: nil\n"))
+	}
+	if o.IsDiffSvcsPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-diff-svcs", *o.IsDiffSvcsPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-diff-svcs: nil\n"))
+	}
+	if o.IsEpsilonNodePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-epsilon-node", *o.IsEpsilonNodePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-epsilon-node: nil\n"))
+	}
+	if o.IsNodeClusterEligiblePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-node-cluster-eligible", *o.IsNodeClusterEligiblePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-node-cluster-eligible: nil\n"))
+	}
+	if o.IsNodeHealthyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-node-healthy", *o.IsNodeHealthyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-node-healthy: nil\n"))
+	}
+	if o.MaximumAggregateSizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "maximum-aggregate-size", *o.MaximumAggregateSizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("maximum-aggregate-size: nil\n"))
+	}
+	if o.MaximumNumberOfVolumesPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "maximum-number-of-volumes", *o.MaximumNumberOfVolumesPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("maximum-number-of-volumes: nil\n"))
+	}
+	if o.MaximumVolumeSizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "maximum-volume-size", *o.MaximumVolumeSizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("maximum-volume-size: nil\n"))
+	}
+	if o.NodePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node", *o.NodePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node: nil\n"))
+	}
+	if o.NodeAssetTagPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-asset-tag", *o.NodeAssetTagPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-asset-tag: nil\n"))
+	}
+	if o.NodeLocationPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-location", *o.NodeLocationPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-location: nil\n"))
+	}
+	if o.NodeModelPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-model", *o.NodeModelPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-model: nil\n"))
+	}
+	if o.NodeNvramIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-nvram-id", *o.NodeNvramIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-nvram-id: nil\n"))
+	}
+	if o.NodeOwnerPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-owner", *o.NodeOwnerPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-owner: nil\n"))
+	}
+	if o.NodeSerialNumberPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-serial-number", *o.NodeSerialNumberPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-serial-number: nil\n"))
+	}
+	if o.NodeSystemIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-system-id", *o.NodeSystemIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-system-id: nil\n"))
+	}
+	if o.NodeUptimePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-uptime", *o.NodeUptimePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-uptime: nil\n"))
+	}
+	if o.NodeUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-uuid", *o.NodeUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-uuid: nil\n"))
+	}
+	if o.NodeVendorPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-vendor", *o.NodeVendorPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-vendor: nil\n"))
+	}
+	if o.NvramBatteryStatusPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "nvram-battery-status", *o.NvramBatteryStatusPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("nvram-battery-status: nil\n"))
+	}
+	if o.ProductVersionPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "product-version", *o.ProductVersionPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("product-version: nil\n"))
+	}
+	if o.VmSystemDisksPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vm-system-disks", *o.VmSystemDisksPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vm-system-disks: nil\n"))
+	}
+	if o.VmhostInfoPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-info", *o.VmhostInfoPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-info: nil\n"))
+	}
+	return buffer.String()
+}
+
+// CpuBusytime is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) CpuBusytime() int {
+	r := *o.CpuBusytimePtr
+	return r
+}
+
+// SetCpuBusytime is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetCpuBusytime(newValue int) *NodeDetailsInfoType {
+	o.CpuBusytimePtr = &newValue
+	return o
+}
+
+// CpuFirmwareRelease is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) CpuFirmwareRelease() string {
+	r := *o.CpuFirmwareReleasePtr
+	return r
+}
+
+// SetCpuFirmwareRelease is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetCpuFirmwareRelease(newValue string) *NodeDetailsInfoType {
+	o.CpuFirmwareReleasePtr = &newValue
+	return o
+}
+
+// EnvFailedFanCount is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) EnvFailedFanCount() int {
+	r := *o.EnvFailedFanCountPtr
+	return r
+}
+
+// SetEnvFailedFanCount is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetEnvFailedFanCount(newValue int) *NodeDetailsInfoType {
+	o.EnvFailedFanCountPtr = &newValue
+	return o
+}
+
+// EnvFailedFanMessage is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) EnvFailedFanMessage() string {
+	r := *o.EnvFailedFanMessagePtr
+	return r
+}
+
+// SetEnvFailedFanMessage is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetEnvFailedFanMessage(newValue string) *NodeDetailsInfoType {
+	o.EnvFailedFanMessagePtr = &newValue
+	return o
+}
+
+// EnvFailedPowerSupplyCount is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) EnvFailedPowerSupplyCount() int {
+	r := *o.EnvFailedPowerSupplyCountPtr
+	return r
+}
+
+// SetEnvFailedPowerSupplyCount is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetEnvFailedPowerSupplyCount(newValue int) *NodeDetailsInfoType {
+	o.EnvFailedPowerSupplyCountPtr = &newValue
+	return o
+}
+
+// EnvFailedPowerSupplyMessage is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) EnvFailedPowerSupplyMessage() string {
+	r := *o.EnvFailedPowerSupplyMessagePtr
+	return r
+}
+
+// SetEnvFailedPowerSupplyMessage is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetEnvFailedPowerSupplyMessage(newValue string) *NodeDetailsInfoType {
+	o.EnvFailedPowerSupplyMessagePtr = &newValue
+	return o
+}
+
+// EnvOverTemperature is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) EnvOverTemperature() bool {
+	r := *o.EnvOverTemperaturePtr
+	return r
+}
+
+// SetEnvOverTemperature is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetEnvOverTemperature(newValue bool) *NodeDetailsInfoType {
+	o.EnvOverTemperaturePtr = &newValue
+	return o
+}
+
+// IsAllFlashOptimized is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) IsAllFlashOptimized() bool {
+	r := *o.IsAllFlashOptimizedPtr
+	return r
+}
+
+// SetIsAllFlashOptimized is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetIsAllFlashOptimized(newValue bool) *NodeDetailsInfoType {
+	o.IsAllFlashOptimizedPtr = &newValue
+	return o
+}
+
+// IsDiffSvcs is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) IsDiffSvcs() bool {
+	r := *o.IsDiffSvcsPtr
+	return r
+}
+
+// SetIsDiffSvcs is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetIsDiffSvcs(newValue bool) *NodeDetailsInfoType {
+	o.IsDiffSvcsPtr = &newValue
+	return o
+}
+
+// IsEpsilonNode is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) IsEpsilonNode() bool {
+	r := *o.IsEpsilonNodePtr
+	return r
+}
+
+// SetIsEpsilonNode is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetIsEpsilonNode(newValue bool) *NodeDetailsInfoType {
+	o.IsEpsilonNodePtr = &newValue
+	return o
+}
+
+// IsNodeClusterEligible is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) IsNodeClusterEligible() bool {
+	r := *o.IsNodeClusterEligiblePtr
+	return r
+}
+
+// SetIsNodeClusterEligible is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetIsNodeClusterEligible(newValue bool) *NodeDetailsInfoType {
+	o.IsNodeClusterEligiblePtr = &newValue
+	return o
+}
+
+// IsNodeHealthy is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) IsNodeHealthy() bool {
+	r := *o.IsNodeHealthyPtr
+	return r
+}
+
+// SetIsNodeHealthy is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetIsNodeHealthy(newValue bool) *NodeDetailsInfoType {
+	o.IsNodeHealthyPtr = &newValue
+	return o
+}
+
+// MaximumAggregateSize is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) MaximumAggregateSize() SizeType {
+	r := *o.MaximumAggregateSizePtr
+	return r
+}
+
+// SetMaximumAggregateSize is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetMaximumAggregateSize(newValue SizeType) *NodeDetailsInfoType {
+	o.MaximumAggregateSizePtr = &newValue
+	return o
+}
+
+// MaximumNumberOfVolumes is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) MaximumNumberOfVolumes() int {
+	r := *o.MaximumNumberOfVolumesPtr
+	return r
+}
+
+// SetMaximumNumberOfVolumes is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetMaximumNumberOfVolumes(newValue int) *NodeDetailsInfoType {
+	o.MaximumNumberOfVolumesPtr = &newValue
+	return o
+}
+
+// MaximumVolumeSize is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) MaximumVolumeSize() SizeType {
+	r := *o.MaximumVolumeSizePtr
+	return r
+}
+
+// SetMaximumVolumeSize is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetMaximumVolumeSize(newValue SizeType) *NodeDetailsInfoType {
+	o.MaximumVolumeSizePtr = &newValue
+	return o
+}
+
+// Node is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) Node() NodeNameType {
+	r := *o.NodePtr
+	return r
+}
+
+// SetNode is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNode(newValue NodeNameType) *NodeDetailsInfoType {
+	o.NodePtr = &newValue
+	return o
+}
+
+// NodeAssetTag is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeAssetTag() string {
+	r := *o.NodeAssetTagPtr
+	return r
+}
+
+// SetNodeAssetTag is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeAssetTag(newValue string) *NodeDetailsInfoType {
+	o.NodeAssetTagPtr = &newValue
+	return o
+}
+
+// NodeLocation is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeLocation() string {
+	r := *o.NodeLocationPtr
+	return r
+}
+
+// SetNodeLocation is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeLocation(newValue string) *NodeDetailsInfoType {
+	o.NodeLocationPtr = &newValue
+	return o
+}
+
+// NodeModel is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeModel() string {
+	r := *o.NodeModelPtr
+	return r
+}
+
+// SetNodeModel is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeModel(newValue string) *NodeDetailsInfoType {
+	o.NodeModelPtr = &newValue
+	return o
+}
+
+// NodeNvramId is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeNvramId() int {
+	r := *o.NodeNvramIdPtr
+	return r
+}
+
+// SetNodeNvramId is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeNvramId(newValue int) *NodeDetailsInfoType {
+	o.NodeNvramIdPtr = &newValue
+	return o
+}
+
+// NodeOwner is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeOwner() string {
+	r := *o.NodeOwnerPtr
+	return r
+}
+
+// SetNodeOwner is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeOwner(newValue string) *NodeDetailsInfoType {
+	o.NodeOwnerPtr = &newValue
+	return o
+}
+
+// NodeSerialNumber is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeSerialNumber() string {
+	r := *o.NodeSerialNumberPtr
+	return r
+}
+
+// SetNodeSerialNumber is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeSerialNumber(newValue string) *NodeDetailsInfoType {
+	o.NodeSerialNumberPtr = &newValue
+	return o
+}
+
+// NodeSystemId is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeSystemId() string {
+	r := *o.NodeSystemIdPtr
+	return r
+}
+
+// SetNodeSystemId is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeSystemId(newValue string) *NodeDetailsInfoType {
+	o.NodeSystemIdPtr = &newValue
+	return o
+}
+
+// NodeUptime is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeUptime() int {
+	r := *o.NodeUptimePtr
+	return r
+}
+
+// SetNodeUptime is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeUptime(newValue int) *NodeDetailsInfoType {
+	o.NodeUptimePtr = &newValue
+	return o
+}
+
+// NodeUuid is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeUuid() string {
+	r := *o.NodeUuidPtr
+	return r
+}
+
+// SetNodeUuid is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeUuid(newValue string) *NodeDetailsInfoType {
+	o.NodeUuidPtr = &newValue
+	return o
+}
+
+// NodeVendor is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NodeVendor() string {
+	r := *o.NodeVendorPtr
+	return r
+}
+
+// SetNodeVendor is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNodeVendor(newValue string) *NodeDetailsInfoType {
+	o.NodeVendorPtr = &newValue
+	return o
+}
+
+// NvramBatteryStatus is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) NvramBatteryStatus() NvramBatteryStatusEnumType {
+	r := *o.NvramBatteryStatusPtr
+	return r
+}
+
+// SetNvramBatteryStatus is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetNvramBatteryStatus(newValue NvramBatteryStatusEnumType) *NodeDetailsInfoType {
+	o.NvramBatteryStatusPtr = &newValue
+	return o
+}
+
+// ProductVersion is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) ProductVersion() string {
+	r := *o.ProductVersionPtr
+	return r
+}
+
+// SetProductVersion is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetProductVersion(newValue string) *NodeDetailsInfoType {
+	o.ProductVersionPtr = &newValue
+	return o
+}
+
+// VmSystemDisks is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) VmSystemDisks() VmSystemDisksType {
+	r := *o.VmSystemDisksPtr
+	return r
+}
+
+// SetVmSystemDisks is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetVmSystemDisks(newValue VmSystemDisksType) *NodeDetailsInfoType {
+	o.VmSystemDisksPtr = &newValue
+	return o
+}
+
+// VmhostInfo is a fluent style 'getter' method that can be chained
+func (o *NodeDetailsInfoType) VmhostInfo() VmhostInfoType {
+	r := *o.VmhostInfoPtr
+	return r
+}
+
+// SetVmhostInfo is a fluent style 'setter' method that can be chained
+func (o *NodeDetailsInfoType) SetVmhostInfo(newValue VmhostInfoType) *NodeDetailsInfoType {
+	o.VmhostInfoPtr = &newValue
+	return o
+}
+
+// NvramBatteryStatusEnumType is a structure to represent a nvram-battery-status-enum ZAPI object
+type NvramBatteryStatusEnumType string
+
+// VmSystemDisksType is a structure to represent a vm-system-disks ZAPI object
+type VmSystemDisksType struct {
+	XMLName xml.Name `xml:"vm-system-disks"`
+
+	VmBootdiskAreaNamePtr *string `xml:"vm-bootdisk-area-name"`
+	VmBootdiskFileNamePtr *string `xml:"vm-bootdisk-file-name"`
+	VmCorediskAreaNamePtr *string `xml:"vm-coredisk-area-name"`
+	VmCorediskFileNamePtr *string `xml:"vm-coredisk-file-name"`
+	VmLogdiskAreaNamePtr  *string `xml:"vm-logdisk-area-name"`
+	VmLogdiskFileNamePtr  *string `xml:"vm-logdisk-file-name"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *VmSystemDisksType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewVmSystemDisksType is a factory method for creating new instances of VmSystemDisksType objects
+func NewVmSystemDisksType() *VmSystemDisksType { return &VmSystemDisksType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o VmSystemDisksType) String() string {
+	var buffer bytes.Buffer
+	if o.VmBootdiskAreaNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vm-bootdisk-area-name", *o.VmBootdiskAreaNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vm-bootdisk-area-name: nil\n"))
+	}
+	if o.VmBootdiskFileNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vm-bootdisk-file-name", *o.VmBootdiskFileNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vm-bootdisk-file-name: nil\n"))
+	}
+	if o.VmCorediskAreaNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vm-coredisk-area-name", *o.VmCorediskAreaNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vm-coredisk-area-name: nil\n"))
+	}
+	if o.VmCorediskFileNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vm-coredisk-file-name", *o.VmCorediskFileNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vm-coredisk-file-name: nil\n"))
+	}
+	if o.VmLogdiskAreaNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vm-logdisk-area-name", *o.VmLogdiskAreaNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vm-logdisk-area-name: nil\n"))
+	}
+	if o.VmLogdiskFileNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vm-logdisk-file-name", *o.VmLogdiskFileNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vm-logdisk-file-name: nil\n"))
+	}
+	return buffer.String()
+}
+
+// VmBootdiskAreaName is a fluent style 'getter' method that can be chained
+func (o *VmSystemDisksType) VmBootdiskAreaName() string {
+	r := *o.VmBootdiskAreaNamePtr
+	return r
+}
+
+// SetVmBootdiskAreaName is a fluent style 'setter' method that can be chained
+func (o *VmSystemDisksType) SetVmBootdiskAreaName(newValue string) *VmSystemDisksType {
+	o.VmBootdiskAreaNamePtr = &newValue
+	return o
+}
+
+// VmBootdiskFileName is a fluent style 'getter' method that can be chained
+func (o *VmSystemDisksType) VmBootdiskFileName() string {
+	r := *o.VmBootdiskFileNamePtr
+	return r
+}
+
+// SetVmBootdiskFileName is a fluent style 'setter' method that can be chained
+func (o *VmSystemDisksType) SetVmBootdiskFileName(newValue string) *VmSystemDisksType {
+	o.VmBootdiskFileNamePtr = &newValue
+	return o
+}
+
+// VmCorediskAreaName is a fluent style 'getter' method that can be chained
+func (o *VmSystemDisksType) VmCorediskAreaName() string {
+	r := *o.VmCorediskAreaNamePtr
+	return r
+}
+
+// SetVmCorediskAreaName is a fluent style 'setter' method that can be chained
+func (o *VmSystemDisksType) SetVmCorediskAreaName(newValue string) *VmSystemDisksType {
+	o.VmCorediskAreaNamePtr = &newValue
+	return o
+}
+
+// VmCorediskFileName is a fluent style 'getter' method that can be chained
+func (o *VmSystemDisksType) VmCorediskFileName() string {
+	r := *o.VmCorediskFileNamePtr
+	return r
+}
+
+// SetVmCorediskFileName is a fluent style 'setter' method that can be chained
+func (o *VmSystemDisksType) SetVmCorediskFileName(newValue string) *VmSystemDisksType {
+	o.VmCorediskFileNamePtr = &newValue
+	return o
+}
+
+// VmLogdiskAreaName is a fluent style 'getter' method that can be chained
+func (o *VmSystemDisksType) VmLogdiskAreaName() string {
+	r := *o.VmLogdiskAreaNamePtr
+	return r
+}
+
+// SetVmLogdiskAreaName is a fluent style 'setter' method that can be chained
+func (o *VmSystemDisksType) SetVmLogdiskAreaName(newValue string) *VmSystemDisksType {
+	o.VmLogdiskAreaNamePtr = &newValue
+	return o
+}
+
+// VmLogdiskFileName is a fluent style 'getter' method that can be chained
+func (o *VmSystemDisksType) VmLogdiskFileName() string {
+	r := *o.VmLogdiskFileNamePtr
+	return r
+}
+
+// SetVmLogdiskFileName is a fluent style 'setter' method that can be chained
+func (o *VmSystemDisksType) SetVmLogdiskFileName(newValue string) *VmSystemDisksType {
+	o.VmLogdiskFileNamePtr = &newValue
+	return o
+}
+
+// VmhostInfoType is a structure to represent a vmhost-info ZAPI object
+type VmhostInfoType struct {
+	XMLName xml.Name `xml:"vmhost-info"`
+
+	VmUuidPtr                *string `xml:"vm-uuid"`
+	VmhostBiosReleaseDatePtr *string `xml:"vmhost-bios-release-date"`
+	VmhostBiosVersionPtr     *string `xml:"vmhost-bios-version"`
+	VmhostBootTimePtr        *string `xml:"vmhost-boot-time"`
+	VmhostCpuClockRatePtr    *int    `xml:"vmhost-cpu-clock-rate"`
+	VmhostCpuCoreCountPtr    *int    `xml:"vmhost-cpu-core-count"`
+	VmhostCpuSocketCountPtr  *int    `xml:"vmhost-cpu-socket-count"`
+	VmhostCpuThreadCountPtr  *int    `xml:"vmhost-cpu-thread-count"`
+	VmhostErrorPtr           *string `xml:"vmhost-error"`
+	VmhostGatewayPtr         *string `xml:"vmhost-gateway"`
+	VmhostHardwareVendorPtr  *string `xml:"vmhost-hardware-vendor"`
+	VmhostHypervisorPtr      *string `xml:"vmhost-hypervisor"`
+	VmhostIpAddressPtr       *string `xml:"vmhost-ip-address"`
+	VmhostMemoryPtr          *int    `xml:"vmhost-memory"`
+	VmhostModelPtr           *string `xml:"vmhost-model"`
+	VmhostNamePtr            *string `xml:"vmhost-name"`
+	VmhostNetmaskPtr         *string `xml:"vmhost-netmask"`
+	VmhostProcessorIdPtr     *string `xml:"vmhost-processor-id"`
+	VmhostProcessorTypePtr   *string `xml:"vmhost-processor-type"`
+	VmhostSoftwareVendorPtr  *string `xml:"vmhost-software-vendor"`
+	VmhostUuidPtr            *string `xml:"vmhost-uuid"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *VmhostInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewVmhostInfoType is a factory method for creating new instances of VmhostInfoType objects
+func NewVmhostInfoType() *VmhostInfoType { return &VmhostInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o VmhostInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.VmUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vm-uuid", *o.VmUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vm-uuid: nil\n"))
+	}
+	if o.VmhostBiosReleaseDatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-bios-release-date", *o.VmhostBiosReleaseDatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-bios-release-date: nil\n"))
+	}
+	if o.VmhostBiosVersionPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-bios-version", *o.VmhostBiosVersionPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-bios-version: nil\n"))
+	}
+	if o.VmhostBootTimePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-boot-time", *o.VmhostBootTimePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-boot-time: nil\n"))
+	}
+	if o.VmhostCpuClockRatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-cpu-clock-rate", *o.VmhostCpuClockRatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-cpu-clock-rate: nil\n"))
+	}
+	if o.VmhostCpuCoreCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-cpu-core-count", *o.VmhostCpuCoreCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-cpu-core-count: nil\n"))
+	}
+	if o.VmhostCpuSocketCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-cpu-socket-count", *o.VmhostCpuSocketCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-cpu-socket-count: nil\n"))
+	}
+	if o.VmhostCpuThreadCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-cpu-thread-count", *o.VmhostCpuThreadCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-cpu-thread-count: nil\n"))
+	}
+	if o.VmhostErrorPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-error", *o.VmhostErrorPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-error: nil\n"))
+	}
+	if o.VmhostGatewayPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-gateway", *o.VmhostGatewayPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-gateway: nil\n"))
+	}
+	if o.VmhostHardwareVendorPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-hardware-vendor", *o.VmhostHardwareVendorPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-hardware-vendor: nil\n"))
+	}
+	if o.VmhostHypervisorPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-hypervisor", *o.VmhostHypervisorPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-hypervisor: nil\n"))
+	}
+	if o.VmhostIpAddressPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-ip-address", *o.VmhostIpAddressPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-ip-address: nil\n"))
+	}
+	if o.VmhostMemoryPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-memory", *o.VmhostMemoryPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-memory: nil\n"))
+	}
+	if o.VmhostModelPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-model", *o.VmhostModelPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-model: nil\n"))
+	}
+	if o.VmhostNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-name", *o.VmhostNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-name: nil\n"))
+	}
+	if o.VmhostNetmaskPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-netmask", *o.VmhostNetmaskPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-netmask: nil\n"))
+	}
+	if o.VmhostProcessorIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-processor-id", *o.VmhostProcessorIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-processor-id: nil\n"))
+	}
+	if o.VmhostProcessorTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-processor-type", *o.VmhostProcessorTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-processor-type: nil\n"))
+	}
+	if o.VmhostSoftwareVendorPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-software-vendor", *o.VmhostSoftwareVendorPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-software-vendor: nil\n"))
+	}
+	if o.VmhostUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vmhost-uuid", *o.VmhostUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vmhost-uuid: nil\n"))
+	}
+	return buffer.String()
+}
+
+// VmUuid is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmUuid() string {
+	r := *o.VmUuidPtr
+	return r
+}
+
+// SetVmUuid is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmUuid(newValue string) *VmhostInfoType {
+	o.VmUuidPtr = &newValue
+	return o
+}
+
+// VmhostBiosReleaseDate is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostBiosReleaseDate() string {
+	r := *o.VmhostBiosReleaseDatePtr
+	return r
+}
+
+// SetVmhostBiosReleaseDate is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostBiosReleaseDate(newValue string) *VmhostInfoType {
+	o.VmhostBiosReleaseDatePtr = &newValue
+	return o
+}
+
+// VmhostBiosVersion is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostBiosVersion() string {
+	r := *o.VmhostBiosVersionPtr
+	return r
+}
+
+// SetVmhostBiosVersion is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostBiosVersion(newValue string) *VmhostInfoType {
+	o.VmhostBiosVersionPtr = &newValue
+	return o
+}
+
+// VmhostBootTime is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostBootTime() string {
+	r := *o.VmhostBootTimePtr
+	return r
+}
+
+// SetVmhostBootTime is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostBootTime(newValue string) *VmhostInfoType {
+	o.VmhostBootTimePtr = &newValue
+	return o
+}
+
+// VmhostCpuClockRate is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostCpuClockRate() int {
+	r := *o.VmhostCpuClockRatePtr
+	return r
+}
+
+// SetVmhostCpuClockRate is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostCpuClockRate(newValue int) *VmhostInfoType {
+	o.VmhostCpuClockRatePtr = &newValue
+	return o
+}
+
+// VmhostCpuCoreCount is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostCpuCoreCount() int {
+	r := *o.VmhostCpuCoreCountPtr
+	return r
+}
+
+// SetVmhostCpuCoreCount is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostCpuCoreCount(newValue int) *VmhostInfoType {
+	o.VmhostCpuCoreCountPtr = &newValue
+	return o
+}
+
+// VmhostCpuSocketCount is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostCpuSocketCount() int {
+	r := *o.VmhostCpuSocketCountPtr
+	return r
+}
+
+// SetVmhostCpuSocketCount is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostCpuSocketCount(newValue int) *VmhostInfoType {
+	o.VmhostCpuSocketCountPtr = &newValue
+	return o
+}
+
+// VmhostCpuThreadCount is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostCpuThreadCount() int {
+	r := *o.VmhostCpuThreadCountPtr
+	return r
+}
+
+// SetVmhostCpuThreadCount is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostCpuThreadCount(newValue int) *VmhostInfoType {
+	o.VmhostCpuThreadCountPtr = &newValue
+	return o
+}
+
+// VmhostError is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostError() string {
+	r := *o.VmhostErrorPtr
+	return r
+}
+
+// SetVmhostError is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostError(newValue string) *VmhostInfoType {
+	o.VmhostErrorPtr = &newValue
+	return o
+}
+
+// VmhostGateway is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostGateway() string {
+	r := *o.VmhostGatewayPtr
+	return r
+}
+
+// SetVmhostGateway is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostGateway(newValue string) *VmhostInfoType {
+	o.VmhostGatewayPtr = &newValue
+	return o
+}
+
+// VmhostHardwareVendor is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostHardwareVendor() string {
+	r := *o.VmhostHardwareVendorPtr
+	return r
+}
+
+// SetVmhostHardwareVendor is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostHardwareVendor(newValue string) *VmhostInfoType {
+	o.VmhostHardwareVendorPtr = &newValue
+	return o
+}
+
+// VmhostHypervisor is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostHypervisor() string {
+	r := *o.VmhostHypervisorPtr
+	return r
+}
+
+// SetVmhostHypervisor is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostHypervisor(newValue string) *VmhostInfoType {
+	o.VmhostHypervisorPtr = &newValue
+	return o
+}
+
+// VmhostIpAddress is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostIpAddress() string {
+	r := *o.VmhostIpAddressPtr
+	return r
+}
+
+// SetVmhostIpAddress is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostIpAddress(newValue string) *VmhostInfoType {
+	o.VmhostIpAddressPtr = &newValue
+	return o
+}
+
+// VmhostMemory is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostMemory() int {
+	r := *o.VmhostMemoryPtr
+	return r
+}
+
+// SetVmhostMemory is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostMemory(newValue int) *VmhostInfoType {
+	o.VmhostMemoryPtr = &newValue
+	return o
+}
+
+// VmhostModel is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostModel() string {
+	r := *o.VmhostModelPtr
+	return r
+}
+
+// SetVmhostModel is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostModel(newValue string) *VmhostInfoType {
+	o.VmhostModelPtr = &newValue
+	return o
+}
+
+// VmhostName is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostName() string {
+	r := *o.VmhostNamePtr
+	return r
+}
+
+// SetVmhostName is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostName(newValue string) *VmhostInfoType {
+	o.VmhostNamePtr = &newValue
+	return o
+}
+
+// VmhostNetmask is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostNetmask() string {
+	r := *o.VmhostNetmaskPtr
+	return r
+}
+
+// SetVmhostNetmask is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostNetmask(newValue string) *VmhostInfoType {
+	o.VmhostNetmaskPtr = &newValue
+	return o
+}
+
+// VmhostProcessorId is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostProcessorId() string {
+	r := *o.VmhostProcessorIdPtr
+	return r
+}
+
+// SetVmhostProcessorId is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostProcessorId(newValue string) *VmhostInfoType {
+	o.VmhostProcessorIdPtr = &newValue
+	return o
+}
+
+// VmhostProcessorType is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostProcessorType() string {
+	r := *o.VmhostProcessorTypePtr
+	return r
+}
+
+// SetVmhostProcessorType is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostProcessorType(newValue string) *VmhostInfoType {
+	o.VmhostProcessorTypePtr = &newValue
+	return o
+}
+
+// VmhostSoftwareVendor is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostSoftwareVendor() string {
+	r := *o.VmhostSoftwareVendorPtr
+	return r
+}
+
+// SetVmhostSoftwareVendor is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostSoftwareVendor(newValue string) *VmhostInfoType {
+	o.VmhostSoftwareVendorPtr = &newValue
+	return o
+}
+
+// VmhostUuid is a fluent style 'getter' method that can be chained
+func (o *VmhostInfoType) VmhostUuid() string {
+	r := *o.VmhostUuidPtr
+	return r
+}
+
+// SetVmhostUuid is a fluent style 'setter' method that can be chained
+func (o *VmhostInfoType) SetVmhostUuid(newValue string) *VmhostInfoType {
+	o.VmhostUuidPtr = &newValue
+	return o
+}

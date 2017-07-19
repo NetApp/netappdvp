@@ -101,7 +101,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Infof("Initalized driver; plugin ready!")
+	log.Info("Initialized driver; plugin ready!")
 
 	h := volume.NewHandler(d)
 
