@@ -2,7 +2,13 @@
 
 [Releases](https://github.com/NetApp/netappdvp/releases)
 
-## Changes since 17.04.0
+## Changes since 17.07.0
+
+**Fixes:**
+
+**Enhancements:**
+
+## 17.07.0
 
 **Fixes:**
 - Increased wait time for SolidFire devices to appear
