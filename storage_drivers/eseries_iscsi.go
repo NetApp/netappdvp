@@ -46,7 +46,9 @@ func (d *ESeriesStorageDriver) Protocol() string {
 }
 
 // Initialize from the provided config
-func (d *ESeriesStorageDriver) Initialize(configJSON string, commonConfig *CommonStorageDriverConfig) error {
+func (d *ESeriesStorageDriver) Initialize(
+	context DriverContext, configJSON string, commonConfig *CommonStorageDriverConfig,
+) error {
 
 	// Trace logging hasn't been set up yet, so always do it here
 	fields := log.Fields{
@@ -122,10 +124,12 @@ func (d *ESeriesStorageDriver) Initialize(configJSON string, commonConfig *Commo
 		DebugTraceFlags:       config.CommonStorageDriverConfig.DebugTraceFlags,
 	})
 
-	// Make sure this host is logged into the E-series iSCSI target
-	err = utils.EnsureIscsiSession(d.Config.HostDataIP)
-	if err != nil {
-		return fmt.Errorf("Could not establish iSCSI session. %v", err)
+	if context == ContextNDVP {
+		// Make sure this host is logged into the E-series iSCSI target
+		err = utils.EnsureIscsiSession(d.Config.HostDataIP)
+		if err != nil {
+			return fmt.Errorf("Could not establish iSCSI session. %v", err)
+		}
 	}
 
 	// Connect to web services proxy

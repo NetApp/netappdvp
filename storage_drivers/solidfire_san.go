@@ -65,7 +65,9 @@ func (d SolidfireSANStorageDriver) Name() string {
 }
 
 // Initialize from the provided config
-func (d *SolidfireSANStorageDriver) Initialize(configJSON string, commonConfig *CommonStorageDriverConfig) error {
+func (d *SolidfireSANStorageDriver) Initialize(
+	context DriverContext, configJSON string, commonConfig *CommonStorageDriverConfig,
+) error {
 	log.Debug("SolidfireSANStorageDriver#Initialize(...)")
 	c := &SolidfireStorageDriverConfig{}
 	c.CommonStorageDriverConfig = commonConfig
@@ -178,6 +180,15 @@ func (d *SolidfireSANStorageDriver) Initialize(configJSON string, commonConfig *
 		return errors.New("error encountered validating SolidFire driver on init")
 	}
 
+	if context == ContextNDVP {
+		// Validate the environment
+		isIscsiSupported := utils.IscsiSupported()
+		if !isIscsiSupported {
+			log.Errorf("host doesn't appear to support iSCSI")
+			return errors.New("no iSCSI support on this host")
+		}
+	}
+
 	// log an informational message when this plugin starts
 	// TODO how does solidfire do this?
 	//EmsInitialized(d.Name(), d.api)
@@ -200,13 +211,6 @@ func (d *SolidfireSANStorageDriver) Validate() error {
 	}
 	if d.Config.SVIP == "" {
 		log.Fatal("missing required SVIP in config")
-	}
-
-	// Validate the environment
-	isIscsiSupported := utils.IscsiSupported()
-	if !isIscsiSupported {
-		log.Errorf("host doesn't appear to support iSCSI")
-		return errors.New("no iSCSI support on this host")
 	}
 
 	return nil

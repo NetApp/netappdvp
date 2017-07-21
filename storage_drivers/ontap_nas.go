@@ -48,7 +48,9 @@ func (d *OntapNASStorageDriver) Name() string {
 }
 
 // Initialize from the provided config
-func (d *OntapNASStorageDriver) Initialize(configJSON string, commonConfig *CommonStorageDriverConfig) error {
+func (d *OntapNASStorageDriver) Initialize(
+	context DriverContext, configJSON string, commonConfig *CommonStorageDriverConfig,
+) error {
 	log.Debugf("OntapNASStorageDriver#Initialize(...)")
 
 	config := &OntapStorageDriverConfig{}

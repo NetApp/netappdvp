@@ -12,6 +12,14 @@ import (
 	"github.com/netapp/netappdvp/utils"
 )
 
+// Context is how the storage drivers are being used
+type DriverContext string
+
+const (
+	ContextNDVP    DriverContext = "ndvp"
+	ContextTrident               = "trident"
+)
+
 // ConfigVersion is the expected version specified in the config file
 const ConfigVersion = 1
 
@@ -176,7 +184,7 @@ var Drivers = make(map[string]StorageDriver)
 // StorageDriver provides a common interface for storage related operations
 type StorageDriver interface {
 	Name() string
-	Initialize(string, *CommonStorageDriverConfig) error
+	Initialize(DriverContext, string, *CommonStorageDriverConfig) error
 	Validate() error
 	Create(name string, sizeBytes uint64, opts map[string]string) error
 	CreateClone(name, source, snapshot string, opts map[string]string) error

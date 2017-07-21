@@ -88,7 +88,7 @@ func main() {
 	}).Info("Initializing storage driver")
 
 	// Initialize the specified storage driver which also triggers a call to Validate
-	if err := storageDriver.Initialize(configJSON, commonConfig); err != nil {
+	if err := storageDriver.Initialize(storage_drivers.ContextNDVP, configJSON, commonConfig); err != nil {
 		log.WithFields(log.Fields{
 			"storageDriverName": commonConfig.StorageDriverName,
 			"error":             err,
