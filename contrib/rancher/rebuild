@@ -2,6 +2,6 @@
 
 rm -f ./netappdvp
 cp -f ../../bin/netappdvp .
-docker rmi netapp/ndvp:1.3
-docker build -t netapp/ndvp:1.3 .
+docker rmi netapp/ndvp:17.07
+docker build -t netapp/ndvp:17.07 .
 

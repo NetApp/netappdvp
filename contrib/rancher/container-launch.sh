@@ -9,11 +9,11 @@ for i in "$@"; do
 		--volume-driver=*)
                         VOLUME_DRIVER_NAME_SET_FROM_CLI=true
 			VOLUME_DRIVER_NAME="${i#*=}"
-			shift 
+			shift
 		;;
 		--config=*)
 			CONFIG_LOCATION="${i#*=}"
-			shift 
+			shift
 		;;
 		*)
 		    # unknown option, ignore
@@ -112,6 +112,14 @@ else
     printf "Using existing config ${CONFIG_JSON}\n"
 fi
 
+DEBUG=""
+DEBUG_SETTING=$(jq 'if has("debug") then .debug else false end' ${CONFIG_JSON})
+if [ $? -eq 0 ]; then
+	DEBUG="-debug=${DEBUG_SETTING}"
+else
+    DEBUG="-debug=false"
+fi
+
 OUTPUT=$(/usr/bin/env -i PATH='/host/sbin:/host/bin:/host/usr/bin' /usr/bin/which rescan-scsi-bus)
 if [ $? -ne 0 ]; then
     rm -f /netapp/rescan-scsi-bus /sbin/rescan-scsi-bus
@@ -130,4 +138,4 @@ if [ ! -e "/host/var/lib/docker-volumes" ]; then
     mkdir -p /host/var/lib/docker-volumes
 fi
 
-/usr/bin/env -i PATH='/netapp:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' /netapp/netappdvp --volume-driver=${VOLUME_DRIVER_NAME} --config=${CONFIG_JSON}
+/usr/bin/env -i PATH='/netapp:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' /netapp/netappdvp ${DEBUG} --volume-driver=${VOLUME_DRIVER_NAME} --config=${CONFIG_JSON}
