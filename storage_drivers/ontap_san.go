@@ -50,7 +50,9 @@ func (d OntapSANStorageDriver) Name() string {
 }
 
 // Initialize from the provided config
-func (d *OntapSANStorageDriver) Initialize(configJSON string, commonConfig *CommonStorageDriverConfig) error {
+func (d *OntapSANStorageDriver) Initialize(
+	context DriverContext, configJSON string, commonConfig *CommonStorageDriverConfig,
+) error {
 	log.Debugf("OntapSANStorageDriver#Initialize(...)")
 
 	config := &OntapStorageDriverConfig{}
@@ -88,6 +90,14 @@ func (d *OntapSANStorageDriver) Initialize(configJSON string, commonConfig *Comm
 	validationErr := d.Validate()
 	if validationErr != nil {
 		return fmt.Errorf("Problem validating OntapSANStorageDriver: %v", validationErr)
+	}
+
+	if context == ContextNDVP {
+		// Make sure this host is logged into the ONTAP iSCSI target
+		err := utils.EnsureIscsiSession(d.Config.DataLIF)
+		if err != nil {
+			return fmt.Errorf("Could not establish iSCSI session. %v", err)
+		}
 	}
 
 	// log an informational message on a heartbeat
@@ -160,12 +170,6 @@ func (d *OntapSANStorageDriver) Validate() error {
 
 	if !foundIscsi {
 		return fmt.Errorf("Could not find iSCSI DataLIF")
-	}
-
-	// Make sure this host is logged into the ONTAP iSCSI target
-	err := utils.EnsureIscsiSession(d.Config.DataLIF)
-	if err != nil {
-		return fmt.Errorf("Could not establish iSCSI session. %v", err)
 	}
 
 	return nil
