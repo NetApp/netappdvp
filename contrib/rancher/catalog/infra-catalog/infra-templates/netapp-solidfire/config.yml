@@ -1,5 +1,5 @@
 name: NetApp SolidFire
 description: |
   Volume plugin for SolidFire
-version: 1.3.3
+version: 17.07
 category: Storage

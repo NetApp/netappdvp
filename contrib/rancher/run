@@ -10,5 +10,5 @@ docker run \
     -v /run:/run:shared \
     -v ${PWD}:/etc/netappdvp \
     --name=ndvp \
-    netapp/ndvp:1.3 ash
+    netapp/ndvp:17.07 ash
 

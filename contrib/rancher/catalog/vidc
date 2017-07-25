@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-vim infra-catalog/infra-templates/netapp-*/0/docker-compose.yml 
+#vim infra-catalog/infra-templates/netapp-*/0/docker-compose.yml 
+vim infra-catalog/infra-templates/netapp-*/1/docker-compose.yml 

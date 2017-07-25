@@ -15,6 +15,7 @@ BUILD_FLAGS="-X \"main.GitHash=$(GITHASH)\" -X \"main.BuildType=$(BUILD_TYPE)\" 
 # on the same machine.
 GO_PATH_VOLUME="netappdvp_go_path_$(BUILD_TAG)"
 GO=docker run --rm \
+	--net=host \
 	-e GOOS=$(GOOS) \
 	-e GOARCH=$(GOARCH) \
 	-e GOGC=$(GOGC) \
