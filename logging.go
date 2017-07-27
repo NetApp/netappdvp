@@ -15,6 +15,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/storage_drivers"
 	"github.com/netapp/netappdvp/utils"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const LOG_ROOT = "/var/log/netappdvp"
@@ -76,6 +77,15 @@ func (hook *ConsoleHook) Levels() []log.Level {
 	return log.AllLevels
 }
 
+func (hook *ConsoleHook) checkIfTerminal(w io.Writer) bool {
+	switch v := w.(type) {
+	case *os.File:
+		return terminal.IsTerminal(int(v.Fd()))
+	default:
+		return false
+	}
+}
+
 func (hook *ConsoleHook) Fire(entry *log.Entry) error {
 
 	// Determine output stream
@@ -88,7 +98,7 @@ func (hook *ConsoleHook) Fire(entry *log.Entry) error {
 	}
 
 	// Write log entry to output stream
-	hook.formatter.(*log.TextFormatter).ForceColors = log.IsTerminal(logWriter)
+	hook.formatter.(*log.TextFormatter).ForceColors = hook.checkIfTerminal(logWriter)
 	lineBytes, err := hook.formatter.Format(entry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to read entry, %v", err)
