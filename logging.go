@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/storage_drivers"
@@ -76,19 +78,23 @@ func (hook *ConsoleHook) Levels() []log.Level {
 
 func (hook *ConsoleHook) Fire(entry *log.Entry) error {
 
-	// Write log entry to stdout
+	// Determine output stream
+	var logWriter io.Writer
+	switch entry.Level {
+	case log.DebugLevel, log.InfoLevel, log.WarnLevel:
+		logWriter = os.Stdout
+	case log.ErrorLevel, log.FatalLevel, log.PanicLevel:
+		logWriter = os.Stderr
+	}
+
+	// Write log entry to output stream
+	hook.formatter.(*log.TextFormatter).ForceColors = log.IsTerminal(logWriter)
 	lineBytes, err := hook.formatter.Format(entry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to read entry, %v", err)
 		return err
 	}
-
-	switch entry.Level {
-	case log.DebugLevel, log.InfoLevel, log.WarnLevel:
-		os.Stdout.Write(lineBytes)
-	case log.ErrorLevel, log.FatalLevel, log.PanicLevel:
-		os.Stderr.Write(lineBytes)
-	}
+	logWriter.Write(lineBytes)
 
 	return nil
 }
@@ -249,7 +255,7 @@ func (f *PlainTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 
 	timestampFormat := f.TimestampFormat
 	if timestampFormat == "" {
-		timestampFormat = log.DefaultTimestampFormat
+		timestampFormat = time.RFC3339
 	}
 	f.printUncolored(b, entry, keys, timestampFormat)
 	b.WriteByte('\n')
