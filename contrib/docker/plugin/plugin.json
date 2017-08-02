@@ -48,12 +48,6 @@
                 "source": "/etc/netappdvp",
                 "destination": "/etc/netappdvp",
                 "options": ["rbind"]
-            },
-            {
-                "type": "bind",
-                "source": "/etc/iscsi",
-                "destination": "/etc/iscsi",
-                "options": ["rbind"]
             }
         ],
         "PropagatedMount": "/var/lib/docker-volumes/netapp",

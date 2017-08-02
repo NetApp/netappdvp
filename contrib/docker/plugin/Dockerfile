@@ -20,5 +20,7 @@ RUN chmod 777 /sbin/rescan-scsi-bus \
               /netapp/container-launch.sh \
               /netapp/netappdvp
 
+RUN ln -s /host/etc/iscsi /etc/iscsi
+
 CMD ["/netapp/container-launch.sh", "--config=/etc/netappdvp/config.json"]
 
