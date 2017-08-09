@@ -689,16 +689,29 @@ func (d ESeriesAPIDriver) createNameForHost(iqn string) string {
 	// Pick a host name, incorporating the local hostname value if possible
 	hostname, err := os.Hostname()
 	if err != nil {
-		hostname = utils.RandomString(30)
+		hostname = utils.RandomString(MAX_NAME_LENGTH)
 	}
 
 	// Use as much of the hostname as will fit
-	maxLength := 30 - (len(uniqueSuffix) + 1)
+	maxLength := MAX_NAME_LENGTH - (len(uniqueSuffix) + 1)
 	if len(hostname) > maxLength {
 		hostname = hostname[0:maxLength]
 	}
 
 	return hostname + "_" + uniqueSuffix
+}
+
+func (d ESeriesAPIDriver) createNameForPort(host string) string {
+
+	suffix := "_port"
+	hostname := host
+
+	maxLength := MAX_NAME_LENGTH - len(suffix)
+	if len(hostname) > maxLength {
+		hostname = hostname[0:maxLength]
+	}
+
+	return hostname + suffix
 }
 
 // GetHostForIQN queries the Host objects on the array an returns one matching the supplied IQN. An empty struct is
@@ -773,7 +786,7 @@ func (d ESeriesAPIDriver) CreateHost(name string, iqn string, hostType string, h
 	request.HostType.Index = d.getBestIndexForHostType(hostType)
 	request.GroupID = hostGroup.ClusterRef
 	request.Ports = make([]HostPort, 1)
-	request.Ports[0].Label = name + "_port"
+	request.Ports[0].Label = d.createNameForPort(name)
 	request.Ports[0].Port = iqn
 	request.Ports[0].Type = "iscsi"
 
