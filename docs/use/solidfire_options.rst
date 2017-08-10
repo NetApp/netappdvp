@@ -55,5 +55,6 @@ Other SolidFire Create Options
 ==============================
 
 Volume create options for SolidFire:
+
 * ``size`` - the size of the volume, defaults to 1GiB or config entry ``... "defaults": {"size": "5G"}``
 * ``blocksize`` - use either ``512`` or ``4096``, defaults to 512 or config entry ``DefaultBockSize``
