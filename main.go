@@ -3,6 +3,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -106,7 +107,7 @@ func main() {
 	h := volume.NewHandler(d)
 
 	if *port != "" {
-		log.Error(h.ServeTCP(*driverID, ":"+*port, nil))
+		log.Error(h.ServeTCP(*driverID, ":"+*port, "", &tls.Config{InsecureSkipVerify: true}))
 	} else {
 		log.Error(h.ServeUnix(*driverID, 0)) // 0 is the unix group to start as (root gid)
 	}

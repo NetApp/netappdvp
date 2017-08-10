@@ -58,7 +58,7 @@ func newNetAppDockerVolumePlugin(root string, config storage_drivers.CommonStora
 }
 
 // Create is part of the core Docker API and is called to create a docker volume
-func (d ndvpDriver) Create(r volume.Request) volume.Response {
+func (d ndvpDriver) Create(r *volume.CreateRequest) error {
 	d.m.Lock()
 	defer d.m.Unlock()
 
@@ -69,7 +69,7 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 
 	sizeBytes, err := utils.GetVolumeSizeBytes(opts, d.config.Size)
 	if err != nil {
-		return volume.Response{Err: fmt.Sprintf("Error creating volume: %v", err)}
+		return fmt.Errorf("Error creating volume: %v", err)
 	}
 	var createErr error
 
@@ -86,14 +86,14 @@ func (d ndvpDriver) Create(r volume.Request) volume.Response {
 	}
 
 	if createErr != nil {
-		return volume.Response{Err: fmt.Sprintf("Error creating volume: %v", createErr)}
+		return fmt.Errorf("Error creating volume: %v", createErr)
 	}
 
-	return volume.Response{}
+	return nil
 }
 
 // Remove is part of the core Docker API and is called to remove a docker volume
-func (d ndvpDriver) Remove(r volume.Request) volume.Response {
+func (d ndvpDriver) Remove(r *volume.RemoveRequest) error {
 	d.m.Lock()
 	defer d.m.Unlock()
 
@@ -104,23 +104,23 @@ func (d ndvpDriver) Remove(r volume.Request) volume.Response {
 	// allow user to completely disable volume deletion
 	if d.config.DisableDelete {
 		log.Infof("Skipping removal of %s because of user preference to disable volume deletion", target)
-		return volume.Response{}
+		return nil
 	}
 
 	// use the StorageDriver to destroy the storage objects
 	destroyErr := d.sd.Destroy(target)
 	if destroyErr != nil {
-		return volume.Response{Err: fmt.Sprintf("Problem removing docker volume: %v error: %v", target, destroyErr)}
+		return fmt.Errorf("Problem removing docker volume: %v error: %v", target, destroyErr)
 	}
 
 	// Best effort removal of the mountpoint
 	m := d.mountpoint(target)
 	os.Remove(m)
 
-	return volume.Response{}
+	return nil
 }
 
-func (d ndvpDriver) getPath(r volume.Request) (string, error) {
+func (d ndvpDriver) getPath(name string) (string, error) {
 	// Currently, this returns the mountpoint based on whether the path exists.
 
 	// Should it:
@@ -128,7 +128,7 @@ func (d ndvpDriver) getPath(r volume.Request) (string, error) {
 	// b) Verify that the volume is actually mounted before returning it?
 	// c) Stay as-is?
 
-	target := d.volumeName(r.Name)
+	target := d.volumeName(name)
 	m := d.mountpoint(target)
 
 	log.Debugf("Getting path for volume '%s' as '%s'", target, m)
@@ -145,24 +145,22 @@ func (d ndvpDriver) getPath(r volume.Request) (string, error) {
 }
 
 // Path is part of the core Docker API and is called to return the filesystem path to a docker volume
-func (d ndvpDriver) Path(r volume.Request) volume.Response {
+func (d ndvpDriver) Path(r *volume.PathRequest) (*volume.PathResponse, error) {
 	d.m.Lock()
 	defer d.m.Unlock()
 
 	log.Debugf("Path(%v)", r)
 
-	mountpoint, err := d.getPath(r)
+	mountpoint, err := d.getPath(r.Name)
 	if err != nil {
-		return volume.Response{Err: err.Error()}
+		return &volume.PathResponse{Err: err.Error()}, err
 	}
 
-	return volume.Response{
-		Mountpoint: mountpoint,
-	}
+	return &volume.PathResponse{Mountpoint: mountpoint}, nil
 }
 
 // Get is part of the core Docker API and is called to return details about a docker volume
-func (d ndvpDriver) Get(r volume.Request) volume.Response {
+func (d ndvpDriver) Get(r *volume.GetRequest) (*volume.GetResponse, error) {
 	d.m.Lock()
 	defer d.m.Unlock()
 
@@ -174,11 +172,11 @@ func (d ndvpDriver) Get(r volume.Request) volume.Response {
 	// Ask the storage driver whether the specified volume exists
 	err := d.sd.Get(target)
 	if err != nil {
-		return volume.Response{Err: err.Error()}
+		return &volume.GetResponse{Err: err.Error()}, err
 	}
 
 	// Get the mountpoint, if this volume is mounted
-	mountpoint, err := d.getPath(r)
+	mountpoint, err := d.getPath(r.Name)
 
 	// Ask the storage driver for the list of snapshots associated with the volume
 	snaps, err := d.sd.SnapshotList(target)
@@ -194,13 +192,11 @@ func (d ndvpDriver) Get(r volume.Request) volume.Response {
 		Status:     status, // introduced in Docker 1.12, earlier versions ignore
 	}
 
-	return volume.Response{
-		Volume: vol,
-	}
+	return &volume.GetResponse{Volume: vol}, nil
 }
 
 // Mount is part of the core Docker API and is called to mount a docker volume
-func (d ndvpDriver) Mount(r volume.MountRequest) volume.Response {
+func (d ndvpDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error) {
 	d.m.Lock()
 	defer d.m.Unlock()
 
@@ -215,25 +211,27 @@ func (d ndvpDriver) Mount(r volume.MountRequest) volume.Response {
 
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(m, 0755); err != nil {
-			return volume.Response{Err: err.Error()}
+			return &volume.MountResponse{Err: err.Error()}, err
 		}
 	} else if err != nil {
-		return volume.Response{Err: err.Error()}
+		return &volume.MountResponse{Err: err.Error()}, err
 	}
 
 	if fi != nil && !fi.IsDir() {
-		return volume.Response{Err: fmt.Sprintf("%v already exists and it's not a directory", m)}
+		err = fmt.Errorf("%v already exists and it's not a directory", m)
+		return &volume.MountResponse{Err: err.Error()}, err
 	}
 
 	// check if already mounted before we do anything...
 	dfOuput, dfOuputErr := utils.GetDFOutput()
 	if dfOuputErr != nil {
-		return volume.Response{Err: fmt.Sprintf("Error checking if %v is already mounted: %v", m, dfOuputErr)}
+		err = fmt.Errorf("Error checking if %v is already mounted: %v", m, dfOuputErr)
+		return &volume.MountResponse{Err: err.Error()}, err
 	}
 	for _, e := range dfOuput {
 		if e.Target == m {
 			log.Debugf("%v already mounted, returning existing mount", m)
-			return volume.Response{Mountpoint: m}
+			return &volume.MountResponse{Mountpoint: m}, nil
 		}
 	}
 
@@ -243,14 +241,15 @@ func (d ndvpDriver) Mount(r volume.MountRequest) volume.Response {
 	attachErr := d.sd.Attach(target, m, attachOptions)
 	if attachErr != nil {
 		log.Error(attachErr)
-		return volume.Response{Err: fmt.Sprintf("Problem attaching docker volume: %v mountpoint: %v error: %v", target, m, attachErr)}
+		err = fmt.Errorf("Problem attaching docker volume: %v mountpoint: %v error: %v", target, m, attachErr)
+		return &volume.MountResponse{Err: err.Error()}, err
 	}
 
-	return volume.Response{Mountpoint: m}
+	return &volume.MountResponse{Mountpoint: m}, nil
 }
 
 // Unmount is part of the core Docker API and is called to unmount a docker volume
-func (d ndvpDriver) Unmount(r volume.UnmountRequest) volume.Response {
+func (d ndvpDriver) Unmount(r *volume.UnmountRequest) error {
 	d.m.Lock()
 	defer d.m.Unlock()
 
@@ -263,26 +262,27 @@ func (d ndvpDriver) Unmount(r volume.UnmountRequest) volume.Response {
 	// use the StorageDriver to unmount the storage objects
 	detachErr := d.sd.Detach(target, m)
 	if detachErr != nil {
-		return volume.Response{Err: fmt.Sprintf("Problem unmounting docker volume: %v error: %v", target, detachErr)}
+		return fmt.Errorf("Problem unmounting docker volume: %v error: %v", target, detachErr)
 	}
 
 	// Best effort removal of the mountpoint
 	os.Remove(m)
 
-	return volume.Response{}
+	return nil
 }
 
 // List is part of the core Docker API and is called to list all known docker volumes for this plugin
-func (d ndvpDriver) List(r volume.Request) volume.Response {
+func (d ndvpDriver) List() (*volume.ListResponse, error) {
 	d.m.Lock()
 	defer d.m.Unlock()
 
-	log.Debugf("List(%v)", r)
+	log.Debugf("List()")
 
 	var volumes []*volume.Volume
 	vols, err := d.sd.List()
 	if err != nil {
-		return volume.Response{Err: fmt.Sprintf("Unable to retrieve volume list, error: %v", err)}
+		err = fmt.Errorf("Unable to retrieve volume list, error: %v", err)
+		return &volume.ListResponse{Err: err.Error()}, err
 	}
 
 	for _, vol := range vols {
@@ -291,14 +291,14 @@ func (d ndvpDriver) List(r volume.Request) volume.Response {
 		volumes = append(volumes, v)
 	}
 
-	return volume.Response{Volumes: volumes}
+	return &volume.ListResponse{Volumes: volumes}, nil
 }
 
-func (d ndvpDriver) Capabilities(r volume.Request) volume.Response {
+func (d ndvpDriver) Capabilities() *volume.CapabilitiesResponse {
 	d.m.Lock()
 	defer d.m.Unlock()
 
-	log.Debugf("Capabilities(%v)", r)
+	log.Debugf("Capabilities()")
 
-	return volume.Response{Capabilities: volume.Capability{Scope: "global"}}
+	return &volume.CapabilitiesResponse{Capabilities: volume.Capability{Scope: "global"}}
 }
