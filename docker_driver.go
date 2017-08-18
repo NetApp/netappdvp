@@ -153,7 +153,7 @@ func (d ndvpDriver) Path(r *volume.PathRequest) (*volume.PathResponse, error) {
 
 	mountpoint, err := d.getPath(r.Name)
 	if err != nil {
-		return &volume.PathResponse{Err: err.Error()}, err
+		return &volume.PathResponse{}, err
 	}
 
 	return &volume.PathResponse{Mountpoint: mountpoint}, nil
@@ -172,7 +172,7 @@ func (d ndvpDriver) Get(r *volume.GetRequest) (*volume.GetResponse, error) {
 	// Ask the storage driver whether the specified volume exists
 	err := d.sd.Get(target)
 	if err != nil {
-		return &volume.GetResponse{Err: err.Error()}, err
+		return &volume.GetResponse{}, err
 	}
 
 	// Get the mountpoint, if this volume is mounted
@@ -211,22 +211,22 @@ func (d ndvpDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error)
 
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(m, 0755); err != nil {
-			return &volume.MountResponse{Err: err.Error()}, err
+			return &volume.MountResponse{}, err
 		}
 	} else if err != nil {
-		return &volume.MountResponse{Err: err.Error()}, err
+		return &volume.MountResponse{}, err
 	}
 
 	if fi != nil && !fi.IsDir() {
 		err = fmt.Errorf("%v already exists and it's not a directory", m)
-		return &volume.MountResponse{Err: err.Error()}, err
+		return &volume.MountResponse{}, err
 	}
 
 	// check if already mounted before we do anything...
 	dfOuput, dfOuputErr := utils.GetDFOutput()
 	if dfOuputErr != nil {
 		err = fmt.Errorf("Error checking if %v is already mounted: %v", m, dfOuputErr)
-		return &volume.MountResponse{Err: err.Error()}, err
+		return &volume.MountResponse{}, err
 	}
 	for _, e := range dfOuput {
 		if e.Target == m {
@@ -242,7 +242,7 @@ func (d ndvpDriver) Mount(r *volume.MountRequest) (*volume.MountResponse, error)
 	if attachErr != nil {
 		log.Error(attachErr)
 		err = fmt.Errorf("Problem attaching docker volume: %v mountpoint: %v error: %v", target, m, attachErr)
-		return &volume.MountResponse{Err: err.Error()}, err
+		return &volume.MountResponse{}, err
 	}
 
 	return &volume.MountResponse{Mountpoint: m}, nil
@@ -282,7 +282,7 @@ func (d ndvpDriver) List() (*volume.ListResponse, error) {
 	vols, err := d.sd.List()
 	if err != nil {
 		err = fmt.Errorf("Unable to retrieve volume list, error: %v", err)
-		return &volume.ListResponse{Err: err.Error()}, err
+		return &volume.ListResponse{}, err
 	}
 
 	for _, vol := range vols {
