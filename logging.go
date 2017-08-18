@@ -20,6 +20,7 @@ import (
 
 const LOG_ROOT = "/var/log/netappdvp"
 const LOG_ROTATION_THRESHOLD = 10485760 // 10 MB
+const MAX_LOG_ENTRY_LENGTH = 64000
 
 // initLogging configures logging for nDVP.  Logs are written both to a log file as well as stdout/stderr.
 // Since logrus doesn't support multiple writers, each log stream is implemented as a hook.
@@ -104,7 +105,12 @@ func (hook *ConsoleHook) Fire(entry *log.Entry) error {
 		fmt.Fprintf(os.Stderr, "Unable to read entry, %v", err)
 		return err
 	}
-	logWriter.Write(lineBytes)
+	if len(lineBytes) > MAX_LOG_ENTRY_LENGTH {
+		logWriter.Write(lineBytes[:MAX_LOG_ENTRY_LENGTH])
+		logWriter.Write([]byte("<truncated>\n"))
+	} else {
+		logWriter.Write(lineBytes)
+	}
 
 	return nil
 }
