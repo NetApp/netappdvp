@@ -280,7 +280,7 @@ Docker Managed Plugin Method (Docker >= 1.13 / 17.03)
 
    .. code-block:: bash
    
-     docker plugin install --grant-all-permissions --alias netapp netapp/ndvp-plugin:17.07
+     docker plugin install --grant-all-permissions --alias netapp netapp/ndvp-plugin:17.07 config=myConfigFile.json
 
 #. Begin using nDVP to consume storage from the configured system.
 
