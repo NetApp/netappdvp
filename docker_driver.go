@@ -259,14 +259,19 @@ func (d ndvpDriver) Unmount(r *volume.UnmountRequest) error {
 
 	m := d.mountpoint(target)
 
-	// use the StorageDriver to unmount the storage objects
-	detachErr := d.sd.Detach(target, m)
-	if detachErr != nil {
-		return fmt.Errorf("Problem unmounting docker volume: %v error: %v", target, detachErr)
-	}
+	// we need to check if the mountpoint exists, that'll be our indication that
+	// it's attached and needs cleaned up
+	_, err := os.Stat(m)
+	if err == nil {
+		// use the StorageDriver to unmount the storage objects
+		detachErr := d.sd.Detach(target, m)
+		if detachErr != nil {
+			return fmt.Errorf("Problem unmounting docker volume: %v error: %v", target, detachErr)
+		}
 
-	// Best effort removal of the mountpoint
-	os.Remove(m)
+		// Best effort removal of the mountpoint
+		os.Remove(m)
+	}
 
 	return nil
 }

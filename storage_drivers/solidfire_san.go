@@ -458,10 +458,12 @@ func (d *SolidfireSANStorageDriver) Detach(name, mountpoint string) error {
 
 	v, err := d.GetVolume(name)
 	if err != nil {
-		log.Errorf("unable to locate volume: %+v", err)
+		log.WithField("volume", v).Errorf("unable to locate volume: %+v", err)
 		return errors.New("volume not found")
 	}
-	d.Client.DetachVolume(v)
+	// no longer detaching and removing iSCSI session here because it was causing issues with 'docker cp'
+	// see also;  https://github.com/moby/moby/issues/34665
+	//d.Client.DetachVolume(v)
 
 	return nil
 }

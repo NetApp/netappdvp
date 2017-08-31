@@ -5,6 +5,7 @@
 ## Changes since 17.07.0
 
 **Fixes:**
+- Changed the Solidfire driver to teardown the iSCSI connection as part of the docker volume delete operation
 
 **Enhancements:**
 - Added controller serial numbers to logs
