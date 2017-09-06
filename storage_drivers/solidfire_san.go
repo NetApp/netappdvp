@@ -444,6 +444,17 @@ func (d *SolidfireSANStorageDriver) Attach(name, mountpoint string, opts map[str
 	}
 	log.Debugf("Attached volume at (path, devfile): %s, %s", path, device)
 
+	// NOTE(jdg): Check for device including multipath/DM device)
+	info, err := utils.GetDeviceInfoForLuns()
+	for _, e := range info {
+		if e.Device != device {
+			continue
+		}
+		if e.MultipathDevice != "" {
+			device = e.MultipathDevice
+		}
+	}
+
 	attrs, _ := v.Attributes.(map[string]interface{})
 	fmt := "ext4"
 	if str, ok := attrs["fstype"].(string); ok {
