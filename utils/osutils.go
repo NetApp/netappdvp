@@ -604,12 +604,16 @@ func GetFSType(device string) string {
 // FormatVolume creates a filesystem for the supplied device of the supplied type
 func FormatVolume(device, fsType string) error {
 	log.Debugf("Begin osutils.FormatVolume: %s, %s", device, fsType)
-	cmd := "mkfs.ext4"
+	var err error
+	var out []byte
 	if fsType == "xfs" {
-		cmd = "mkfs.xfs"
+		out, err = exec.Command("mkfs.xfs", "-f", device).CombinedOutput()
+	} else if fsType == "ext3" {
+		out, err = exec.Command("mkfs.ext3", "-F", device).CombinedOutput()
+	} else {
+		out, err = exec.Command("mkfs.ext4", "-F", device).CombinedOutput()
 	}
-	log.Debug("Perform ", cmd, " on device: ", device)
-	out, err := exec.Command(cmd, "-F", device).CombinedOutput()
+
 	log.Debug("Result of mkfs cmd: ", string(out))
 	return err
 }

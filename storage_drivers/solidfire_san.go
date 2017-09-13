@@ -292,6 +292,18 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 	}
 	log.Debugf("set enable512e to: %+v", req.Enable512e)
 
+	switch fstype := utils.GetV(opts, "fstype|fileSystemType", "ext4"); strings.ToLower(fstype) {
+	case "xfs":
+		meta["fstype"] = "xfs"
+	case "ext3":
+		meta["fstype"] = "ext3"
+	case "ext4":
+		meta["fstype"] = "ext4"
+	default:
+		log.Warningf("unsupported fileSystemType option (%s), defaulting to ext4", fstype)
+		meta["fstype"] = "ext4"
+	}
+
 	req.Qos = qos
 	req.TotalSize = int64(sizeBytes)
 	req.AccountID = d.TenantID
@@ -431,9 +443,17 @@ func (d *SolidfireSANStorageDriver) Attach(name, mountpoint string, opts map[str
 		return errors.New("iSCSI attach error")
 	}
 	log.Debugf("Attached volume at (path, devfile): %s, %s", path, device)
+
+	attrs, _ := v.Attributes.(map[string]interface{})
+	fmt := "ext4"
+	if str, ok := attrs["fstype"].(string); ok {
+		fmt = str
+	}
+	log.Debugf("attempting to format using fs type: %s", fmt)
+
 	if utils.GetFSType(device) == "" {
 		//TODO(jdg): Enable selection of *other* fs types
-		err := utils.FormatVolume(device, "ext4")
+		err := utils.FormatVolume(device, fmt)
 		if err != nil {
 			log.Errorf("error on formatting volume: %+v", err)
 			return errors.New("format (mkfs) error")
