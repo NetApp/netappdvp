@@ -97,4 +97,8 @@ Here is an example of that in action:
    
    [me@host ~]$ docker volume rm volFromSnap
 
+Access Externally Created Volumes
+---------------------------------
+
+Externally created block devices (or their clones) may be accessed by containers using nDVP only if they have no partitions and if their filesystem is supported by nDVP (example: an ext4-formatted /dev/sdc1 will not be accessible via nDVP).
 
