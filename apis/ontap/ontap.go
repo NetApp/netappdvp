@@ -379,6 +379,25 @@ func (d Driver) LunDestroy(lunPath string) (response azgo.LunDestroyResponse, er
 	return
 }
 
+// LunSetAttribute sets a named attribute for a given LUN.
+func (d Driver) LunSetAttribute(lunPath, name, value string) (response azgo.LunSetAttributeResponse, err error) {
+	response, err = azgo.NewLunSetAttributeRequest().
+		SetPath(lunPath).
+		SetName(name).
+		SetValue(value).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// LunGetAttribute gets a named attribute for a given LUN.
+func (d Driver) LunGetAttribute(lunPath, name string) (response azgo.LunGetAttributeResponse, err error) {
+	response, err = azgo.NewLunGetAttributeRequest().
+		SetPath(lunPath).
+		SetName(name).
+		ExecuteUsing(d.zr)
+	return
+}
+
 // LUN operations END
 /////////////////////////////////////////////////////////////////////////////
 

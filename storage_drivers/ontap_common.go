@@ -233,6 +233,7 @@ const DefaultExportPolicy = "default"
 const DefaultSecurityStyle = "unix"
 const DefaultNfsMountOptions = "-o nfsvers=3"
 const DefaultSplitOnClone = "false"
+const DefaultFileSystemType = "ext4"
 
 // PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
 func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
@@ -285,6 +286,10 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 		}
 	}
 
+	if config.FileSystemType == "" {
+		config.FileSystemType = DefaultFileSystemType
+	}
+
 	log.WithFields(log.Fields{
 		"StoragePrefix":   config.StoragePrefix,
 		"SpaceReserve":    config.SpaceReserve,
@@ -295,6 +300,7 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 		"SecurityStyle":   config.SecurityStyle,
 		"NfsMountOptions": config.NfsMountOptions,
 		"SplitOnClone":    config.SplitOnClone,
+		"FileSystemType":  config.FileSystemType,
 	}).Debugf("Configuration defaults")
 
 	return nil

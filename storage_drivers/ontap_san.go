@@ -16,6 +16,7 @@ import (
 
 // OntapSANStorageDriverName is the constant name for this Ontap NAS storage driver
 const OntapSANStorageDriverName = "ontap-san"
+const OntapLUNAttributeFstype = "com.netapp.ndvp.fstype"
 
 func init() {
 	san := &OntapSANStorageDriver{}
@@ -190,6 +191,15 @@ func (d *OntapSANStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 	aggregate := utils.GetV(opts, "aggregate", d.Config.Aggregate)
 	securityStyle := utils.GetV(opts, "securityStyle", d.Config.SecurityStyle)
 
+	// Check for a supported file system type
+	fstype := strings.ToLower(utils.GetV(opts, "fstype|fileSystemType", d.Config.FileSystemType))
+	switch fstype {
+	case "xfs", "ext3", "ext4":
+		log.WithFields(log.Fields{"fileSystemType": fstype, "name": name}).Debug("Filesystem format.")
+	default:
+		return fmt.Errorf("Unsupported fileSystemType option: %s.", fstype)
+	}
+
 	log.WithFields(log.Fields{
 		"name":            name,
 		"size":            size,
@@ -223,6 +233,13 @@ func (d *OntapSANStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 	lunCreateResponse, err := d.API.LunCreate(lunPath, int(sizeBytes), osType, spaceReserved)
 	if err = ontap.GetError(lunCreateResponse, err); err != nil {
 		return fmt.Errorf("Error creating LUN. %v", err)
+	}
+
+	// Save the fstype in a LUN attribute so we know what to do in Attach
+	attrResponse, err := d.API.LunSetAttribute(lunPath, OntapLUNAttributeFstype, fstype)
+	if err = ontap.GetError(attrResponse, err); err != nil {
+		defer d.API.LunDestroy(lunPath)
+		return fmt.Errorf("Error saving file system type for LUN. %v", err)
 	}
 
 	return nil
@@ -340,6 +357,19 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 	igroupName := d.Config.IgroupName
 	lunPath := lunPath(name)
 
+	// Get the fstype
+	fstype := DefaultFileSystemType
+	attrResponse, err := d.API.LunGetAttribute(lunPath, OntapLUNAttributeFstype)
+	if err = ontap.GetError(attrResponse, err); err != nil {
+		log.WithFields(log.Fields{
+			"LUN":    lunPath,
+			"fstype": fstype,
+		}).Warn("LUN attribute fstype not found, using default.")
+	} else {
+		fstype = attrResponse.Result.Value()
+		log.WithFields(log.Fields{"LUN": lunPath, "fstype": fstype}).Debug("Found LUN attribute fstype.")
+	}
+
 	// Create igroup
 	igroupResponse, err := d.API.IgroupCreate(igroupName, "iscsi", "linux")
 	if err != nil {
@@ -455,11 +485,19 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 
 		// Put a filesystem on it if there isn't one already there
 		if e.Filesystem == "" {
-			// format it
-			err := utils.FormatVolume(deviceToUse, "ext4") // TODO externalize fsType
+			log.WithFields(log.Fields{"LUN": lunPath, "fstype": fstype}).Debug("Formatting LUN.")
+			err := utils.FormatVolume(deviceToUse, fstype)
 			if err != nil {
 				return fmt.Errorf("Error formatting LUN %v, device %v. %v", name, deviceToUse, err)
 			}
+		} else if e.Filesystem != fstype {
+			log.WithFields(log.Fields{
+				"LUN":             lunPath,
+				"existingFstype":  e.Filesystem,
+				"requestedFstype": fstype,
+			}).Warn("LUN already formatted with a different file system type.")
+		} else {
+			log.WithFields(log.Fields{"LUN": lunPath, "fstype": e.Filesystem}).Debug("LUN already formatted.")
 		}
 
 		// Mount it

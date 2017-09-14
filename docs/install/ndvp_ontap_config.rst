@@ -80,6 +80,8 @@ Also, when using ONTAP, these default option settings are available to avoid hav
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``securityStyle``     | NAS option for access to the provisioned NFS volume, defaults to "unix"  | mixed      |
 +-----------------------+--------------------------------------------------------------------------+------------+
+| ``fileSystemType``    | SAN option to select the file system type, defaults to "ext4"            | xfs        |
++-----------------------+--------------------------------------------------------------------------+------------+
 
 Scaling Options
 ---------------

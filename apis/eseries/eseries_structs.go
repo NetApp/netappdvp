@@ -109,6 +109,7 @@ type VolumeEx struct {
 	VolumeGroupRef string       `json:"volumeGroupRef"`
 	Mappings       []LUNMapping `json:"listOfMappings"`
 	IsMapped       bool         `json:"mapped"`
+	VolumeTags     []VolumeTag  `json:"metadata"`
 }
 
 type HostCreateRequest struct {

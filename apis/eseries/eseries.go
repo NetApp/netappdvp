@@ -528,7 +528,9 @@ func (d ESeriesAPIDriver) GetVolume(name string) (VolumeEx, error) {
 }
 
 // CreateVolume creates a volume (i.e. a LUN) on the array, and it returns the resulting VolumeEx structure.
-func (d ESeriesAPIDriver) CreateVolume(name string, volumeGroupRef string, size uint64, mediaType string) (VolumeEx, error) {
+func (d ESeriesAPIDriver) CreateVolume(
+	name string, volumeGroupRef string, size uint64, mediaType, fstype string,
+) (VolumeEx, error) {
 
 	if d.config.DebugTraceFlags["method"] {
 		fields := log.Fields{
@@ -548,6 +550,10 @@ func (d ESeriesAPIDriver) CreateVolume(name string, volumeGroupRef string, size 
 		return VolumeEx{}, fmt.Errorf("The volume name %v exceeds the maximum length of %d characters", name, MAX_NAME_LENGTH)
 	}
 
+	// Copy static volume metadata and add fstype
+	tags := append([]VolumeTag(nil), volumeTags...)
+	tags = append(tags, VolumeTag{"fstype", fstype})
+
 	// Set up the volume create request
 	request := VolumeCreateRequest{
 		VolumeGroupRef: volumeGroupRef,
@@ -555,7 +561,7 @@ func (d ESeriesAPIDriver) CreateVolume(name string, volumeGroupRef string, size 
 		SizeUnit:       "kb",
 		Size:           int(size / 1024), // The API requires Size to be an int (not int64) so pass as an int but in KB.
 		SegmentSize:    128,
-		VolumeTags:     volumeTags,
+		VolumeTags:     tags,
 	}
 
 	jsonRequest, err := json.Marshal(request)

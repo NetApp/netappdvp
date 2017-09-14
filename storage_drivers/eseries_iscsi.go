@@ -194,6 +194,15 @@ func (d *ESeriesStorageDriver) Create(name string, sizeBytes uint64, opts map[st
 	// Get media type, or default to "hdd" if not specified
 	mediaType := utils.GetV(opts, "mediaType", "hdd")
 
+	// Check for a supported file system type
+	fstype := strings.ToLower(utils.GetV(opts, "fstype|fileSystemType", "ext4"))
+	switch fstype {
+	case "xfs", "ext3", "ext4":
+		log.WithFields(log.Fields{"fileSystemType": fstype, "name": name}).Debug("Filesystem format.")
+	default:
+		return fmt.Errorf("Unsupported fileSystemType option: %s.", fstype)
+	}
+
 	// Get pool name, or default to all pools if not specified
 	poolName := utils.GetV(opts, "pool", "")
 
@@ -211,7 +220,7 @@ func (d *ESeriesStorageDriver) Create(name string, sizeBytes uint64, opts map[st
 	pool := pools[0]
 
 	// Create the volume
-	vol, err := d.API.CreateVolume(name, pool.VolumeGroupRef, sizeBytes, mediaType)
+	vol, err := d.API.CreateVolume(name, pool.VolumeGroupRef, sizeBytes, mediaType, fstype)
 	if err != nil {
 		return fmt.Errorf("Could not create volume %s. %v", name, err)
 	}
@@ -292,6 +301,20 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 		return fmt.Errorf("Could not find volume %s.", name)
 	}
 
+	// Get the fstype
+	fstype := ""
+	for _, tag := range vol.VolumeTags {
+		if tag.Key == "fstype" {
+			fstype = tag.Value
+			log.WithFields(log.Fields{"LUN": name, "fstype": fstype}).Debug("Found LUN fstype.")
+			break
+		}
+	}
+	if fstype == "" {
+		fstype = "ext4"
+		log.WithFields(log.Fields{"LUN": name, "fstype": fstype}).Warn("LUN fstype not found, using default.")
+	}
+
 	// Map the volume to the local host
 	mapping, err := d.MapVolumeToLocalHost(vol)
 	if err != nil {
@@ -339,10 +362,19 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 
 	// Put a filesystem on the volume if there isn't one already there
 	if deviceToUse.Filesystem == "" {
-		err := utils.FormatVolume(deviceRef, "ext4") // TODO externalize fsType
+		log.WithFields(log.Fields{"LUN": name, "fstype": fstype}).Debug("Formatting LUN.")
+		err := utils.FormatVolume(deviceRef, fstype)
 		if err != nil {
 			return fmt.Errorf("Could not format volume %s, device %v. %v", name, deviceToUse, err)
 		}
+	} else if deviceToUse.Filesystem != fstype {
+		log.WithFields(log.Fields{
+			"volume":          name,
+			"existingFstype":  deviceToUse.Filesystem,
+			"requestedFstype": fstype,
+		}).Warn("LUN already formatted with a different file system type.")
+	} else {
+		log.WithFields(log.Fields{"LUN": name, "fstype": deviceToUse.Filesystem}).Debug("LUN already formatted.")
 	}
 
 	// Mount the volume
@@ -571,6 +603,7 @@ func (d *ESeriesStorageDriver) Get(name string) error {
 	} else if !d.API.IsRefValid(vol.VolumeRef) {
 		return fmt.Errorf("Could not find volume %s.", name)
 	}
+	log.WithField("volume", vol).Debug("Found volume.")
 
 	return nil
 }

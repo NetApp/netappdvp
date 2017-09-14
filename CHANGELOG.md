@@ -12,6 +12,7 @@
 - Added controller serial numbers to logs
 - Added ontap-nas-economy driver
 - Added aggregate validation to the ONTAP drivers
+- Added support for xfs and ext3 to the SolidFire, ONTAP SAN, and E-series drivers
 
 ## 17.07.0
 

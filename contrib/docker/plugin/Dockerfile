@@ -1,7 +1,7 @@
 FROM alpine:3.5
 
 RUN apk update && \
-    apk add coreutils nfs-utils util-linux blkid multipath-tools lsscsi e2fsprogs bash 
+    apk add coreutils nfs-utils util-linux blkid multipath-tools lsscsi e2fsprogs xfsprogs bash
 
 # for go binaries to work inside an alpine container
 RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2

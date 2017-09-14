@@ -5,6 +5,7 @@ package storage_drivers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -291,16 +292,14 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 	}
 	log.Debugf("set enable512e to: %+v", req.Enable512e)
 
-	switch fstype := utils.GetV(opts, "fstype|fileSystemType", "ext4"); strings.ToLower(fstype) {
-	case "xfs":
-		meta["fstype"] = "xfs"
-	case "ext3":
-		meta["fstype"] = "ext3"
-	case "ext4":
-		meta["fstype"] = "ext4"
+	// Check for a supported file system type
+	fstype := strings.ToLower(utils.GetV(opts, "fstype|fileSystemType", "ext4"))
+	switch fstype {
+	case "xfs", "ext3", "ext4":
+		log.WithFields(log.Fields{"fileSystemType": fstype, "name": name}).Debug("Filesystem format.")
+		meta["fstype"] = fstype
 	default:
-		log.Warningf("unsupported fileSystemType option (%s), defaulting to ext4", fstype)
-		meta["fstype"] = "ext4"
+		return fmt.Errorf("unsupported fileSystemType option: %s.", fstype)
 	}
 
 	req.Qos = qos
@@ -454,21 +453,32 @@ func (d *SolidfireSANStorageDriver) Attach(name, mountpoint string, opts map[str
 		}
 	}
 
+	// Get the fstype
 	attrs, _ := v.Attributes.(map[string]interface{})
-	fmt := "ext4"
+	fstype := "ext4"
 	if str, ok := attrs["fstype"].(string); ok {
-		fmt = str
+		fstype = str
 	}
-	log.Debugf("attempting to format using fs type: %s", fmt)
 
-	if utils.GetFSType(device) == "" {
-		//TODO(jdg): Enable selection of *other* fs types
-		err := utils.FormatVolume(device, fmt)
+	// Put a filesystem on it if there isn't one already there
+	existingFstype := utils.GetFSType(device)
+	if existingFstype == "" {
+		log.WithFields(log.Fields{"LUN": path, "fstype": fstype}).Debug("Formatting LUN.")
+		err := utils.FormatVolume(device, fstype)
 		if err != nil {
 			log.Errorf("error on formatting volume: %+v", err)
 			return errors.New("format (mkfs) error")
 		}
+	} else if existingFstype != fstype {
+		log.WithFields(log.Fields{
+			"LUN":             path,
+			"existingFstype":  existingFstype,
+			"requestedFstype": fstype,
+		}).Warn("LUN already formatted with a different file system type.")
+	} else {
+		log.WithFields(log.Fields{"LUN": path, "fstype": existingFstype}).Debug("LUN already formatted.")
 	}
+
 	if mountErr := utils.Mount(device, mountpoint); mountErr != nil {
 		log.Errorf("unable to mount device: (device: %s, mountpoint: %s, error: %+v", device, mountpoint, err)
 		return errors.New("unable to mount device")

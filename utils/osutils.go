@@ -595,6 +595,7 @@ func GetFSType(device string) string {
 			if strings.Contains(v, "TYPE=") {
 				fsType = strings.Split(v, "=")[1]
 				fsType = strings.Replace(fsType, "\"", "", -1)
+				fsType = strings.TrimSpace(fsType)
 			}
 		}
 	}
@@ -602,16 +603,20 @@ func GetFSType(device string) string {
 }
 
 // FormatVolume creates a filesystem for the supplied device of the supplied type
-func FormatVolume(device, fsType string) error {
-	log.Debugf("Begin osutils.FormatVolume: %s, %s", device, fsType)
+func FormatVolume(device, fstype string) error {
+	log.Debugf("Begin osutils.FormatVolume: %s, %s", device, fstype)
 	var err error
 	var out []byte
-	if fsType == "xfs" {
+
+	switch fstype {
+	case "xfs":
 		out, err = exec.Command("mkfs.xfs", "-f", device).CombinedOutput()
-	} else if fsType == "ext3" {
+	case "ext3":
 		out, err = exec.Command("mkfs.ext3", "-F", device).CombinedOutput()
-	} else {
+	case "ext4":
 		out, err = exec.Command("mkfs.ext4", "-F", device).CombinedOutput()
+	default:
+		return fmt.Errorf("Unsupported file system type: %s.", fstype)
 	}
 
 	log.Debug("Result of mkfs cmd: ", string(out))

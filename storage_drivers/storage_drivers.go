@@ -132,6 +132,7 @@ type OntapStorageDriverConfigDefaults struct {
 	ExportPolicy    string `json:"exportPolicy"`
 	SecurityStyle   string `json:"securityStyle"`
 	SplitOnClone    string `json:"splitOnClone"`
+	FileSystemType  string `json:"fileSystemType"`
 }
 
 // ESeriesStorageDriverConfig holds settings for ESeriesStorageDriver

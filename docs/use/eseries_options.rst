@@ -31,3 +31,13 @@ The user can specify the pool name to use for creating the volume.
   # create a volume using the "testme" pool
   docker volume create -d eseries --name testmePoolVolume -o poolName=testme -o size=100G
 
+File System Type
+----------------
+
+The user can specify the file system type to use to format the volume.  The default for ``fileSystemType``
+is ``ext4``.  Valid values are ``ext3``, ``ext4``, and ``xfs``.
+
+.. code-block:: bash
+
+  # create a volume using xfs
+  docker volume create -d eseries --name xfsVolume -o fileSystemType=xfs
