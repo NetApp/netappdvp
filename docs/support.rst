@@ -24,7 +24,7 @@ The standard logging level should allow you to diagnose most issues. If you find
   .. code-block:: bash
 
      # install the plugin with debug logging enabled
-     docker plugin create netapp/ndvp-plugin:<version> --alias <alias> debug=true
+     docker plugin install netapp/ndvp-plugin:<version> --alias <alias> debug=true
 
      # or, enable debug logging on one that's already installed
      docker plugin disable <plugin>
