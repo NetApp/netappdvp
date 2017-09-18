@@ -18,6 +18,8 @@ import (
 	"github.com/netapp/netappdvp/utils"
 )
 
+const LS_MIRROR_IDLE_TIMEOUT_SECS = 30
+
 type OntapStorageDriver interface {
 	GetConfig() *OntapStorageDriverConfig
 	GetAPI() *ontap.Driver
@@ -588,4 +590,72 @@ func UnmountVolume(mountpoint string, config *OntapStorageDriverConfig) error {
 	}
 
 	return nil
+}
+
+// UpdateLoadSharingMirrors checks for the present of LS mirrors on the SVM root volume, and if
+// present, starts an update and waits for them to become idle.
+func UpdateLoadSharingMirrors(api *ontap.Driver) {
+
+	// We care about LS mirrors on the SVM root volume, so get the root volume name
+	rootVolumeResponse, err := api.VolumeGetRootName()
+	if err = ontap.GetError(rootVolumeResponse, err); err != nil {
+		log.Warnf("Error getting SVM root volume. %v", err)
+		return
+	}
+	rootVolume := rootVolumeResponse.Result.Volume()
+
+	// Check for LS mirrors on the SVM root volume
+	mirrorGetResponse, err := api.SnapmirrorGetLoadSharingMirrors(rootVolume)
+	if err = ontap.GetError(rootVolumeResponse, err); err != nil {
+		log.Warnf("Error getting load-sharing mirrors for SVM root volume. %v", err)
+		return
+	}
+	if mirrorGetResponse.Result.NumRecords() == 0 {
+		// None found, so nothing more to do
+		log.WithField("rootVolume", rootVolume).Debug("SVM root volume has no load-sharing mirrors.")
+		return
+	}
+
+	// One or more LS mirrors found, so issue an update
+	mirrorSourceLocation := mirrorGetResponse.Result.AttributesList()[0].SourceLocation()
+	_, err = api.SnapmirrorUpdateLoadSharingMirrors(mirrorSourceLocation)
+	if err = ontap.GetError(rootVolumeResponse, err); err != nil {
+		log.Warnf("Error updating load-sharing mirrors for SVM root volume. %v", err)
+		return
+	}
+
+	// Wait for LS mirrors to become idle
+	timeout := time.Now().Add(LS_MIRROR_IDLE_TIMEOUT_SECS * time.Second)
+	for {
+		time.Sleep(1 * time.Second)
+		log.Debug("Load-sharing mirrors not yet idle, polling...")
+
+		mirrorGetResponse, err = api.SnapmirrorGetLoadSharingMirrors(rootVolume)
+		if err = ontap.GetError(rootVolumeResponse, err); err != nil {
+			log.Warnf("Error getting load-sharing mirrors for SVM root volume. %v", err)
+			break
+		}
+		if mirrorGetResponse.Result.NumRecords() == 0 {
+			log.WithField("rootVolume", rootVolume).Debug("SVM root volume has no load-sharing mirrors.")
+			break
+		}
+
+		// Ensure all mirrors are idle
+		idle := true
+		for _, mirror := range mirrorGetResponse.Result.AttributesList() {
+			if mirror.RelationshipStatusPtr == nil || mirror.RelationshipStatus() != "idle" {
+				idle = false
+			}
+		}
+		if idle {
+			log.Debug("Load-sharing mirrors idle.")
+			break
+		}
+
+		// Don't wait forever
+		if time.Now().After(timeout) {
+			log.Warning("Load-sharing mirrors not yet idle, giving up.")
+			break
+		}
+	}
 }

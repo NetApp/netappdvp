@@ -598,6 +598,13 @@ func (d Driver) VolumeListByAttrs(prefix, aggregate, spaceReserve, snapshotPolic
 	return
 }
 
+// VolumeGetRootName gets the name of the root volume of a vserver
+func (d Driver) VolumeGetRootName() (response azgo.VolumeGetRootNameResponse, err error) {
+	response, err = azgo.NewVolumeGetRootNameRequest().
+		ExecuteUsing(d.zr)
+	return
+}
+
 // VOLUME operations END
 /////////////////////////////////////////////////////////////////////////////
 
@@ -972,6 +979,41 @@ func (d Driver) AggrGetIterRequest() (response azgo.AggrGetIterResponse, err err
 }
 
 // AGGREGATE operations END
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// SNAPMIRROR operations BEGIN
+
+// SnapmirrorGetLoadSharingMirrors gets load-sharing SnapMirror relationships for a volume
+// equivalent to filer::> snapmirror -type LS -source-volume
+func (d Driver) SnapmirrorGetLoadSharingMirrors(volume string) (response azgo.SnapmirrorGetIterResponse, err error) {
+
+	// Limit the mirrors to load-sharing mirrors matching the source FlexVol
+	query := azgo.NewSnapmirrorInfoType().SetSourceVolume(volume).SetRelationshipType("load_sharing")
+
+	// Limit the returned data to only the source location
+	desiredAttributes := azgo.NewSnapmirrorInfoType().SetSourceLocation("").SetRelationshipStatus("")
+
+	response, err = azgo.NewSnapmirrorGetIterRequest().
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// SnapmirrorUpdateLoadSharingMirrors updates the destination volumes of a set of load-sharing mirrors
+// equivalent to filer::> snapmirror update-ls-set -source-path
+func (d Driver) SnapmirrorUpdateLoadSharingMirrors(
+	sourceLocation string,
+) (response azgo.SnapmirrorUpdateLsSetResponse, err error) {
+
+	response, err = azgo.NewSnapmirrorUpdateLsSetRequest().
+		SetSourceLocation(sourceLocation).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// SNAPMIRROR operations END
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////

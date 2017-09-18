@@ -7953,3 +7953,1143 @@ func (o *NodeVersionDetailInfoType) SetVersion(newValue string) *NodeVersionDeta
 	o.VersionPtr = &newValue
 	return o
 }
+
+// SnapmirrorInfoType is a structure to represent a snapmirror-info ZAPI object
+type SnapmirrorInfoType struct {
+	XMLName xml.Name `xml:"snapmirror-info"`
+
+	BreakFailedCountPtr                    *int    `xml:"break-failed-count"`
+	BreakSuccessfulCountPtr                *int    `xml:"break-successful-count"`
+	CurrentMaxTransferRatePtr              *int    `xml:"current-max-transfer-rate"`
+	CurrentOperationIdPtr                  *string `xml:"current-operation-id"`
+	CurrentTransferErrorPtr                *string `xml:"current-transfer-error"`
+	CurrentTransferPriorityPtr             *string `xml:"current-transfer-priority"`
+	CurrentTransferTypePtr                 *string `xml:"current-transfer-type"`
+	DestinationClusterPtr                  *string `xml:"destination-cluster"`
+	DestinationLocationPtr                 *string `xml:"destination-location"`
+	DestinationVolumePtr                   *string `xml:"destination-volume"`
+	DestinationVolumeNodePtr               *string `xml:"destination-volume-node"`
+	DestinationVserverPtr                  *string `xml:"destination-vserver"`
+	DestinationVserverUuidPtr              *string `xml:"destination-vserver-uuid"`
+	ExportedSnapshotPtr                    *string `xml:"exported-snapshot"`
+	ExportedSnapshotTimestampPtr           *int    `xml:"exported-snapshot-timestamp"`
+	FileRestoreFileCountPtr                *int    `xml:"file-restore-file-count"`
+	FileRestoreFileListPtr                 *string `xml:"file-restore-file-list"`
+	IdentityPreservePtr                    *bool   `xml:"identity-preserve"`
+	IsConstituentPtr                       *bool   `xml:"is-constituent"`
+	IsHealthyPtr                           *bool   `xml:"is-healthy"`
+	LagTimePtr                             *int    `xml:"lag-time"`
+	LastTransferDurationPtr                *int    `xml:"last-transfer-duration"`
+	LastTransferEndTimestampPtr            *int    `xml:"last-transfer-end-timestamp"`
+	LastTransferErrorPtr                   *string `xml:"last-transfer-error"`
+	LastTransferErrorCodesPtr              *int    `xml:"last-transfer-error-codes"`
+	LastTransferFromPtr                    *string `xml:"last-transfer-from"`
+	LastTransferNetworkCompressionRatioPtr *string `xml:"last-transfer-network-compression-ratio"`
+	LastTransferSizePtr                    *int    `xml:"last-transfer-size"`
+	LastTransferTypePtr                    *string `xml:"last-transfer-type"`
+	MaxTransferRatePtr                     *int    `xml:"max-transfer-rate"`
+	MirrorStatePtr                         *string `xml:"mirror-state"`
+	NetworkCompressionRatioPtr             *string `xml:"network-compression-ratio"`
+	NewestSnapshotPtr                      *string `xml:"newest-snapshot"`
+	NewestSnapshotTimestampPtr             *int    `xml:"newest-snapshot-timestamp"`
+	OpmaskPtr                              *int    `xml:"opmask"`
+	PolicyPtr                              *string `xml:"policy"`
+	PolicyTypePtr                          *string `xml:"policy-type"`
+	ProgressLastUpdatedPtr                 *int    `xml:"progress-last-updated"`
+	RelationshipControlPlanePtr            *string `xml:"relationship-control-plane"`
+	RelationshipGroupTypePtr               *string `xml:"relationship-group-type"`
+	RelationshipIdPtr                      *string `xml:"relationship-id"`
+	RelationshipProgressPtr                *int    `xml:"relationship-progress"`
+	RelationshipStatusPtr                  *string `xml:"relationship-status"`
+	RelationshipTypePtr                    *string `xml:"relationship-type"`
+	ResyncFailedCountPtr                   *int    `xml:"resync-failed-count"`
+	ResyncSuccessfulCountPtr               *int    `xml:"resync-successful-count"`
+	SchedulePtr                            *string `xml:"schedule"`
+	SnapshotCheckpointPtr                  *int    `xml:"snapshot-checkpoint"`
+	SnapshotProgressPtr                    *int    `xml:"snapshot-progress"`
+	SourceClusterPtr                       *string `xml:"source-cluster"`
+	SourceLocationPtr                      *string `xml:"source-location"`
+	SourceVolumePtr                        *string `xml:"source-volume"`
+	SourceVserverPtr                       *string `xml:"source-vserver"`
+	SourceVserverUuidPtr                   *string `xml:"source-vserver-uuid"`
+	TotalTransferBytesPtr                  *int    `xml:"total-transfer-bytes"`
+	TotalTransferTimeSecsPtr               *int    `xml:"total-transfer-time-secs"`
+	TransferSnapshotPtr                    *string `xml:"transfer-snapshot"`
+	TriesPtr                               *string `xml:"tries"`
+	UnhealthyReasonPtr                     *string `xml:"unhealthy-reason"`
+	UpdateFailedCountPtr                   *int    `xml:"update-failed-count"`
+	UpdateSuccessfulCountPtr               *int    `xml:"update-successful-count"`
+	VserverPtr                             *string `xml:"vserver"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *SnapmirrorInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewSnapmirrorInfoType is a factory method for creating new instances of SnapmirrorInfoType objects
+func NewSnapmirrorInfoType() *SnapmirrorInfoType { return &SnapmirrorInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o SnapmirrorInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.BreakFailedCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "break-failed-count", *o.BreakFailedCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("break-failed-count: nil\n"))
+	}
+	if o.BreakSuccessfulCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "break-successful-count", *o.BreakSuccessfulCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("break-successful-count: nil\n"))
+	}
+	if o.CurrentMaxTransferRatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "current-max-transfer-rate", *o.CurrentMaxTransferRatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("current-max-transfer-rate: nil\n"))
+	}
+	if o.CurrentOperationIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "current-operation-id", *o.CurrentOperationIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("current-operation-id: nil\n"))
+	}
+	if o.CurrentTransferErrorPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "current-transfer-error", *o.CurrentTransferErrorPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("current-transfer-error: nil\n"))
+	}
+	if o.CurrentTransferPriorityPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "current-transfer-priority", *o.CurrentTransferPriorityPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("current-transfer-priority: nil\n"))
+	}
+	if o.CurrentTransferTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "current-transfer-type", *o.CurrentTransferTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("current-transfer-type: nil\n"))
+	}
+	if o.DestinationClusterPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "destination-cluster", *o.DestinationClusterPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("destination-cluster: nil\n"))
+	}
+	if o.DestinationLocationPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "destination-location", *o.DestinationLocationPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("destination-location: nil\n"))
+	}
+	if o.DestinationVolumePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "destination-volume", *o.DestinationVolumePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("destination-volume: nil\n"))
+	}
+	if o.DestinationVolumeNodePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "destination-volume-node", *o.DestinationVolumeNodePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("destination-volume-node: nil\n"))
+	}
+	if o.DestinationVserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "destination-vserver", *o.DestinationVserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("destination-vserver: nil\n"))
+	}
+	if o.DestinationVserverUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "destination-vserver-uuid", *o.DestinationVserverUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("destination-vserver-uuid: nil\n"))
+	}
+	if o.ExportedSnapshotPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "exported-snapshot", *o.ExportedSnapshotPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("exported-snapshot: nil\n"))
+	}
+	if o.ExportedSnapshotTimestampPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "exported-snapshot-timestamp", *o.ExportedSnapshotTimestampPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("exported-snapshot-timestamp: nil\n"))
+	}
+	if o.FileRestoreFileCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "file-restore-file-count", *o.FileRestoreFileCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("file-restore-file-count: nil\n"))
+	}
+	if o.FileRestoreFileListPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "file-restore-file-list", *o.FileRestoreFileListPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("file-restore-file-list: nil\n"))
+	}
+	if o.IdentityPreservePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "identity-preserve", *o.IdentityPreservePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("identity-preserve: nil\n"))
+	}
+	if o.IsConstituentPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-constituent", *o.IsConstituentPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-constituent: nil\n"))
+	}
+	if o.IsHealthyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-healthy", *o.IsHealthyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-healthy: nil\n"))
+	}
+	if o.LagTimePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "lag-time", *o.LagTimePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("lag-time: nil\n"))
+	}
+	if o.LastTransferDurationPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "last-transfer-duration", *o.LastTransferDurationPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("last-transfer-duration: nil\n"))
+	}
+	if o.LastTransferEndTimestampPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "last-transfer-end-timestamp", *o.LastTransferEndTimestampPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("last-transfer-end-timestamp: nil\n"))
+	}
+	if o.LastTransferErrorPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "last-transfer-error", *o.LastTransferErrorPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("last-transfer-error: nil\n"))
+	}
+	if o.LastTransferErrorCodesPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "last-transfer-error-codes", *o.LastTransferErrorCodesPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("last-transfer-error-codes: nil\n"))
+	}
+	if o.LastTransferFromPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "last-transfer-from", *o.LastTransferFromPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("last-transfer-from: nil\n"))
+	}
+	if o.LastTransferNetworkCompressionRatioPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "last-transfer-network-compression-ratio", *o.LastTransferNetworkCompressionRatioPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("last-transfer-network-compression-ratio: nil\n"))
+	}
+	if o.LastTransferSizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "last-transfer-size", *o.LastTransferSizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("last-transfer-size: nil\n"))
+	}
+	if o.LastTransferTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "last-transfer-type", *o.LastTransferTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("last-transfer-type: nil\n"))
+	}
+	if o.MaxTransferRatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "max-transfer-rate", *o.MaxTransferRatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("max-transfer-rate: nil\n"))
+	}
+	if o.MirrorStatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "mirror-state", *o.MirrorStatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("mirror-state: nil\n"))
+	}
+	if o.NetworkCompressionRatioPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "network-compression-ratio", *o.NetworkCompressionRatioPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("network-compression-ratio: nil\n"))
+	}
+	if o.NewestSnapshotPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "newest-snapshot", *o.NewestSnapshotPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("newest-snapshot: nil\n"))
+	}
+	if o.NewestSnapshotTimestampPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "newest-snapshot-timestamp", *o.NewestSnapshotTimestampPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("newest-snapshot-timestamp: nil\n"))
+	}
+	if o.OpmaskPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "opmask", *o.OpmaskPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("opmask: nil\n"))
+	}
+	if o.PolicyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "policy", *o.PolicyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("policy: nil\n"))
+	}
+	if o.PolicyTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "policy-type", *o.PolicyTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("policy-type: nil\n"))
+	}
+	if o.ProgressLastUpdatedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "progress-last-updated", *o.ProgressLastUpdatedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("progress-last-updated: nil\n"))
+	}
+	if o.RelationshipControlPlanePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "relationship-control-plane", *o.RelationshipControlPlanePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("relationship-control-plane: nil\n"))
+	}
+	if o.RelationshipGroupTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "relationship-group-type", *o.RelationshipGroupTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("relationship-group-type: nil\n"))
+	}
+	if o.RelationshipIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "relationship-id", *o.RelationshipIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("relationship-id: nil\n"))
+	}
+	if o.RelationshipProgressPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "relationship-progress", *o.RelationshipProgressPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("relationship-progress: nil\n"))
+	}
+	if o.RelationshipStatusPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "relationship-status", *o.RelationshipStatusPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("relationship-status: nil\n"))
+	}
+	if o.RelationshipTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "relationship-type", *o.RelationshipTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("relationship-type: nil\n"))
+	}
+	if o.ResyncFailedCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "resync-failed-count", *o.ResyncFailedCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("resync-failed-count: nil\n"))
+	}
+	if o.ResyncSuccessfulCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "resync-successful-count", *o.ResyncSuccessfulCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("resync-successful-count: nil\n"))
+	}
+	if o.SchedulePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "schedule", *o.SchedulePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("schedule: nil\n"))
+	}
+	if o.SnapshotCheckpointPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapshot-checkpoint", *o.SnapshotCheckpointPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("snapshot-checkpoint: nil\n"))
+	}
+	if o.SnapshotProgressPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "snapshot-progress", *o.SnapshotProgressPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("snapshot-progress: nil\n"))
+	}
+	if o.SourceClusterPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "source-cluster", *o.SourceClusterPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("source-cluster: nil\n"))
+	}
+	if o.SourceLocationPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "source-location", *o.SourceLocationPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("source-location: nil\n"))
+	}
+	if o.SourceVolumePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "source-volume", *o.SourceVolumePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("source-volume: nil\n"))
+	}
+	if o.SourceVserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "source-vserver", *o.SourceVserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("source-vserver: nil\n"))
+	}
+	if o.SourceVserverUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "source-vserver-uuid", *o.SourceVserverUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("source-vserver-uuid: nil\n"))
+	}
+	if o.TotalTransferBytesPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "total-transfer-bytes", *o.TotalTransferBytesPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("total-transfer-bytes: nil\n"))
+	}
+	if o.TotalTransferTimeSecsPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "total-transfer-time-secs", *o.TotalTransferTimeSecsPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("total-transfer-time-secs: nil\n"))
+	}
+	if o.TransferSnapshotPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "transfer-snapshot", *o.TransferSnapshotPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("transfer-snapshot: nil\n"))
+	}
+	if o.TriesPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "tries", *o.TriesPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("tries: nil\n"))
+	}
+	if o.UnhealthyReasonPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "unhealthy-reason", *o.UnhealthyReasonPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("unhealthy-reason: nil\n"))
+	}
+	if o.UpdateFailedCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "update-failed-count", *o.UpdateFailedCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("update-failed-count: nil\n"))
+	}
+	if o.UpdateSuccessfulCountPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "update-successful-count", *o.UpdateSuccessfulCountPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("update-successful-count: nil\n"))
+	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
+	return buffer.String()
+}
+
+// BreakFailedCount is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) BreakFailedCount() int {
+	r := *o.BreakFailedCountPtr
+	return r
+}
+
+// SetBreakFailedCount is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetBreakFailedCount(newValue int) *SnapmirrorInfoType {
+	o.BreakFailedCountPtr = &newValue
+	return o
+}
+
+// BreakSuccessfulCount is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) BreakSuccessfulCount() int {
+	r := *o.BreakSuccessfulCountPtr
+	return r
+}
+
+// SetBreakSuccessfulCount is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetBreakSuccessfulCount(newValue int) *SnapmirrorInfoType {
+	o.BreakSuccessfulCountPtr = &newValue
+	return o
+}
+
+// CurrentMaxTransferRate is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) CurrentMaxTransferRate() int {
+	r := *o.CurrentMaxTransferRatePtr
+	return r
+}
+
+// SetCurrentMaxTransferRate is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetCurrentMaxTransferRate(newValue int) *SnapmirrorInfoType {
+	o.CurrentMaxTransferRatePtr = &newValue
+	return o
+}
+
+// CurrentOperationId is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) CurrentOperationId() string {
+	r := *o.CurrentOperationIdPtr
+	return r
+}
+
+// SetCurrentOperationId is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetCurrentOperationId(newValue string) *SnapmirrorInfoType {
+	o.CurrentOperationIdPtr = &newValue
+	return o
+}
+
+// CurrentTransferError is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) CurrentTransferError() string {
+	r := *o.CurrentTransferErrorPtr
+	return r
+}
+
+// SetCurrentTransferError is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetCurrentTransferError(newValue string) *SnapmirrorInfoType {
+	o.CurrentTransferErrorPtr = &newValue
+	return o
+}
+
+// CurrentTransferPriority is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) CurrentTransferPriority() string {
+	r := *o.CurrentTransferPriorityPtr
+	return r
+}
+
+// SetCurrentTransferPriority is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetCurrentTransferPriority(newValue string) *SnapmirrorInfoType {
+	o.CurrentTransferPriorityPtr = &newValue
+	return o
+}
+
+// CurrentTransferType is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) CurrentTransferType() string {
+	r := *o.CurrentTransferTypePtr
+	return r
+}
+
+// SetCurrentTransferType is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetCurrentTransferType(newValue string) *SnapmirrorInfoType {
+	o.CurrentTransferTypePtr = &newValue
+	return o
+}
+
+// DestinationCluster is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) DestinationCluster() string {
+	r := *o.DestinationClusterPtr
+	return r
+}
+
+// SetDestinationCluster is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetDestinationCluster(newValue string) *SnapmirrorInfoType {
+	o.DestinationClusterPtr = &newValue
+	return o
+}
+
+// DestinationLocation is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) DestinationLocation() string {
+	r := *o.DestinationLocationPtr
+	return r
+}
+
+// SetDestinationLocation is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetDestinationLocation(newValue string) *SnapmirrorInfoType {
+	o.DestinationLocationPtr = &newValue
+	return o
+}
+
+// DestinationVolume is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) DestinationVolume() string {
+	r := *o.DestinationVolumePtr
+	return r
+}
+
+// SetDestinationVolume is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetDestinationVolume(newValue string) *SnapmirrorInfoType {
+	o.DestinationVolumePtr = &newValue
+	return o
+}
+
+// DestinationVolumeNode is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) DestinationVolumeNode() string {
+	r := *o.DestinationVolumeNodePtr
+	return r
+}
+
+// SetDestinationVolumeNode is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetDestinationVolumeNode(newValue string) *SnapmirrorInfoType {
+	o.DestinationVolumeNodePtr = &newValue
+	return o
+}
+
+// DestinationVserver is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) DestinationVserver() string {
+	r := *o.DestinationVserverPtr
+	return r
+}
+
+// SetDestinationVserver is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetDestinationVserver(newValue string) *SnapmirrorInfoType {
+	o.DestinationVserverPtr = &newValue
+	return o
+}
+
+// DestinationVserverUuid is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) DestinationVserverUuid() string {
+	r := *o.DestinationVserverUuidPtr
+	return r
+}
+
+// SetDestinationVserverUuid is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetDestinationVserverUuid(newValue string) *SnapmirrorInfoType {
+	o.DestinationVserverUuidPtr = &newValue
+	return o
+}
+
+// ExportedSnapshot is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) ExportedSnapshot() string {
+	r := *o.ExportedSnapshotPtr
+	return r
+}
+
+// SetExportedSnapshot is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetExportedSnapshot(newValue string) *SnapmirrorInfoType {
+	o.ExportedSnapshotPtr = &newValue
+	return o
+}
+
+// ExportedSnapshotTimestamp is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) ExportedSnapshotTimestamp() int {
+	r := *o.ExportedSnapshotTimestampPtr
+	return r
+}
+
+// SetExportedSnapshotTimestamp is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetExportedSnapshotTimestamp(newValue int) *SnapmirrorInfoType {
+	o.ExportedSnapshotTimestampPtr = &newValue
+	return o
+}
+
+// FileRestoreFileCount is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) FileRestoreFileCount() int {
+	r := *o.FileRestoreFileCountPtr
+	return r
+}
+
+// SetFileRestoreFileCount is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetFileRestoreFileCount(newValue int) *SnapmirrorInfoType {
+	o.FileRestoreFileCountPtr = &newValue
+	return o
+}
+
+// FileRestoreFileList is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) FileRestoreFileList() string {
+	r := *o.FileRestoreFileListPtr
+	return r
+}
+
+// SetFileRestoreFileList is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetFileRestoreFileList(newValue string) *SnapmirrorInfoType {
+	o.FileRestoreFileListPtr = &newValue
+	return o
+}
+
+// IdentityPreserve is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) IdentityPreserve() bool {
+	r := *o.IdentityPreservePtr
+	return r
+}
+
+// SetIdentityPreserve is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetIdentityPreserve(newValue bool) *SnapmirrorInfoType {
+	o.IdentityPreservePtr = &newValue
+	return o
+}
+
+// IsConstituent is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) IsConstituent() bool {
+	r := *o.IsConstituentPtr
+	return r
+}
+
+// SetIsConstituent is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetIsConstituent(newValue bool) *SnapmirrorInfoType {
+	o.IsConstituentPtr = &newValue
+	return o
+}
+
+// IsHealthy is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) IsHealthy() bool {
+	r := *o.IsHealthyPtr
+	return r
+}
+
+// SetIsHealthy is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetIsHealthy(newValue bool) *SnapmirrorInfoType {
+	o.IsHealthyPtr = &newValue
+	return o
+}
+
+// LagTime is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LagTime() int {
+	r := *o.LagTimePtr
+	return r
+}
+
+// SetLagTime is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLagTime(newValue int) *SnapmirrorInfoType {
+	o.LagTimePtr = &newValue
+	return o
+}
+
+// LastTransferDuration is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LastTransferDuration() int {
+	r := *o.LastTransferDurationPtr
+	return r
+}
+
+// SetLastTransferDuration is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLastTransferDuration(newValue int) *SnapmirrorInfoType {
+	o.LastTransferDurationPtr = &newValue
+	return o
+}
+
+// LastTransferEndTimestamp is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LastTransferEndTimestamp() int {
+	r := *o.LastTransferEndTimestampPtr
+	return r
+}
+
+// SetLastTransferEndTimestamp is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLastTransferEndTimestamp(newValue int) *SnapmirrorInfoType {
+	o.LastTransferEndTimestampPtr = &newValue
+	return o
+}
+
+// LastTransferError is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LastTransferError() string {
+	r := *o.LastTransferErrorPtr
+	return r
+}
+
+// SetLastTransferError is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLastTransferError(newValue string) *SnapmirrorInfoType {
+	o.LastTransferErrorPtr = &newValue
+	return o
+}
+
+// LastTransferErrorCodes is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LastTransferErrorCodes() int {
+	r := *o.LastTransferErrorCodesPtr
+	return r
+}
+
+// SetLastTransferErrorCodes is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLastTransferErrorCodes(newValue int) *SnapmirrorInfoType {
+	o.LastTransferErrorCodesPtr = &newValue
+	return o
+}
+
+// LastTransferFrom is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LastTransferFrom() string {
+	r := *o.LastTransferFromPtr
+	return r
+}
+
+// SetLastTransferFrom is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLastTransferFrom(newValue string) *SnapmirrorInfoType {
+	o.LastTransferFromPtr = &newValue
+	return o
+}
+
+// LastTransferNetworkCompressionRatio is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LastTransferNetworkCompressionRatio() string {
+	r := *o.LastTransferNetworkCompressionRatioPtr
+	return r
+}
+
+// SetLastTransferNetworkCompressionRatio is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLastTransferNetworkCompressionRatio(newValue string) *SnapmirrorInfoType {
+	o.LastTransferNetworkCompressionRatioPtr = &newValue
+	return o
+}
+
+// LastTransferSize is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LastTransferSize() int {
+	r := *o.LastTransferSizePtr
+	return r
+}
+
+// SetLastTransferSize is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLastTransferSize(newValue int) *SnapmirrorInfoType {
+	o.LastTransferSizePtr = &newValue
+	return o
+}
+
+// LastTransferType is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) LastTransferType() string {
+	r := *o.LastTransferTypePtr
+	return r
+}
+
+// SetLastTransferType is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetLastTransferType(newValue string) *SnapmirrorInfoType {
+	o.LastTransferTypePtr = &newValue
+	return o
+}
+
+// MaxTransferRate is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) MaxTransferRate() int {
+	r := *o.MaxTransferRatePtr
+	return r
+}
+
+// SetMaxTransferRate is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetMaxTransferRate(newValue int) *SnapmirrorInfoType {
+	o.MaxTransferRatePtr = &newValue
+	return o
+}
+
+// MirrorState is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) MirrorState() string {
+	r := *o.MirrorStatePtr
+	return r
+}
+
+// SetMirrorState is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetMirrorState(newValue string) *SnapmirrorInfoType {
+	o.MirrorStatePtr = &newValue
+	return o
+}
+
+// NetworkCompressionRatio is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) NetworkCompressionRatio() string {
+	r := *o.NetworkCompressionRatioPtr
+	return r
+}
+
+// SetNetworkCompressionRatio is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetNetworkCompressionRatio(newValue string) *SnapmirrorInfoType {
+	o.NetworkCompressionRatioPtr = &newValue
+	return o
+}
+
+// NewestSnapshot is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) NewestSnapshot() string {
+	r := *o.NewestSnapshotPtr
+	return r
+}
+
+// SetNewestSnapshot is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetNewestSnapshot(newValue string) *SnapmirrorInfoType {
+	o.NewestSnapshotPtr = &newValue
+	return o
+}
+
+// NewestSnapshotTimestamp is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) NewestSnapshotTimestamp() int {
+	r := *o.NewestSnapshotTimestampPtr
+	return r
+}
+
+// SetNewestSnapshotTimestamp is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetNewestSnapshotTimestamp(newValue int) *SnapmirrorInfoType {
+	o.NewestSnapshotTimestampPtr = &newValue
+	return o
+}
+
+// Opmask is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) Opmask() int {
+	r := *o.OpmaskPtr
+	return r
+}
+
+// SetOpmask is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetOpmask(newValue int) *SnapmirrorInfoType {
+	o.OpmaskPtr = &newValue
+	return o
+}
+
+// Policy is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) Policy() string {
+	r := *o.PolicyPtr
+	return r
+}
+
+// SetPolicy is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetPolicy(newValue string) *SnapmirrorInfoType {
+	o.PolicyPtr = &newValue
+	return o
+}
+
+// PolicyType is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) PolicyType() string {
+	r := *o.PolicyTypePtr
+	return r
+}
+
+// SetPolicyType is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetPolicyType(newValue string) *SnapmirrorInfoType {
+	o.PolicyTypePtr = &newValue
+	return o
+}
+
+// ProgressLastUpdated is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) ProgressLastUpdated() int {
+	r := *o.ProgressLastUpdatedPtr
+	return r
+}
+
+// SetProgressLastUpdated is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetProgressLastUpdated(newValue int) *SnapmirrorInfoType {
+	o.ProgressLastUpdatedPtr = &newValue
+	return o
+}
+
+// RelationshipControlPlane is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) RelationshipControlPlane() string {
+	r := *o.RelationshipControlPlanePtr
+	return r
+}
+
+// SetRelationshipControlPlane is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetRelationshipControlPlane(newValue string) *SnapmirrorInfoType {
+	o.RelationshipControlPlanePtr = &newValue
+	return o
+}
+
+// RelationshipGroupType is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) RelationshipGroupType() string {
+	r := *o.RelationshipGroupTypePtr
+	return r
+}
+
+// SetRelationshipGroupType is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetRelationshipGroupType(newValue string) *SnapmirrorInfoType {
+	o.RelationshipGroupTypePtr = &newValue
+	return o
+}
+
+// RelationshipId is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) RelationshipId() string {
+	r := *o.RelationshipIdPtr
+	return r
+}
+
+// SetRelationshipId is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetRelationshipId(newValue string) *SnapmirrorInfoType {
+	o.RelationshipIdPtr = &newValue
+	return o
+}
+
+// RelationshipProgress is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) RelationshipProgress() int {
+	r := *o.RelationshipProgressPtr
+	return r
+}
+
+// SetRelationshipProgress is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetRelationshipProgress(newValue int) *SnapmirrorInfoType {
+	o.RelationshipProgressPtr = &newValue
+	return o
+}
+
+// RelationshipStatus is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) RelationshipStatus() string {
+	r := *o.RelationshipStatusPtr
+	return r
+}
+
+// SetRelationshipStatus is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetRelationshipStatus(newValue string) *SnapmirrorInfoType {
+	o.RelationshipStatusPtr = &newValue
+	return o
+}
+
+// RelationshipType is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) RelationshipType() string {
+	r := *o.RelationshipTypePtr
+	return r
+}
+
+// SetRelationshipType is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetRelationshipType(newValue string) *SnapmirrorInfoType {
+	o.RelationshipTypePtr = &newValue
+	return o
+}
+
+// ResyncFailedCount is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) ResyncFailedCount() int {
+	r := *o.ResyncFailedCountPtr
+	return r
+}
+
+// SetResyncFailedCount is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetResyncFailedCount(newValue int) *SnapmirrorInfoType {
+	o.ResyncFailedCountPtr = &newValue
+	return o
+}
+
+// ResyncSuccessfulCount is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) ResyncSuccessfulCount() int {
+	r := *o.ResyncSuccessfulCountPtr
+	return r
+}
+
+// SetResyncSuccessfulCount is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetResyncSuccessfulCount(newValue int) *SnapmirrorInfoType {
+	o.ResyncSuccessfulCountPtr = &newValue
+	return o
+}
+
+// Schedule is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) Schedule() string {
+	r := *o.SchedulePtr
+	return r
+}
+
+// SetSchedule is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetSchedule(newValue string) *SnapmirrorInfoType {
+	o.SchedulePtr = &newValue
+	return o
+}
+
+// SnapshotCheckpoint is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) SnapshotCheckpoint() int {
+	r := *o.SnapshotCheckpointPtr
+	return r
+}
+
+// SetSnapshotCheckpoint is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetSnapshotCheckpoint(newValue int) *SnapmirrorInfoType {
+	o.SnapshotCheckpointPtr = &newValue
+	return o
+}
+
+// SnapshotProgress is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) SnapshotProgress() int {
+	r := *o.SnapshotProgressPtr
+	return r
+}
+
+// SetSnapshotProgress is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetSnapshotProgress(newValue int) *SnapmirrorInfoType {
+	o.SnapshotProgressPtr = &newValue
+	return o
+}
+
+// SourceCluster is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) SourceCluster() string {
+	r := *o.SourceClusterPtr
+	return r
+}
+
+// SetSourceCluster is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetSourceCluster(newValue string) *SnapmirrorInfoType {
+	o.SourceClusterPtr = &newValue
+	return o
+}
+
+// SourceLocation is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) SourceLocation() string {
+	r := *o.SourceLocationPtr
+	return r
+}
+
+// SetSourceLocation is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetSourceLocation(newValue string) *SnapmirrorInfoType {
+	o.SourceLocationPtr = &newValue
+	return o
+}
+
+// SourceVolume is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) SourceVolume() string {
+	r := *o.SourceVolumePtr
+	return r
+}
+
+// SetSourceVolume is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetSourceVolume(newValue string) *SnapmirrorInfoType {
+	o.SourceVolumePtr = &newValue
+	return o
+}
+
+// SourceVserver is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) SourceVserver() string {
+	r := *o.SourceVserverPtr
+	return r
+}
+
+// SetSourceVserver is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetSourceVserver(newValue string) *SnapmirrorInfoType {
+	o.SourceVserverPtr = &newValue
+	return o
+}
+
+// SourceVserverUuid is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) SourceVserverUuid() string {
+	r := *o.SourceVserverUuidPtr
+	return r
+}
+
+// SetSourceVserverUuid is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetSourceVserverUuid(newValue string) *SnapmirrorInfoType {
+	o.SourceVserverUuidPtr = &newValue
+	return o
+}
+
+// TotalTransferBytes is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) TotalTransferBytes() int {
+	r := *o.TotalTransferBytesPtr
+	return r
+}
+
+// SetTotalTransferBytes is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetTotalTransferBytes(newValue int) *SnapmirrorInfoType {
+	o.TotalTransferBytesPtr = &newValue
+	return o
+}
+
+// TotalTransferTimeSecs is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) TotalTransferTimeSecs() int {
+	r := *o.TotalTransferTimeSecsPtr
+	return r
+}
+
+// SetTotalTransferTimeSecs is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetTotalTransferTimeSecs(newValue int) *SnapmirrorInfoType {
+	o.TotalTransferTimeSecsPtr = &newValue
+	return o
+}
+
+// TransferSnapshot is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) TransferSnapshot() string {
+	r := *o.TransferSnapshotPtr
+	return r
+}
+
+// SetTransferSnapshot is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetTransferSnapshot(newValue string) *SnapmirrorInfoType {
+	o.TransferSnapshotPtr = &newValue
+	return o
+}
+
+// Tries is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) Tries() string {
+	r := *o.TriesPtr
+	return r
+}
+
+// SetTries is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetTries(newValue string) *SnapmirrorInfoType {
+	o.TriesPtr = &newValue
+	return o
+}
+
+// UnhealthyReason is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) UnhealthyReason() string {
+	r := *o.UnhealthyReasonPtr
+	return r
+}
+
+// SetUnhealthyReason is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetUnhealthyReason(newValue string) *SnapmirrorInfoType {
+	o.UnhealthyReasonPtr = &newValue
+	return o
+}
+
+// UpdateFailedCount is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) UpdateFailedCount() int {
+	r := *o.UpdateFailedCountPtr
+	return r
+}
+
+// SetUpdateFailedCount is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetUpdateFailedCount(newValue int) *SnapmirrorInfoType {
+	o.UpdateFailedCountPtr = &newValue
+	return o
+}
+
+// UpdateSuccessfulCount is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) UpdateSuccessfulCount() int {
+	r := *o.UpdateSuccessfulCountPtr
+	return r
+}
+
+// SetUpdateSuccessfulCount is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetUpdateSuccessfulCount(newValue int) *SnapmirrorInfoType {
+	o.UpdateSuccessfulCountPtr = &newValue
+	return o
+}
+
+// Vserver is a fluent style 'getter' method that can be chained
+func (o *SnapmirrorInfoType) Vserver() string {
+	r := *o.VserverPtr
+	return r
+}
+
+// SetVserver is a fluent style 'setter' method that can be chained
+func (o *SnapmirrorInfoType) SetVserver(newValue string) *SnapmirrorInfoType {
+	o.VserverPtr = &newValue
+	return o
+}

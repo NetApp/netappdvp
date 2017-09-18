@@ -174,6 +174,9 @@ func (d *OntapNASStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 		return fmt.Errorf("Error mounting volume to junction. %v", err)
 	}
 
+	// If LS mirrors are present on the SVM root volume, update them
+	UpdateLoadSharingMirrors(d.API)
+
 	return nil
 }
 

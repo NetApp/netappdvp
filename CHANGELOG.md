@@ -5,8 +5,9 @@
 ## Changes since 17.07.0
 
 **Fixes:**
-- Changed the Solidfire driver to teardown the iSCSI connection as part of the docker volume delete operation
+- Changed the Solidfire driver to tear down the iSCSI connection as part of the docker volume delete operation
 - Added pagination to ONTAP API calls, the lack of which in rare cases could cause nDVP to fail
+- Fixed issue where ONTAP NAS volumes were not mountable immediately after creation when using load-sharing mirrors for the SVM root volume
 
 **Enhancements:**
 - Added controller serial numbers to logs
