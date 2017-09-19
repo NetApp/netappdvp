@@ -39,3 +39,7 @@ Known Issues and Limitations
 #. Volume names must be a minimum of 2 characters in length
 
    This is a Docker client limitation. The client will interpret a single character name as being a Windows path. `See bug 25773 <https://github.com/docker/docker/issues/25773>`_.
+
+#. Block device-based volumes must not be partitioned
+
+   nDVP currently assumes block devices it uses are not partitioned. `Refer to nDVP issue 97 <https://github.com/NetApp/netappdvp/issues/97>`_.
