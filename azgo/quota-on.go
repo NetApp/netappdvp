@@ -11,30 +11,28 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-// VolumeCloneSplitStartRequest is a structure to represent a volume-clone-split-start ZAPI request object
-type VolumeCloneSplitStartRequest struct {
-	XMLName xml.Name `xml:"volume-clone-split-start"`
+// QuotaOnRequest is a structure to represent a quota-on ZAPI request object
+type QuotaOnRequest struct {
+	XMLName xml.Name `xml:"quota-on"`
 
 	VolumePtr *string `xml:"volume"`
 }
 
 // ToXML converts this object into an xml string representation
-func (o *VolumeCloneSplitStartRequest) ToXML() (string, error) {
+func (o *QuotaOnRequest) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
 	//if err != nil { log.Errorf("error: %v\n", err) }
 	return string(output), err
 }
 
-// NewVolumeCloneSplitStartRequest is a factory method for creating new instances of VolumeCloneSplitStartRequest objects
-func NewVolumeCloneSplitStartRequest() *VolumeCloneSplitStartRequest {
-	return &VolumeCloneSplitStartRequest{}
-}
+// NewQuotaOnRequest is a factory method for creating new instances of QuotaOnRequest objects
+func NewQuotaOnRequest() *QuotaOnRequest { return &QuotaOnRequest{} }
 
 // ExecuteUsing converts this object to a ZAPI XML representation and uses the supplied ZapiRunner to send to a filer
-func (o *VolumeCloneSplitStartRequest) ExecuteUsing(zr *ZapiRunner) (VolumeCloneSplitStartResponse, error) {
+func (o *QuotaOnRequest) ExecuteUsing(zr *ZapiRunner) (QuotaOnResponse, error) {
 
 	if zr.DebugTraceFlags["method"] {
-		fields := log.Fields{"Method": "ExecuteUsing", "Type": "VolumeCloneSplitStartRequest"}
+		fields := log.Fields{"Method": "ExecuteUsing", "Type": "QuotaOnRequest"}
 		log.WithFields(fields).Debug(">>>> ExecuteUsing")
 		defer log.WithFields(fields).Debug("<<<< ExecuteUsing")
 	}
@@ -42,33 +40,33 @@ func (o *VolumeCloneSplitStartRequest) ExecuteUsing(zr *ZapiRunner) (VolumeClone
 	resp, err := zr.SendZapi(o)
 	if err != nil {
 		log.Errorf("API invocation failed. %v", err.Error())
-		return VolumeCloneSplitStartResponse{}, err
+		return QuotaOnResponse{}, err
 	}
 	defer resp.Body.Close()
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
 		log.Errorf("Error reading response body. %v", readErr.Error())
-		return VolumeCloneSplitStartResponse{}, readErr
+		return QuotaOnResponse{}, readErr
 	}
 	if zr.DebugTraceFlags["api"] {
 		log.Debugf("response Body:\n%s", string(body))
 	}
 
-	var n VolumeCloneSplitStartResponse
+	var n QuotaOnResponse
 	unmarshalErr := xml.Unmarshal(body, &n)
 	if unmarshalErr != nil {
 		log.WithField("body", string(body)).Warnf("Error unmarshaling response body. %v", unmarshalErr.Error())
-		//return VolumeCloneSplitStartResponse{}, unmarshalErr
+		//return QuotaOnResponse{}, unmarshalErr
 	}
 	if zr.DebugTraceFlags["api"] {
-		log.Debugf("volume-clone-split-start result:\n%s", n.Result)
+		log.Debugf("quota-on result:\n%s", n.Result)
 	}
 
 	return n, nil
 }
 
 // String returns a string representation of this object's fields and implements the Stringer interface
-func (o VolumeCloneSplitStartRequest) String() string {
+func (o QuotaOnRequest) String() string {
 	var buffer bytes.Buffer
 	if o.VolumePtr != nil {
 		buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume", *o.VolumePtr))
@@ -79,29 +77,29 @@ func (o VolumeCloneSplitStartRequest) String() string {
 }
 
 // Volume is a fluent style 'getter' method that can be chained
-func (o *VolumeCloneSplitStartRequest) Volume() string {
+func (o *QuotaOnRequest) Volume() string {
 	r := *o.VolumePtr
 	return r
 }
 
 // SetVolume is a fluent style 'setter' method that can be chained
-func (o *VolumeCloneSplitStartRequest) SetVolume(newValue string) *VolumeCloneSplitStartRequest {
+func (o *QuotaOnRequest) SetVolume(newValue string) *QuotaOnRequest {
 	o.VolumePtr = &newValue
 	return o
 }
 
-// VolumeCloneSplitStartResponse is a structure to represent a volume-clone-split-start ZAPI response object
-type VolumeCloneSplitStartResponse struct {
+// QuotaOnResponse is a structure to represent a quota-on ZAPI response object
+type QuotaOnResponse struct {
 	XMLName xml.Name `xml:"netapp"`
 
 	ResponseVersion string `xml:"version,attr"`
 	ResponseXmlns   string `xml:"xmlns,attr"`
 
-	Result VolumeCloneSplitStartResponseResult `xml:"results"`
+	Result QuotaOnResponseResult `xml:"results"`
 }
 
 // String returns a string representation of this object's fields and implements the Stringer interface
-func (o VolumeCloneSplitStartResponse) String() string {
+func (o QuotaOnResponse) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("%s: %s\n", "version", o.ResponseVersion))
 	buffer.WriteString(fmt.Sprintf("%s: %s\n", "xmlns", o.ResponseXmlns))
@@ -109,8 +107,8 @@ func (o VolumeCloneSplitStartResponse) String() string {
 	return buffer.String()
 }
 
-// VolumeCloneSplitStartResponseResult is a structure to represent a volume-clone-split-start ZAPI object's result
-type VolumeCloneSplitStartResponseResult struct {
+// QuotaOnResponseResult is a structure to represent a quota-on ZAPI object's result
+type QuotaOnResponseResult struct {
 	XMLName xml.Name `xml:"results"`
 
 	ResultStatusAttr      string  `xml:"status,attr"`
@@ -123,19 +121,17 @@ type VolumeCloneSplitStartResponseResult struct {
 }
 
 // ToXML converts this object into an xml string representation
-func (o *VolumeCloneSplitStartResponse) ToXML() (string, error) {
+func (o *QuotaOnResponse) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
 	//if err != nil { log.Debugf("error: %v", err) }
 	return string(output), err
 }
 
-// NewVolumeCloneSplitStartResponse is a factory method for creating new instances of VolumeCloneSplitStartResponse objects
-func NewVolumeCloneSplitStartResponse() *VolumeCloneSplitStartResponse {
-	return &VolumeCloneSplitStartResponse{}
-}
+// NewQuotaOnResponse is a factory method for creating new instances of QuotaOnResponse objects
+func NewQuotaOnResponse() *QuotaOnResponse { return &QuotaOnResponse{} }
 
 // String returns a string representation of this object's fields and implements the Stringer interface
-func (o VolumeCloneSplitStartResponseResult) String() string {
+func (o QuotaOnResponseResult) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("%s: %s\n", "resultStatusAttr", o.ResultStatusAttr))
 	buffer.WriteString(fmt.Sprintf("%s: %s\n", "resultReasonAttr", o.ResultReasonAttr))
@@ -164,49 +160,49 @@ func (o VolumeCloneSplitStartResponseResult) String() string {
 }
 
 // ResultErrorCode is a fluent style 'getter' method that can be chained
-func (o *VolumeCloneSplitStartResponseResult) ResultErrorCode() int {
+func (o *QuotaOnResponseResult) ResultErrorCode() int {
 	r := *o.ResultErrorCodePtr
 	return r
 }
 
 // SetResultErrorCode is a fluent style 'setter' method that can be chained
-func (o *VolumeCloneSplitStartResponseResult) SetResultErrorCode(newValue int) *VolumeCloneSplitStartResponseResult {
+func (o *QuotaOnResponseResult) SetResultErrorCode(newValue int) *QuotaOnResponseResult {
 	o.ResultErrorCodePtr = &newValue
 	return o
 }
 
 // ResultErrorMessage is a fluent style 'getter' method that can be chained
-func (o *VolumeCloneSplitStartResponseResult) ResultErrorMessage() string {
+func (o *QuotaOnResponseResult) ResultErrorMessage() string {
 	r := *o.ResultErrorMessagePtr
 	return r
 }
 
 // SetResultErrorMessage is a fluent style 'setter' method that can be chained
-func (o *VolumeCloneSplitStartResponseResult) SetResultErrorMessage(newValue string) *VolumeCloneSplitStartResponseResult {
+func (o *QuotaOnResponseResult) SetResultErrorMessage(newValue string) *QuotaOnResponseResult {
 	o.ResultErrorMessagePtr = &newValue
 	return o
 }
 
 // ResultJobid is a fluent style 'getter' method that can be chained
-func (o *VolumeCloneSplitStartResponseResult) ResultJobid() int {
+func (o *QuotaOnResponseResult) ResultJobid() int {
 	r := *o.ResultJobidPtr
 	return r
 }
 
 // SetResultJobid is a fluent style 'setter' method that can be chained
-func (o *VolumeCloneSplitStartResponseResult) SetResultJobid(newValue int) *VolumeCloneSplitStartResponseResult {
+func (o *QuotaOnResponseResult) SetResultJobid(newValue int) *QuotaOnResponseResult {
 	o.ResultJobidPtr = &newValue
 	return o
 }
 
 // ResultStatus is a fluent style 'getter' method that can be chained
-func (o *VolumeCloneSplitStartResponseResult) ResultStatus() string {
+func (o *QuotaOnResponseResult) ResultStatus() string {
 	r := *o.ResultStatusPtr
 	return r
 }
 
 // SetResultStatus is a fluent style 'setter' method that can be chained
-func (o *VolumeCloneSplitStartResponseResult) SetResultStatus(newValue string) *VolumeCloneSplitStartResponseResult {
+func (o *QuotaOnResponseResult) SetResultStatus(newValue string) *QuotaOnResponseResult {
 	o.ResultStatusPtr = &newValue
 	return o
 }

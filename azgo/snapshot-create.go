@@ -1,4 +1,4 @@
-// Copyright 2016 NetApp, Inc. All Rights Reserved.
+// Copyright 2017 NetApp, Inc. All Rights Reserved.
 
 package azgo
 
@@ -25,9 +25,7 @@ type SnapshotCreateRequest struct {
 // ToXML converts this object into an xml string representation
 func (o *SnapshotCreateRequest) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Errorf("error: %v\n", err)
-	}
+	//if err != nil { log.Errorf("error: %v\n", err) }
 	return string(output), err
 }
 
@@ -36,19 +34,39 @@ func NewSnapshotCreateRequest() *SnapshotCreateRequest { return &SnapshotCreateR
 
 // ExecuteUsing converts this object to a ZAPI XML representation and uses the supplied ZapiRunner to send to a filer
 func (o *SnapshotCreateRequest) ExecuteUsing(zr *ZapiRunner) (SnapshotCreateResponse, error) {
+
+	if zr.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "ExecuteUsing", "Type": "SnapshotCreateRequest"}
+		log.WithFields(fields).Debug(">>>> ExecuteUsing")
+		defer log.WithFields(fields).Debug("<<<< ExecuteUsing")
+	}
+
 	resp, err := zr.SendZapi(o)
+	if err != nil {
+		log.Errorf("API invocation failed. %v", err.Error())
+		return SnapshotCreateResponse{}, err
+	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Errorf("Error reading response body. %v", readErr.Error())
+		return SnapshotCreateResponse{}, readErr
+	}
+	if zr.DebugTraceFlags["api"] {
+		log.Debugf("response Body:\n%s", string(body))
+	}
 
 	var n SnapshotCreateResponse
-	xml.Unmarshal(body, &n)
-	if err != nil {
-		log.Errorf("err: %v", err.Error())
+	unmarshalErr := xml.Unmarshal(body, &n)
+	if unmarshalErr != nil {
+		log.WithField("body", string(body)).Warnf("Error unmarshaling response body. %v", unmarshalErr.Error())
+		//return SnapshotCreateResponse{}, unmarshalErr
 	}
-	log.Debugf("snapshot-create result:\n%s", n.Result)
+	if zr.DebugTraceFlags["api"] {
+		log.Debugf("snapshot-create result:\n%s", n.Result)
+	}
 
-	return n, err
+	return n, nil
 }
 
 // String returns a string representation of this object's fields and implements the Stringer interface
@@ -173,9 +191,7 @@ type SnapshotCreateResponseResult struct {
 // ToXML converts this object into an xml string representation
 func (o *SnapshotCreateResponse) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Debugf("error: %v", err)
-	}
+	//if err != nil { log.Debugf("error: %v", err) }
 	return string(output), err
 }
 

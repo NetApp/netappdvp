@@ -50,7 +50,7 @@ Destroy a Volume
 Volume Cloning
 --------------
 
-For ONTAP and SolidFire only, volumes can be cloned using the Docker Volume Plugin.
+When using the ontap-nas, ontap-san, and solidfire-san storage drivers, the Docker Volume Plugin can clone volumes.
 
 .. code-block:: bash
 
@@ -101,4 +101,3 @@ Access Externally Created Volumes
 ---------------------------------
 
 Externally created block devices (or their clones) may be accessed by containers using nDVP only if they have no partitions and if their filesystem is supported by nDVP (example: an ext4-formatted /dev/sdc1 will not be accessible via nDVP).
-

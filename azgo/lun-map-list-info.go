@@ -1,4 +1,4 @@
-// Copyright 2016 NetApp, Inc. All Rights Reserved.
+// Copyright 2017 NetApp, Inc. All Rights Reserved.
 
 package azgo
 
@@ -11,38 +11,61 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// LunMapListInfoRequest is a structure to represent a lun-map-list-info ZAPI request object
 type LunMapListInfoRequest struct {
 	XMLName xml.Name `xml:"lun-map-list-info"`
 
 	PathPtr *string `xml:"path"`
 }
 
+// ToXML converts this object into an xml string representation
 func (o *LunMapListInfoRequest) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Errorf("error: %v\n", err)
-	}
+	//if err != nil { log.Errorf("error: %v\n", err) }
 	return string(output), err
 }
 
+// NewLunMapListInfoRequest is a factory method for creating new instances of LunMapListInfoRequest objects
 func NewLunMapListInfoRequest() *LunMapListInfoRequest { return &LunMapListInfoRequest{} }
 
-func (r *LunMapListInfoRequest) ExecuteUsing(zr *ZapiRunner) (LunMapListInfoResponse, error) {
-	resp, err := zr.SendZapi(r)
+// ExecuteUsing converts this object to a ZAPI XML representation and uses the supplied ZapiRunner to send to a filer
+func (o *LunMapListInfoRequest) ExecuteUsing(zr *ZapiRunner) (LunMapListInfoResponse, error) {
+
+	if zr.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "ExecuteUsing", "Type": "LunMapListInfoRequest"}
+		log.WithFields(fields).Debug(">>>> ExecuteUsing")
+		defer log.WithFields(fields).Debug("<<<< ExecuteUsing")
+	}
+
+	resp, err := zr.SendZapi(o)
+	if err != nil {
+		log.Errorf("API invocation failed. %v", err.Error())
+		return LunMapListInfoResponse{}, err
+	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Errorf("Error reading response body. %v", readErr.Error())
+		return LunMapListInfoResponse{}, readErr
+	}
+	if zr.DebugTraceFlags["api"] {
+		log.Debugf("response Body:\n%s", string(body))
+	}
 
 	var n LunMapListInfoResponse
-	xml.Unmarshal(body, &n)
-	if err != nil {
-		log.Errorf("err: %v", err.Error())
+	unmarshalErr := xml.Unmarshal(body, &n)
+	if unmarshalErr != nil {
+		log.WithField("body", string(body)).Warnf("Error unmarshaling response body. %v", unmarshalErr.Error())
+		//return LunMapListInfoResponse{}, unmarshalErr
 	}
-	log.Debugf("lun-map-list-info result:\n%s", n.Result)
+	if zr.DebugTraceFlags["api"] {
+		log.Debugf("lun-map-list-info result:\n%s", n.Result)
+	}
 
-	return n, err
+	return n, nil
 }
 
+// String returns a string representation of this object's fields and implements the Stringer interface
 func (o LunMapListInfoRequest) String() string {
 	var buffer bytes.Buffer
 	if o.PathPtr != nil {
@@ -53,16 +76,19 @@ func (o LunMapListInfoRequest) String() string {
 	return buffer.String()
 }
 
+// Path is a fluent style 'getter' method that can be chained
 func (o *LunMapListInfoRequest) Path() string {
 	r := *o.PathPtr
 	return r
 }
 
+// SetPath is a fluent style 'setter' method that can be chained
 func (o *LunMapListInfoRequest) SetPath(newValue string) *LunMapListInfoRequest {
 	o.PathPtr = &newValue
 	return o
 }
 
+// LunMapListInfoResponse is a structure to represent a lun-map-list-info ZAPI response object
 type LunMapListInfoResponse struct {
 	XMLName xml.Name `xml:"netapp"`
 
@@ -72,6 +98,7 @@ type LunMapListInfoResponse struct {
 	Result LunMapListInfoResponseResult `xml:"results"`
 }
 
+// String returns a string representation of this object's fields and implements the Stringer interface
 func (o LunMapListInfoResponse) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("%s: %s\n", "version", o.ResponseVersion))
@@ -80,6 +107,7 @@ func (o LunMapListInfoResponse) String() string {
 	return buffer.String()
 }
 
+// LunMapListInfoResponseResult is a structure to represent a lun-map-list-info ZAPI object's result
 type LunMapListInfoResponseResult struct {
 	XMLName xml.Name `xml:"results"`
 
@@ -89,16 +117,17 @@ type LunMapListInfoResponseResult struct {
 	InitiatorGroupsPtr []InitiatorGroupInfoType `xml:"initiator-groups>initiator-group-info"`
 }
 
+// ToXML converts this object into an xml string representation
 func (o *LunMapListInfoResponse) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Debugf("error: %v", err)
-	}
+	//if err != nil { log.Debugf("error: %v", err) }
 	return string(output), err
 }
 
+// NewLunMapListInfoResponse is a factory method for creating new instances of LunMapListInfoResponse objects
 func NewLunMapListInfoResponse() *LunMapListInfoResponse { return &LunMapListInfoResponse{} }
 
+// String returns a string representation of this object's fields and implements the Stringer interface
 func (o LunMapListInfoResponseResult) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("%s: %s\n", "resultStatusAttr", o.ResultStatusAttr))
@@ -112,11 +141,13 @@ func (o LunMapListInfoResponseResult) String() string {
 	return buffer.String()
 }
 
+// InitiatorGroups is a fluent style 'getter' method that can be chained
 func (o *LunMapListInfoResponseResult) InitiatorGroups() []InitiatorGroupInfoType {
 	r := o.InitiatorGroupsPtr
 	return r
 }
 
+// SetInitiatorGroups is a fluent style 'setter' method that can be chained
 func (o *LunMapListInfoResponseResult) SetInitiatorGroups(newValue []InitiatorGroupInfoType) *LunMapListInfoResponseResult {
 	newSlice := make([]InitiatorGroupInfoType, len(newValue))
 	copy(newSlice, newValue)

@@ -13,14 +13,15 @@ import (
 	"github.com/netapp/netappdvp/azgo"
 )
 
-const maxZapiRecords int = 0xfffffffe
+const defaultZapiRecords int = 100
 
 // DriverConfig holds the configuration data for Driver objects
 type DriverConfig struct {
-	ManagementLIF string
-	SVM           string
-	Username      string
-	Password      string
+	ManagementLIF   string
+	SVM             string
+	Username        string
+	Password        string
+	DebugTraceFlags map[string]bool
 }
 
 // Driver is the object to use for interacting with the Filer
@@ -35,11 +36,12 @@ func NewDriver(config DriverConfig) *Driver {
 	d := &Driver{
 		config: config,
 		zr: &azgo.ZapiRunner{
-			ManagementLIF: config.ManagementLIF,
-			SVM:           config.SVM,
-			Username:      config.Username,
-			Password:      config.Password,
-			Secure:        true,
+			ManagementLIF:   config.ManagementLIF,
+			SVM:             config.SVM,
+			Username:        config.Username,
+			Password:        config.Password,
+			Secure:          true,
+			DebugTraceFlags: config.DebugTraceFlags,
 		},
 		m: &sync.Mutex{},
 	}
@@ -63,9 +65,11 @@ func (d Driver) GetNontunneledZapiRunner() *azgo.ZapiRunner {
 	return clone
 }
 
-// NewZapiError accepts the Response value from any AZGO call, extracts the status, reason, and errno values, and returns a ZapiError.
+// NewZapiError accepts the Response value from any AZGO call, extracts the status, reason, and errno values,
+// and returns a ZapiError.  The interface passed in may either be a Response object, or the always-embedded
+// Result object where the error info exists.
 // TODO: Replace reflection with relevant enhancements in AZGO generator.
-func NewZapiError(response interface{}) (err ZapiError) {
+func NewZapiError(zapiResult interface{}) (err ZapiError) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -73,7 +77,13 @@ func NewZapiError(response interface{}) (err ZapiError) {
 		}
 	}()
 
-	val := reflect.ValueOf(response)
+	// A ZAPI Result struct works as-is, but a ZAPI Response struct must have its
+	// embedded Result struct extracted via reflection.
+	val := reflect.ValueOf(zapiResult)
+	if testResult := val.FieldByName("Result"); testResult.IsValid() {
+		zapiResult = testResult.Interface()
+		val = reflect.ValueOf(zapiResult)
+	}
 
 	err = ZapiError{
 		val.FieldByName("ResultStatusAttr").String(),
@@ -106,6 +116,45 @@ func (e ZapiError) IsPrivilegeError() bool {
 }
 func (e ZapiError) IsScopeError() bool {
 	return e.code == azgo.EAPIPRIVILEGE || e.code == azgo.EAPINOTFOUND
+}
+func (e ZapiError) Reason() string {
+	return e.reason
+}
+func (e ZapiError) Code() string {
+	return e.code
+}
+
+// GetError accepts both an error and the Response value from an AZGO invocation.
+// If error is non-nil, it is returned as is.  Otherwise, the Response value is
+// probed for an error returned by ZAPI; if one is found, a ZapiError error object
+// is returned.  If no failures are detected, the method returns nil.  The interface
+// passed in may either be a Response object, or the always-embedded Result object
+// where the error info exists.
+func GetError(zapiResult interface{}, errorIn error) (errorOut error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("Panic in ontap#GetError. %v", zapiResult)
+			errorOut = ZapiError{}
+		}
+	}()
+
+	// A ZAPI Result struct works as-is, but a ZAPI Response struct must have its
+	// embedded Result struct extracted via reflection.
+	val := reflect.ValueOf(zapiResult)
+	if testResult := val.FieldByName("Result"); testResult.IsValid() {
+		zapiResult = testResult.Interface()
+	}
+
+	errorOut = nil
+
+	if errorIn != nil {
+		errorOut = errorIn
+	} else if zerr := NewZapiError(zapiResult); !zerr.IsPassed() {
+		errorOut = zerr
+	}
+
+	return
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -193,7 +242,7 @@ func (d Driver) IgroupDestroy(initiatorGroupName string) (response azgo.IgroupDe
 // IgroupList lists initiator groups
 func (d Driver) IgroupList() (response azgo.IgroupGetIterResponse, err error) {
 	response, err = azgo.NewIgroupGetIterRequest().
-		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
+		SetMaxRecords(defaultZapiRecords).
 		ExecuteUsing(d.zr)
 	return
 }
@@ -385,10 +434,41 @@ func (d Driver) VolumeDisableSnapshotDirectoryAccess(name string) (response azgo
 	return
 }
 
+// VolumeExists tests for the existence of a Flexvol
+func (d Driver) VolumeExists(name string) (bool, error) {
+	response, err := azgo.NewVolumeSizeRequest().
+		SetVolume(name).
+		ExecuteUsing(d.zr)
+
+	if err != nil {
+		return false, err
+	}
+
+	if zerr := NewZapiError(response); !zerr.IsPassed() {
+		switch zerr.Code() {
+		case azgo.EOBJECTNOTFOUND, azgo.EVOLUMEDOESNOTEXIST:
+			return false, nil
+		default:
+			return false, zerr
+		}
+	}
+
+	return true, nil
+}
+
 // VolumeSize retrieves the size of the specified volume
 func (d Driver) VolumeSize(name string) (response azgo.VolumeSizeResponse, err error) {
 	response, err = azgo.NewVolumeSizeRequest().
 		SetVolume(name).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// SetVolumeSize sets the size of the specified volume
+func (d Driver) SetVolumeSize(name, newSize string) (response azgo.VolumeSizeResponse, err error) {
+	response, err = azgo.NewVolumeSizeRequest().
+		SetVolume(name).
+		SetNewSize(newSize).
 		ExecuteUsing(d.zr)
 	return
 }
@@ -428,19 +508,71 @@ func (d Driver) VolumeDestroy(name string, force bool) (response azgo.VolumeDest
 	return
 }
 
-// VolumeList returns the names of all FlexVols whose names match the supplied prefix
+func (d Driver) VolumeGet(name string) (azgo.VolumeAttributesType, error) {
+
+	// Limit the Flexvols to the one matching the name
+	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(name))
+	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*queryVolIdAttrs)
+
+	response, err := azgo.NewVolumeGetIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		ExecuteUsing(d.zr)
+
+	if err != nil {
+		return azgo.VolumeAttributesType{}, err
+	} else if response.Result.NumRecords() == 0 {
+		return azgo.VolumeAttributesType{}, fmt.Errorf("Flexvol %s not found.", name)
+	} else if response.Result.NumRecords() > 1 {
+		return azgo.VolumeAttributesType{}, fmt.Errorf("More than one Flexvol %s found.", name)
+	}
+
+	return response.Result.AttributesList()[0], nil
+
+}
+
+// VolumeList returns the names of all Flexvols whose names match the supplied prefix
 func (d Driver) VolumeList(prefix string) (response azgo.VolumeGetIterResponse, err error) {
 
-	// Limit the FlexVols to those matching the name prefix
+	// Limit the Flexvols to those matching the name prefix
 	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(prefix + "*"))
 	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*queryVolIdAttrs)
 
-	// Limit the returned data to only the FlexVol names
+	// Limit the returned data to only the Flexvol names
 	desiredVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName("")
 	desiredAttributes := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*desiredVolIdAttrs)
 
 	response, err = azgo.NewVolumeGetIterRequest().
-		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// VolumeList returns the names of all Flexvols matching the specified attributes
+func (d Driver) VolumeListByAttrs(prefix, aggregate, spaceReserve, snapshotPolicy string, snapshotDir bool) (response azgo.VolumeGetIterResponse, err error) {
+
+	// Limit the Flexvols to those matching the specified attributes
+	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().
+		SetName(azgo.VolumeNameType(prefix + "*")).
+		SetContainingAggregateName(aggregate)
+	queryVolSpaceAttrs := azgo.NewVolumeSpaceAttributesType().
+		SetSpaceGuarantee(spaceReserve)
+	queryVolSnapshotAttrs := azgo.NewVolumeSnapshotAttributesType().
+		SetSnapshotPolicy(snapshotPolicy).
+		SetSnapdirAccessEnabled(snapshotDir)
+	query := azgo.NewVolumeAttributesType().
+		SetVolumeIdAttributes(*queryVolIdAttrs).
+		SetVolumeSpaceAttributes(*queryVolSpaceAttrs).
+		SetVolumeSnapshotAttributes(*queryVolSnapshotAttrs)
+
+	// Limit the returned data to only the Flexvol names
+	desiredVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName("")
+	desiredAttributes := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*desiredVolIdAttrs)
+
+	response, err = azgo.NewVolumeGetIterRequest().
+		SetMaxRecords(defaultZapiRecords).
 		SetQuery(*query).
 		SetDesiredAttributes(*desiredAttributes).
 		ExecuteUsing(d.zr)
@@ -448,6 +580,260 @@ func (d Driver) VolumeList(prefix string) (response azgo.VolumeGetIterResponse, 
 }
 
 // VOLUME operations END
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// QTREE operations BEGIN
+
+// QtreeCreate creates a qtree with the specified options
+// equivalent to filer::> qtree create -vserver ndvp_vs -volume v -qtree q -export-policy default -unix-permissions ---rwxr-xr-x -security-style unix
+func (d Driver) QtreeCreate(name, volumeName, unixPermissions, exportPolicy, securityStyle string) (response azgo.QtreeCreateResponse, err error) {
+	response, err = azgo.NewQtreeCreateRequest().
+		SetQtree(name).
+		SetVolume(volumeName).
+		SetMode(unixPermissions).
+		SetSecurityStyle(securityStyle).
+		SetExportPolicy(exportPolicy).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QtreeRename renames a qtree
+// equivalent to filer::> volume qtree rename
+func (d Driver) QtreeRename(path, newPath string) (response azgo.QtreeRenameResponse, err error) {
+	response, err = azgo.NewQtreeRenameRequest().
+		SetQtree(path).
+		SetNewQtreeName(newPath).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QtreeDestroy destroys a qtree in the background
+// equivalent to filer::> volume qtree delete -foreground false
+func (d Driver) QtreeDestroyAsync(path string, force bool) (response azgo.QtreeDeleteAsyncResponse, err error) {
+	response, err = azgo.NewQtreeDeleteAsyncRequest().
+		SetQtree(path).
+		SetForce(force).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QtreeList returns the names of all Qtrees whose names match the supplied prefix
+// equivalent to filer::> volume qtree show
+func (d Driver) QtreeList(prefix, volumePrefix string) (response azgo.QtreeListIterResponse, err error) {
+
+	// Limit the qtrees to those matching the Flexvol and Qtree name prefixes
+	query := azgo.NewQtreeInfoType().SetVolume(volumePrefix + "*").SetQtree(prefix + "*")
+
+	// Limit the returned data to only the Flexvol and Qtree names
+	desiredAttributes := azgo.NewQtreeInfoType().SetVolume("").SetQtree("")
+
+	response, err = azgo.NewQtreeListIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QtreeCount returns the number of Qtrees in the specified Flexvol, not including the Flexvol itself
+func (d Driver) QtreeCount(volume string) (int, error) {
+
+	// Limit the qtrees to those in the specified Flexvol
+	query := azgo.NewQtreeInfoType().SetVolume(volume)
+
+	// Limit the returned data to only the Flexvol and Qtree names
+	desiredAttributes := azgo.NewQtreeInfoType().SetVolume("").SetQtree("")
+
+	response, err := azgo.NewQtreeListIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+
+	if err = GetError(response, err); err != nil {
+		return 0, err
+	}
+
+	// There will always be one qtree for the Flexvol, so decrement by 1
+	switch response.Result.NumRecords() {
+	case 0:
+		fallthrough
+	case 1:
+		return 0, nil
+	default:
+		return response.Result.NumRecords() - 1, nil
+	}
+}
+
+// QtreeExists returns true if the named Qtree exists (and is unique in the matching Flexvols)
+func (d Driver) QtreeExists(name, volumePrefix string) (bool, string, error) {
+
+	// Limit the qtrees to those matching the Flexvol and Qtree name prefixes
+	query := azgo.NewQtreeInfoType().SetVolume(volumePrefix + "*").SetQtree(name)
+
+	// Limit the returned data to only the Flexvol and Qtree names
+	desiredAttributes := azgo.NewQtreeInfoType().SetVolume("").SetQtree("")
+
+	response, err := azgo.NewQtreeListIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+
+	// Ensure the API call succeeded
+	if err = GetError(response, err); err != nil {
+		return false, "", err
+	}
+
+	// Ensure qtree is unique
+	if response.Result.NumRecords() != 1 {
+		return false, "", nil
+	}
+
+	// Get containing Flexvol
+	flexvol := response.Result.AttributesList()[0].Volume()
+
+	return true, flexvol, nil
+}
+
+// QuotaOn enables quotas on a Flexvol
+// equivalent to filer::> volume quota on
+func (d Driver) QuotaOn(volume string) (response azgo.QuotaOnResponse, err error) {
+	response, err = azgo.NewQuotaOnRequest().
+		SetVolume(volume).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QuotaOff disables quotas on a Flexvol
+// equivalent to filer::> volume quota off
+func (d Driver) QuotaOff(volume string) (response azgo.QuotaOffResponse, err error) {
+	response, err = azgo.NewQuotaOffRequest().
+		SetVolume(volume).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QuotaResize resizes quotas on a Flexvol
+// equivalent to filer::> volume quota resize
+func (d Driver) QuotaResize(volume string) (response azgo.QuotaResizeResponse, err error) {
+	response, err = azgo.NewQuotaResizeRequest().
+		SetVolume(volume).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QuotaStatus returns the quota status for a Flexvol
+// equivalent to filer::> volume quota show
+func (d Driver) QuotaStatus(volume string) (response azgo.QuotaStatusResponse, err error) {
+	response, err = azgo.NewQuotaStatusRequest().
+		SetVolume(volume).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QuotaSetEntry creates a new quota rule with an optional hard disk limit
+// equivalent to filer::> volume quota policy rule create
+func (d Driver) QuotaSetEntry(qtreeName, volumeName, quotaTarget, quotaType, diskLimit string) (response azgo.QuotaSetEntryResponse, err error) {
+
+	request := azgo.NewQuotaSetEntryRequest().
+		SetQtree(qtreeName).
+		SetVolume(volumeName).
+		SetQuotaTarget(quotaTarget).
+		SetQuotaType(quotaType)
+
+	// To create a default quota rule, pass an empty disk limit
+	if diskLimit != "" {
+		request.SetDiskLimit(diskLimit)
+	}
+
+	return request.ExecuteUsing(d.zr)
+}
+
+func (d Driver) QuotaEntryList(volume string) (response azgo.QuotaListEntriesIterResponse, err error) {
+
+	query := azgo.NewQuotaEntryType().SetVolume(volume)
+
+	// Limit the returned data to only the disk limit
+	desiredAttributes := azgo.NewQuotaEntryType().SetDiskLimit("")
+
+	response, err = azgo.NewQuotaListEntriesIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// QTREE operations END
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// EXPORT POLICY operations BEGIN
+
+// ExportPolicyCreate creates an export policy
+// equivalent to filer::> vserver export-policy create
+func (d Driver) ExportPolicyCreate(policy string) (response azgo.ExportPolicyCreateResponse, err error) {
+	response, err = azgo.NewExportPolicyCreateRequest().
+		SetPolicyName(azgo.ExportPolicyNameType(policy)).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// ExportRuleCreate creates a rule in an export policy
+// equivalent to filer::> vserver export-policy rule create
+func (d Driver) ExportRuleCreate(
+	policy, clientMatch string,
+	protocols, roSecFlavors, rwSecFlavors, suSecFlavors []string,
+) (response azgo.ExportRuleCreateResponse, err error) {
+
+	protocolTypes := []azgo.AccessProtocolType{}
+	for _, p := range protocols {
+		protocolTypes = append(protocolTypes, azgo.AccessProtocolType(p))
+	}
+
+	roSecFlavorTypes := []azgo.SecurityFlavorType{}
+	for _, f := range roSecFlavors {
+		roSecFlavorTypes = append(roSecFlavorTypes, azgo.SecurityFlavorType(f))
+	}
+
+	rwSecFlavorTypes := []azgo.SecurityFlavorType{}
+	for _, f := range rwSecFlavors {
+		rwSecFlavorTypes = append(rwSecFlavorTypes, azgo.SecurityFlavorType(f))
+	}
+
+	suSecFlavorTypes := []azgo.SecurityFlavorType{}
+	for _, f := range suSecFlavors {
+		suSecFlavorTypes = append(suSecFlavorTypes, azgo.SecurityFlavorType(f))
+	}
+
+	response, err = azgo.NewExportRuleCreateRequest().
+		SetPolicyName(azgo.ExportPolicyNameType(policy)).
+		SetClientMatch(clientMatch).
+		SetProtocol(protocolTypes).
+		SetRoRule(roSecFlavorTypes).
+		SetRwRule(rwSecFlavorTypes).
+		SetSuperUserSecurity(suSecFlavorTypes).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// ExportRuleGetIterRequest returns the export rules in an export policy
+// equivalent to filer::> vserver export-policy rule show
+func (d Driver) ExportRuleGetIterRequest(policy string) (response azgo.ExportRuleGetIterResponse, err error) {
+
+	// Limit the qtrees to those matching the Flexvol and Qtree name prefixes
+	query := azgo.NewExportRuleInfoType().SetPolicyName(azgo.ExportPolicyNameType(policy))
+
+	response, err = azgo.NewExportRuleGetIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		ExecuteUsing(d.zr)
+	return
+}
+
+// EXPORT POLICY operations END
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
@@ -467,7 +853,7 @@ func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGe
 	query := azgo.NewSnapshotInfoType().SetVolume(volumeName)
 
 	response, err = azgo.NewSnapshotGetIterRequest().
-		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
+		SetMaxRecords(defaultZapiRecords).
 		SetQuery(*query).
 		ExecuteUsing(d.zr)
 	return
@@ -482,7 +868,7 @@ func (d Driver) SnapshotGetByVolume(volumeName string) (response azgo.SnapshotGe
 // IscsiServiceGetIterRequest returns information about an iSCSI target
 func (d Driver) IscsiServiceGetIterRequest() (response azgo.IscsiServiceGetIterResponse, err error) {
 	response, err = azgo.NewIscsiServiceGetIterRequest().
-		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
+		SetMaxRecords(defaultZapiRecords).
 		ExecuteUsing(d.zr)
 	return
 }
@@ -497,7 +883,7 @@ func (d Driver) IscsiServiceGetIterRequest() (response azgo.IscsiServiceGetIterR
 // equivalent to filer::> vserver show
 func (d Driver) VserverGetIterRequest() (response azgo.VserverGetIterResponse, err error) {
 	response, err = azgo.NewVserverGetIterRequest().
-		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
+		SetMaxRecords(defaultZapiRecords).
 		ExecuteUsing(d.zr)
 	return
 }
@@ -511,7 +897,11 @@ func (d Driver) GetVserverAggregateNames() ([]string, error) {
 	query := azgo.NewVserverInfoType()
 	query.SetVserverName(d.config.SVM)
 
-	response, err := azgo.NewVserverGetIterRequest().SetMaxRecords(maxZapiRecords).SetQuery(*query).ExecuteUsing(d.zr)
+	response, err := azgo.NewVserverGetIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		ExecuteUsing(d.zr)
+
 	if err != nil {
 		return nil, err
 	}
@@ -536,7 +926,7 @@ func (d Driver) GetVserverAggregateNames() ([]string, error) {
 func (d Driver) VserverShowAggrGetIterRequest() (response azgo.VserverShowAggrGetIterResponse, err error) {
 
 	response, err = azgo.NewVserverShowAggrGetIterRequest().
-		SetMaxRecords(maxZapiRecords).
+		SetMaxRecords(defaultZapiRecords).
 		ExecuteUsing(d.zr)
 	return
 }
@@ -557,7 +947,7 @@ func (d Driver) AggrGetIterRequest() (response azgo.AggrGetIterResponse, err err
 	zr := d.GetNontunneledZapiRunner()
 
 	response, err = azgo.NewAggrGetIterRequest().
-		SetMaxRecords(maxZapiRecords).
+		SetMaxRecords(defaultZapiRecords).
 		ExecuteUsing(zr)
 	return
 }
@@ -572,7 +962,7 @@ func (d Driver) AggrGetIterRequest() (response azgo.AggrGetIterResponse, err err
 // equivalent to filer::> net interface list
 func (d Driver) NetInterfaceGet() (response azgo.NetInterfaceGetIterResponse, err error) {
 	response, err = azgo.NewNetInterfaceGetIterRequest().
-		SetMaxRecords(maxZapiRecords). // Is there any value in iterating?
+		SetMaxRecords(defaultZapiRecords).
 		ExecuteUsing(d.zr)
 	return
 }
@@ -589,10 +979,8 @@ func (d Driver) SystemGetOntapiVersion() (string, error) {
 
 	if d.zr.OntapiVersion == "" {
 		result, err := azgo.NewSystemGetOntapiVersionRequest().ExecuteUsing(d.zr)
-		if err != nil {
-			return "", err
-		} else if result.Result.ResultStatusAttr != "passed" {
-			return "", fmt.Errorf("Could not read ONTAPI version. %s", result.Result.ResultReasonAttr)
+		if err = GetError(result, err); err != nil {
+			return "", fmt.Errorf("Could not read ONTAPI version. %v", err)
 		}
 
 		major := result.Result.MajorVersion()
@@ -613,15 +1001,13 @@ func (d Driver) ListNodeSerialNumbers() ([]string, error) {
 
 	response, err := azgo.NewSystemNodeGetIterRequest().
 		SetDesiredAttributes(*desiredAttributes).
-		SetMaxRecords(maxZapiRecords).
+		SetMaxRecords(defaultZapiRecords).
 		ExecuteUsing(zr)
 
-	if err != nil {
+	if err = GetError(response, err); err != nil {
 		return serialNumbers, err
 	}
-	if zerr := NewZapiError(response.Result); !zerr.IsPassed() {
-		return serialNumbers, zerr
-	}
+
 	if response.Result.NumRecords() == 0 {
 		return serialNumbers, errors.New("Could not get node info.")
 	}

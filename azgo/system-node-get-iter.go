@@ -24,9 +24,7 @@ type SystemNodeGetIterRequest struct {
 // ToXML converts this object into an xml string representation
 func (o *SystemNodeGetIterRequest) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Errorf("error: %v\n", err)
-	}
+	//if err != nil { log.Errorf("error: %v\n", err) }
 	return string(output), err
 }
 
@@ -35,19 +33,71 @@ func NewSystemNodeGetIterRequest() *SystemNodeGetIterRequest { return &SystemNod
 
 // ExecuteUsing converts this object to a ZAPI XML representation and uses the supplied ZapiRunner to send to a filer
 func (o *SystemNodeGetIterRequest) ExecuteUsing(zr *ZapiRunner) (SystemNodeGetIterResponse, error) {
-	resp, err := zr.SendZapi(o)
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
 
-	var n SystemNodeGetIterResponse
-	xml.Unmarshal(body, &n)
-	if err != nil {
-		log.Errorf("err: %v", err.Error())
+	if zr.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "ExecuteUsing", "Type": "SystemNodeGetIterRequest"}
+		log.WithFields(fields).Debug(">>>> ExecuteUsing")
+		defer log.WithFields(fields).Debug("<<<< ExecuteUsing")
 	}
-	log.Debugf("system-node-get-iter result:\n%s", n.Result)
 
-	return n, err
+	combined := NewSystemNodeGetIterResponse()
+	var nextTagPtr *string
+	done := false
+	for done != true {
+
+		resp, err := zr.SendZapi(o)
+		if err != nil {
+			log.Errorf("API invocation failed. %v", err.Error())
+			return *combined, err
+		}
+		defer resp.Body.Close()
+		body, readErr := ioutil.ReadAll(resp.Body)
+		if readErr != nil {
+			log.Errorf("Error reading response body. %v", readErr.Error())
+			return *combined, readErr
+		}
+		if zr.DebugTraceFlags["api"] {
+			log.Debugf("response Body:\n%s", string(body))
+		}
+
+		var n SystemNodeGetIterResponse
+		unmarshalErr := xml.Unmarshal(body, &n)
+		if unmarshalErr != nil {
+			log.WithField("body", string(body)).Warnf("Error unmarshaling response body. %v", unmarshalErr.Error())
+			//return *combined, unmarshalErr
+		}
+		if zr.DebugTraceFlags["api"] {
+			log.Debugf("system-node-get-iter result:\n%s", n.Result)
+		}
+
+		if err == nil {
+			nextTagPtr = n.Result.NextTagPtr
+			if nextTagPtr == nil {
+				done = true
+			} else {
+				o.SetTag(*nextTagPtr)
+			}
+
+			if n.Result.NumRecordsPtr == nil {
+				done = true
+			} else {
+				recordsRead := n.Result.NumRecords()
+				if recordsRead == 0 {
+					done = true
+				}
+			}
+
+			combined.Result.SetAttributesList(append(combined.Result.AttributesList(), n.Result.AttributesList()...))
+			if done == true {
+				combined.Result.ResultErrnoAttr = n.Result.ResultErrnoAttr
+				combined.Result.ResultReasonAttr = n.Result.ResultReasonAttr
+				combined.Result.ResultStatusAttr = n.Result.ResultStatusAttr
+				combined.Result.SetNumRecords(len(combined.Result.AttributesList()))
+			}
+		}
+	}
+
+	return *combined, nil
 }
 
 // String returns a string representation of this object's fields and implements the Stringer interface
@@ -158,9 +208,7 @@ type SystemNodeGetIterResponseResult struct {
 // ToXML converts this object into an xml string representation
 func (o *SystemNodeGetIterResponse) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Debugf("error: %v", err)
-	}
+	//if err != nil { log.Debugf("error: %v", err) }
 	return string(output), err
 }
 

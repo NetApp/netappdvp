@@ -1,4 +1,4 @@
-// Copyright 2016 NetApp, Inc. All Rights Reserved.
+// Copyright 2017 NetApp, Inc. All Rights Reserved.
 
 package azgo
 
@@ -11,6 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// IgroupRemoveRequest is a structure to represent a igroup-remove ZAPI request object
 type IgroupRemoveRequest struct {
 	XMLName xml.Name `xml:"igroup-remove"`
 
@@ -19,32 +20,54 @@ type IgroupRemoveRequest struct {
 	InitiatorGroupNamePtr *string `xml:"initiator-group-name"`
 }
 
+// ToXML converts this object into an xml string representation
 func (o *IgroupRemoveRequest) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Errorf("error: %v\n", err)
-	}
+	//if err != nil { log.Errorf("error: %v\n", err) }
 	return string(output), err
 }
 
+// NewIgroupRemoveRequest is a factory method for creating new instances of IgroupRemoveRequest objects
 func NewIgroupRemoveRequest() *IgroupRemoveRequest { return &IgroupRemoveRequest{} }
 
-func (r *IgroupRemoveRequest) ExecuteUsing(zr *ZapiRunner) (IgroupRemoveResponse, error) {
-	resp, err := zr.SendZapi(r)
+// ExecuteUsing converts this object to a ZAPI XML representation and uses the supplied ZapiRunner to send to a filer
+func (o *IgroupRemoveRequest) ExecuteUsing(zr *ZapiRunner) (IgroupRemoveResponse, error) {
+
+	if zr.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "ExecuteUsing", "Type": "IgroupRemoveRequest"}
+		log.WithFields(fields).Debug(">>>> ExecuteUsing")
+		defer log.WithFields(fields).Debug("<<<< ExecuteUsing")
+	}
+
+	resp, err := zr.SendZapi(o)
+	if err != nil {
+		log.Errorf("API invocation failed. %v", err.Error())
+		return IgroupRemoveResponse{}, err
+	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Errorf("Error reading response body. %v", readErr.Error())
+		return IgroupRemoveResponse{}, readErr
+	}
+	if zr.DebugTraceFlags["api"] {
+		log.Debugf("response Body:\n%s", string(body))
+	}
 
 	var n IgroupRemoveResponse
-	xml.Unmarshal(body, &n)
-	if err != nil {
-		log.Errorf("err: %v", err.Error())
+	unmarshalErr := xml.Unmarshal(body, &n)
+	if unmarshalErr != nil {
+		log.WithField("body", string(body)).Warnf("Error unmarshaling response body. %v", unmarshalErr.Error())
+		//return IgroupRemoveResponse{}, unmarshalErr
 	}
-	log.Debugf("igroup-remove result:\n%s", n.Result)
+	if zr.DebugTraceFlags["api"] {
+		log.Debugf("igroup-remove result:\n%s", n.Result)
+	}
 
-	return n, err
+	return n, nil
 }
 
+// String returns a string representation of this object's fields and implements the Stringer interface
 func (o IgroupRemoveRequest) String() string {
 	var buffer bytes.Buffer
 	if o.ForcePtr != nil {
@@ -65,36 +88,43 @@ func (o IgroupRemoveRequest) String() string {
 	return buffer.String()
 }
 
+// Force is a fluent style 'getter' method that can be chained
 func (o *IgroupRemoveRequest) Force() bool {
 	r := *o.ForcePtr
 	return r
 }
 
+// SetForce is a fluent style 'setter' method that can be chained
 func (o *IgroupRemoveRequest) SetForce(newValue bool) *IgroupRemoveRequest {
 	o.ForcePtr = &newValue
 	return o
 }
 
+// Initiator is a fluent style 'getter' method that can be chained
 func (o *IgroupRemoveRequest) Initiator() string {
 	r := *o.InitiatorPtr
 	return r
 }
 
+// SetInitiator is a fluent style 'setter' method that can be chained
 func (o *IgroupRemoveRequest) SetInitiator(newValue string) *IgroupRemoveRequest {
 	o.InitiatorPtr = &newValue
 	return o
 }
 
+// InitiatorGroupName is a fluent style 'getter' method that can be chained
 func (o *IgroupRemoveRequest) InitiatorGroupName() string {
 	r := *o.InitiatorGroupNamePtr
 	return r
 }
 
+// SetInitiatorGroupName is a fluent style 'setter' method that can be chained
 func (o *IgroupRemoveRequest) SetInitiatorGroupName(newValue string) *IgroupRemoveRequest {
 	o.InitiatorGroupNamePtr = &newValue
 	return o
 }
 
+// IgroupRemoveResponse is a structure to represent a igroup-remove ZAPI response object
 type IgroupRemoveResponse struct {
 	XMLName xml.Name `xml:"netapp"`
 
@@ -104,6 +134,7 @@ type IgroupRemoveResponse struct {
 	Result IgroupRemoveResponseResult `xml:"results"`
 }
 
+// String returns a string representation of this object's fields and implements the Stringer interface
 func (o IgroupRemoveResponse) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("%s: %s\n", "version", o.ResponseVersion))
@@ -112,6 +143,7 @@ func (o IgroupRemoveResponse) String() string {
 	return buffer.String()
 }
 
+// IgroupRemoveResponseResult is a structure to represent a igroup-remove ZAPI object's result
 type IgroupRemoveResponseResult struct {
 	XMLName xml.Name `xml:"results"`
 
@@ -120,16 +152,17 @@ type IgroupRemoveResponseResult struct {
 	ResultErrnoAttr  string `xml:"errno,attr"`
 }
 
+// ToXML converts this object into an xml string representation
 func (o *IgroupRemoveResponse) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Debugf("error: %v", err)
-	}
+	//if err != nil { log.Debugf("error: %v", err) }
 	return string(output), err
 }
 
+// NewIgroupRemoveResponse is a factory method for creating new instances of IgroupRemoveResponse objects
 func NewIgroupRemoveResponse() *IgroupRemoveResponse { return &IgroupRemoveResponse{} }
 
+// String returns a string representation of this object's fields and implements the Stringer interface
 func (o IgroupRemoveResponseResult) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("%s: %s\n", "resultStatusAttr", o.ResultStatusAttr))

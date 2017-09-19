@@ -1,4 +1,4 @@
-// Copyright 2016 NetApp, Inc. All Rights Reserved.
+// Copyright 2017 NetApp, Inc. All Rights Reserved.
 
 package azgo
 
@@ -16,23 +16,21 @@ type VolumeCloneCreateRequest struct {
 	XMLName xml.Name `xml:"volume-clone-create"`
 
 	CachingPolicyPtr         *string `xml:"caching-policy"`
-	JunctionActivePtr        *bool   `xml:"junction-active"`
-	JunctionPathPtr          *string `xml:"junction-path"`
 	ParentSnapshotPtr        *string `xml:"parent-snapshot"`
 	ParentVolumePtr          *string `xml:"parent-volume"`
+	ParentVserverPtr         *string `xml:"parent-vserver"`
 	QosPolicyGroupNamePtr    *string `xml:"qos-policy-group-name"`
 	SpaceReservePtr          *string `xml:"space-reserve"`
 	UseSnaprestoreLicensePtr *bool   `xml:"use-snaprestore-license"`
 	VolumePtr                *string `xml:"volume"`
 	VolumeTypePtr            *string `xml:"volume-type"`
+	VserverPtr               *string `xml:"vserver"`
 }
 
 // ToXML converts this object into an xml string representation
 func (o *VolumeCloneCreateRequest) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Errorf("error: %v\n", err)
-	}
+	//if err != nil { log.Errorf("error: %v\n", err) }
 	return string(output), err
 }
 
@@ -41,19 +39,39 @@ func NewVolumeCloneCreateRequest() *VolumeCloneCreateRequest { return &VolumeClo
 
 // ExecuteUsing converts this object to a ZAPI XML representation and uses the supplied ZapiRunner to send to a filer
 func (o *VolumeCloneCreateRequest) ExecuteUsing(zr *ZapiRunner) (VolumeCloneCreateResponse, error) {
+
+	if zr.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "ExecuteUsing", "Type": "VolumeCloneCreateRequest"}
+		log.WithFields(fields).Debug(">>>> ExecuteUsing")
+		defer log.WithFields(fields).Debug("<<<< ExecuteUsing")
+	}
+
 	resp, err := zr.SendZapi(o)
+	if err != nil {
+		log.Errorf("API invocation failed. %v", err.Error())
+		return VolumeCloneCreateResponse{}, err
+	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
-	log.Debugf("response Body:\n%s", string(body))
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Errorf("Error reading response body. %v", readErr.Error())
+		return VolumeCloneCreateResponse{}, readErr
+	}
+	if zr.DebugTraceFlags["api"] {
+		log.Debugf("response Body:\n%s", string(body))
+	}
 
 	var n VolumeCloneCreateResponse
-	xml.Unmarshal(body, &n)
-	if err != nil {
-		log.Errorf("err: %v", err.Error())
+	unmarshalErr := xml.Unmarshal(body, &n)
+	if unmarshalErr != nil {
+		log.WithField("body", string(body)).Warnf("Error unmarshaling response body. %v", unmarshalErr.Error())
+		//return VolumeCloneCreateResponse{}, unmarshalErr
 	}
-	log.Debugf("volume-clone-create result:\n%s", n.Result)
+	if zr.DebugTraceFlags["api"] {
+		log.Debugf("volume-clone-create result:\n%s", n.Result)
+	}
 
-	return n, err
+	return n, nil
 }
 
 // String returns a string representation of this object's fields and implements the Stringer interface
@@ -64,16 +82,6 @@ func (o VolumeCloneCreateRequest) String() string {
 	} else {
 		buffer.WriteString(fmt.Sprintf("caching-policy: nil\n"))
 	}
-	if o.JunctionActivePtr != nil {
-		buffer.WriteString(fmt.Sprintf("%s: %v\n", "junction-active", *o.JunctionActivePtr))
-	} else {
-		buffer.WriteString(fmt.Sprintf("junction-active: nil\n"))
-	}
-	if o.JunctionPathPtr != nil {
-		buffer.WriteString(fmt.Sprintf("%s: %v\n", "junction-path", *o.JunctionPathPtr))
-	} else {
-		buffer.WriteString(fmt.Sprintf("junction-path: nil\n"))
-	}
 	if o.ParentSnapshotPtr != nil {
 		buffer.WriteString(fmt.Sprintf("%s: %v\n", "parent-snapshot", *o.ParentSnapshotPtr))
 	} else {
@@ -83,6 +91,11 @@ func (o VolumeCloneCreateRequest) String() string {
 		buffer.WriteString(fmt.Sprintf("%s: %v\n", "parent-volume", *o.ParentVolumePtr))
 	} else {
 		buffer.WriteString(fmt.Sprintf("parent-volume: nil\n"))
+	}
+	if o.ParentVserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "parent-vserver", *o.ParentVserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("parent-vserver: nil\n"))
 	}
 	if o.QosPolicyGroupNamePtr != nil {
 		buffer.WriteString(fmt.Sprintf("%s: %v\n", "qos-policy-group-name", *o.QosPolicyGroupNamePtr))
@@ -109,6 +122,11 @@ func (o VolumeCloneCreateRequest) String() string {
 	} else {
 		buffer.WriteString(fmt.Sprintf("volume-type: nil\n"))
 	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
 	return buffer.String()
 }
 
@@ -121,30 +139,6 @@ func (o *VolumeCloneCreateRequest) CachingPolicy() string {
 // SetCachingPolicy is a fluent style 'setter' method that can be chained
 func (o *VolumeCloneCreateRequest) SetCachingPolicy(newValue string) *VolumeCloneCreateRequest {
 	o.CachingPolicyPtr = &newValue
-	return o
-}
-
-// JunctionActive is a fluent style 'getter' method that can be chained
-func (o *VolumeCloneCreateRequest) JunctionActive() bool {
-	r := *o.JunctionActivePtr
-	return r
-}
-
-// SetJunctionActive is a fluent style 'setter' method that can be chained
-func (o *VolumeCloneCreateRequest) SetJunctionActive(newValue bool) *VolumeCloneCreateRequest {
-	o.JunctionActivePtr = &newValue
-	return o
-}
-
-// JunctionPath is a fluent style 'getter' method that can be chained
-func (o *VolumeCloneCreateRequest) JunctionPath() string {
-	r := *o.JunctionPathPtr
-	return r
-}
-
-// SetJunctionPath is a fluent style 'setter' method that can be chained
-func (o *VolumeCloneCreateRequest) SetJunctionPath(newValue string) *VolumeCloneCreateRequest {
-	o.JunctionPathPtr = &newValue
 	return o
 }
 
@@ -169,6 +163,18 @@ func (o *VolumeCloneCreateRequest) ParentVolume() string {
 // SetParentVolume is a fluent style 'setter' method that can be chained
 func (o *VolumeCloneCreateRequest) SetParentVolume(newValue string) *VolumeCloneCreateRequest {
 	o.ParentVolumePtr = &newValue
+	return o
+}
+
+// ParentVserver is a fluent style 'getter' method that can be chained
+func (o *VolumeCloneCreateRequest) ParentVserver() string {
+	r := *o.ParentVserverPtr
+	return r
+}
+
+// SetParentVserver is a fluent style 'setter' method that can be chained
+func (o *VolumeCloneCreateRequest) SetParentVserver(newValue string) *VolumeCloneCreateRequest {
+	o.ParentVserverPtr = &newValue
 	return o
 }
 
@@ -232,6 +238,18 @@ func (o *VolumeCloneCreateRequest) SetVolumeType(newValue string) *VolumeCloneCr
 	return o
 }
 
+// Vserver is a fluent style 'getter' method that can be chained
+func (o *VolumeCloneCreateRequest) Vserver() string {
+	r := *o.VserverPtr
+	return r
+}
+
+// SetVserver is a fluent style 'setter' method that can be chained
+func (o *VolumeCloneCreateRequest) SetVserver(newValue string) *VolumeCloneCreateRequest {
+	o.VserverPtr = &newValue
+	return o
+}
+
 // VolumeCloneCreateResponse is a structure to represent a volume-clone-create ZAPI response object
 type VolumeCloneCreateResponse struct {
 	XMLName xml.Name `xml:"netapp"`
@@ -263,9 +281,7 @@ type VolumeCloneCreateResponseResult struct {
 // ToXML converts this object into an xml string representation
 func (o *VolumeCloneCreateResponse) ToXML() (string, error) {
 	output, err := xml.MarshalIndent(o, " ", "    ")
-	if err != nil {
-		log.Debugf("error: %v", err)
-	}
+	//if err != nil { log.Debugf("error: %v", err) }
 	return string(output), err
 }
 

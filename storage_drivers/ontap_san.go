@@ -3,7 +3,6 @@
 package storage_drivers
 
 import (
-	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -22,10 +21,9 @@ func init() {
 	san := &OntapSANStorageDriver{}
 	san.Initialized = false
 	Drivers[san.Name()] = san
-	log.Debugf("Registered driver '%v'", san.Name())
 }
 
-func lunName(name string) string {
+func lunPath(name string) string {
 	return fmt.Sprintf("/vol/%v/lun0", name)
 }
 
@@ -53,50 +51,39 @@ func (d OntapSANStorageDriver) Name() string {
 func (d *OntapSANStorageDriver) Initialize(
 	context DriverContext, configJSON string, commonConfig *CommonStorageDriverConfig,
 ) error {
-	log.Debugf("OntapSANStorageDriver#Initialize(...)")
 
-	config := &OntapStorageDriverConfig{}
-	config.CommonStorageDriverConfig = commonConfig
-
-	config.IgroupName = "netappdvp"
-
-	// decode configJSON into OntapStorageDriverConfig object
-	err := json.Unmarshal([]byte(configJSON), &config)
-	if err != nil {
-		return fmt.Errorf("Cannot decode json configuration error: %v", err)
+	if commonConfig.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "Initialize", "Type": "OntapSANStorageDriver"}
+		log.WithFields(fields).Debug(">>>> Initialize")
+		defer log.WithFields(fields).Debug("<<<< Initialize")
 	}
 
-	log.WithFields(log.Fields{
-		"Version":           config.Version,
-		"StorageDriverName": config.StorageDriverName,
-		"DisableDelete":     config.DisableDelete,
-	}).Debugf("Reparsed into ontapConfig")
+	// Parse the config
+	config, err := InitializeOntapConfig(configJSON, commonConfig)
+	if err != nil {
+		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
+	}
+
+	if config.IgroupName == "" {
+		config.IgroupName = "netappdvp"
+	}
 
 	d.Config = *config
-	d.API, err = InitializeOntapDriver(d.Config)
+	d.API, err = InitializeOntapDriver(&d.Config)
 	if err != nil {
-		return fmt.Errorf("Problem while initializing: %v", err)
+		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
 	}
 
-	defaultsErr := PopulateConfigurationDefaults(&d.Config)
-	if defaultsErr != nil {
-		return fmt.Errorf("Cannot populate configuration defaults: %v", defaultsErr)
-	}
-
-	log.WithFields(log.Fields{
-		"StoragePrefix": *d.Config.StoragePrefix,
-	}).Debugf("Configuration defaults")
-
-	validationErr := d.Validate()
-	if validationErr != nil {
-		return fmt.Errorf("Problem validating OntapSANStorageDriver: %v", validationErr)
+	err = d.Validate()
+	if err != nil {
+		return fmt.Errorf("Error validating %s driver. %v", d.Name(), err)
 	}
 
 	if context == ContextNDVP {
 		// Make sure this host is logged into the ONTAP iSCSI target
 		err := utils.EnsureIscsiSession(d.Config.DataLIF)
 		if err != nil {
-			return fmt.Errorf("Could not establish iSCSI session. %v", err)
+			return fmt.Errorf("Error establishing iSCSI session. %v", err)
 		}
 	}
 
@@ -105,57 +92,44 @@ func (d *OntapSANStorageDriver) Initialize(
 	StartEmsHeartbeat(d.Name(), d.API, &d.Config)
 
 	d.Initialized = true
-
 	return nil
 }
 
 // Validate the driver configuration and execution environment
 func (d *OntapSANStorageDriver) Validate() error {
-	log.Debugf("OntapSANStorageDriver#Validate()")
 
-	zr := &azgo.ZapiRunner{
-		ManagementLIF: d.Config.ManagementLIF,
-		SVM:           d.Config.SVM,
-		Username:      d.Config.Username,
-		Password:      d.Config.Password,
-		Secure:        true,
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "Validate", "Type": "OntapSANStorageDriver"}
+		log.WithFields(fields).Debug(">>>> Validate")
+		defer log.WithFields(fields).Debug("<<<< Validate")
 	}
 
-	r0, err0 := azgo.NewSystemGetVersionRequest().ExecuteUsing(zr)
-	if err0 != nil {
-		return fmt.Errorf("Could not validate credentials for %v@%v, error: %v", d.Config.Username, d.Config.SVM, err0)
+	lifResponse, err := d.API.NetInterfaceGet()
+	if err = ontap.GetError(lifResponse, err); err != nil {
+		return fmt.Errorf("Error checking network interfaces. %v", err)
 	}
 
-	// Add system version validation, if needed, this is a sanity check right now
-	systemVersion := r0.Result
-	if systemVersion.VersionPtr == nil {
-		return fmt.Errorf("Could not determine system version for %v@%v", d.Config.Username, d.Config.SVM)
-	}
-
-	r1, err1 := d.API.NetInterfaceGet()
-	if err1 != nil {
-		return fmt.Errorf("Problem checking network interfaces; error: %v", err1)
-	}
-
-	// if they didn't set a lif to use in the config, we'll set it to the first iscsi lif we happen to find
+	// If they didn't set a LIF to use in the config, we'll set it to the first iSCSI LIF we happen to find
 	if d.Config.DataLIF == "" {
-		for _, attrs := range r1.Result.AttributesList() {
+	loop:
+		for _, attrs := range lifResponse.Result.AttributesList() {
 			for _, protocol := range attrs.DataProtocols() {
 				if protocol == "iscsi" {
-					log.Debugf("Setting iSCSI protocol access to '%v'", attrs.Address())
+					log.WithField("address", attrs.Address()).Debug("Choosing LIF for iSCSI.")
 					d.Config.DataLIF = string(attrs.Address())
+					break loop
 				}
 			}
 		}
 	}
 
-	// now, we validate our settings
+	// Validate our settings
 	foundIscsi := false
 	iscsiLifCount := 0
-	for _, attrs := range r1.Result.AttributesList() {
+	for _, attrs := range lifResponse.Result.AttributesList() {
 		for _, protocol := range attrs.DataProtocols() {
 			if protocol == "iscsi" {
-				log.Debugf("Comparing iSCSI protocol access on: '%v' vs: '%v'", attrs.Address(), d.Config.DataLIF)
+				log.Debugf("Comparing iSCSI protocol access on %v vs. %v", attrs.Address(), d.Config.DataLIF)
 				if string(attrs.Address()) == d.Config.DataLIF {
 					foundIscsi = true
 					iscsiLifCount++
@@ -165,11 +139,11 @@ func (d *OntapSANStorageDriver) Validate() error {
 	}
 
 	if iscsiLifCount > 1 {
-		log.Debugf("Found multiple iSCSI lifs")
+		log.Debugf("Found multiple iSCSI LIFs.")
 	}
 
 	if !foundIscsi {
-		return fmt.Errorf("Could not find iSCSI DataLIF")
+		return fmt.Errorf("Could not find iSCSI data LIF.")
 	}
 
 	return nil
@@ -177,15 +151,29 @@ func (d *OntapSANStorageDriver) Validate() error {
 
 // Create a volume+LUN with the specified options
 func (d *OntapSANStorageDriver) Create(name string, sizeBytes uint64, opts map[string]string) error {
-	log.Debugf("OntapSANStorageDriver#Create(%v)", name)
 
-	// If the volume already exists, bail out
-	response, _ := d.API.VolumeSize(name)
-	if isPassed(response.Result.ResultStatusAttr) {
-		return fmt.Errorf("Volume already exists")
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":    "Create",
+			"Type":      "OntapSANStorageDriver",
+			"name":      name,
+			"sizeBytes": sizeBytes,
+			"opts":      opts,
+		}
+		log.WithFields(fields).Debug(">>>> Create")
+		defer log.WithFields(fields).Debug("<<<< Create")
 	}
 
-	// get options with default fallback values
+	// If the volume already exists, bail out
+	volExists, err := d.API.VolumeExists(name)
+	if err != nil {
+		return fmt.Errorf("Error checking for existing volume. %v", err)
+	}
+	if volExists {
+		return fmt.Errorf("Volume %s already exists.", name)
+	}
+
+	// Get options with default fallback values
 	// see also: ontap_common.go#PopulateConfigurationDefaults
 	size := strconv.FormatUint(sizeBytes, 10)
 	spaceReserve := utils.GetV(opts, "spaceReserve", d.Config.SpaceReserve)
@@ -206,31 +194,29 @@ func (d *OntapSANStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 		"exportPolicy":    exportPolicy,
 		"aggregate":       aggregate,
 		"securityStyle":   securityStyle,
-	}).Debug("Creating volume with values")
+	}).Debug("Creating Flexvol.")
 
-	// create the volume
-	response1, error1 := d.API.VolumeCreate(name, aggregate, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
-	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
-		if response1.Result.ResultErrnoAttr != azgo.EAPIERROR {
-			return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
-		} else {
-			if !strings.HasSuffix(strings.TrimSpace(response1.Result.ResultReasonAttr), "Job exists") {
-				return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
-			} else {
-				log.Warnf("%v volume create job already exists, skipping volume create on this node...", name)
+	// Create the volume
+	volCreateResponse, err := d.API.VolumeCreate(name, aggregate, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
+	if err = ontap.GetError(volCreateResponse, err); err != nil {
+		if zerr, ok := err.(ontap.ZapiError); ok {
+			// Handle case where the Create is passed to every Docker Swarm node
+			if zerr.Code() == azgo.EAPIERROR && strings.HasSuffix(strings.TrimSpace(zerr.Reason()), "Job exists") {
+				log.WithField("volume", name).Warn("Volume create job already exists, skipping volume create on this node.")
 				return nil
 			}
 		}
+		return fmt.Errorf("Error creating volume. %v", err)
 	}
 
-	lunPath := lunName(name)
+	lunPath := lunPath(name)
 	osType := "linux"
 	spaceReserved := false
 
-	// create the lun
-	response2, err2 := d.API.LunCreate(lunPath, int(sizeBytes), osType, spaceReserved)
-	if !isPassed(response2.Result.ResultStatusAttr) || err2 != nil {
-		return fmt.Errorf("Error creating LUN\n%verror: %v", response2.Result, err2)
+	// Create the LUN
+	lunCreateResponse, err := d.API.LunCreate(lunPath, int(sizeBytes), osType, spaceReserved)
+	if err = ontap.GetError(lunCreateResponse, err); err != nil {
+		return fmt.Errorf("Error creating LUN. %v", err)
 	}
 
 	return nil
@@ -239,52 +225,81 @@ func (d *OntapSANStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 // Create a volume clone
 func (d *OntapSANStorageDriver) CreateClone(name, source, snapshot string, opts map[string]string) error {
 
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":   "CreateClone",
+			"Type":     "OntapSANStorageDriver",
+			"name":     name,
+			"source":   source,
+			"snapshot": snapshot,
+			"opts":     opts,
+		}
+		log.WithFields(fields).Debug(">>>> CreateClone")
+		defer log.WithFields(fields).Debug("<<<< CreateClone")
+	}
+
 	split, err := strconv.ParseBool(utils.GetV(opts, "splitOnClone", d.Config.SplitOnClone))
 	if err != nil {
 		return fmt.Errorf("Invalid boolean value for splitOnClone: %v", err)
 	}
 
-	log.WithFields(log.Fields{
-		"splitOnClone": split,
-	}).Debug("Creating volume clone with values")
-	return CreateOntapClone(name, source, snapshot, split, d.API)
+	log.WithField("splitOnClone", split).Debug("Creating volume clone.")
+	return CreateOntapClone(name, source, snapshot, split, &d.Config, d.API)
 }
 
 // Destroy the requested (volume,lun) storage tuple
 func (d *OntapSANStorageDriver) Destroy(name string) error {
-	log.Debugf("OntapSANStorageDriver#Destroy(%v)", name)
 
-	lunPath := lunName(name)
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "Destroy",
+			"Type":   "OntapSANStorageDriver",
+			"name":   name,
+		}
+		log.WithFields(fields).Debug(">>>> Destroy")
+		defer log.WithFields(fields).Debug("<<<< Destroy")
+	}
 
-	// validate LUN+volume exists before trying to destroy
-	response0, _ := d.API.VolumeSize(name)
-	if !isPassed(response0.Result.ResultStatusAttr) {
-		log.Debugf("%v already deleted, skipping destroy", name)
+	lunPath := lunPath(name)
+
+	// Validate Flexvol exists before trying to destroy
+	volExists, err := d.API.VolumeExists(name)
+	if err != nil {
+		return fmt.Errorf("Error checking for existing volume. %v", err)
+	}
+	if !volExists {
+		log.WithField("volume", name).Debug("Volume already deleted, skipping destroy.")
 		return nil
 	}
 
-	// lun offline
-	response, err := d.API.LunOffline(lunPath)
-	if !isPassed(response.Result.ResultStatusAttr) || err != nil {
-		log.Warnf("Error attempting to offline lun: %v\n%verror: %v", lunPath, response.Result, err)
+	// Set LUN offline
+	offlineResponse, err := d.API.LunOffline(lunPath)
+	if err := ontap.GetError(offlineResponse, err); err != nil {
+		log.Warnf("Error attempting to offline LUN %v. %v", lunPath, err)
 	}
 
-	// lun destroy
-	response2, err2 := d.API.LunDestroy(lunPath)
-	if !isPassed(response2.Result.ResultStatusAttr) || err2 != nil {
-		log.Warnf("Error destroying lun: %v\n%verror: %v", lunPath, response2.Result, err2)
+	// Destroy LUN
+	lunDestroyResponse, err := d.API.LunDestroy(lunPath)
+	if err := ontap.GetError(lunDestroyResponse, err); err != nil {
+		log.Warnf("Error destroying LUN %v. %v", lunPath, err)
 	}
 
-	// perform rediscovery to remove the deleted LUN
+	// Perform rediscovery to remove the deleted LUN
 	utils.MultipathFlush() // flush unused paths
 	utils.IscsiRescan()
 
-	response3, error3 := d.API.VolumeDestroy(name, true)
-	if !isPassed(response3.Result.ResultStatusAttr) || error3 != nil {
-		if response3.Result.ResultErrnoAttr != azgo.EVOLUMEDOESNOTEXIST {
-			return fmt.Errorf("Error destroying volume: %v\n%verror: %v", name, response3.Result, error3)
+	// Delete the Flexvol
+	volDestroyResponse, err := d.API.VolumeDestroy(name, true)
+	if err != nil {
+		return fmt.Errorf("Error destroying volume %v. %v", name, err)
+	}
+	if zerr := ontap.NewZapiError(volDestroyResponse); !zerr.IsPassed() {
+
+		// It's not an error if the volume no longer exists
+		if zerr.Code() == azgo.EVOLUMEDOESNOTEXIST {
+			log.WithField("volume", name).Warn("Volume already deleted.")
 		} else {
-			log.Warnf("Volume already deleted while destroying volume: %v\n%verror: %v", name, response3.Result, error3)
+			return fmt.Errorf("Error destroying volume %v. %v", name, zerr)
 		}
 	}
 
@@ -293,64 +308,82 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 
 // Attach the lun
 func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
-	log.Debugf("OntapSANStorageDriver#Attach(%v, %v, %v)", name, mountpoint, opts)
 
-	// error if no 'iscsi session' exsits for the specified iscsi portal
-	sessionExists, sessionExistsErr := utils.IscsiSessionExists(d.Config.DataLIF)
-	if sessionExistsErr != nil {
-		return fmt.Errorf("Unexpected iSCSI session error: %v", sessionExistsErr)
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "Attach",
+			"Type":       "OntapSANStorageDriver",
+			"name":       name,
+			"mountpoint": mountpoint,
+			"opts":       opts,
+		}
+		log.WithFields(fields).Debug(">>>> Attach")
+		defer log.WithFields(fields).Debug("<<<< Attach")
+	}
+
+	// Error if no iSCSI session exists for the specified iscsi portal
+	sessionExists, err := utils.IscsiSessionExists(d.Config.DataLIF)
+	if err != nil {
+		return fmt.Errorf("Unexpected iSCSI session error. %v", err)
 	}
 	if !sessionExists {
 		// TODO automatically login for the user if no session detected?
-		return fmt.Errorf("Expected iSCSI session %v NOT found, please login to the iscsi portal", d.Config.DataLIF)
+		return fmt.Errorf("Expected iSCSI session %v not found, please login to the iSCSI portal.", d.Config.DataLIF)
 	}
 
 	igroupName := d.Config.IgroupName
-	lunPath := lunName(name)
+	lunPath := lunPath(name)
 
-	// igroup create
-	response, err := d.API.IgroupCreate(igroupName, "iscsi", "linux")
-	if !isPassed(response.Result.ResultStatusAttr) {
-		if response.Result.ResultErrnoAttr != azgo.EVDISK_ERROR_INITGROUP_EXISTS {
-			return fmt.Errorf("Problem creating igroup: %v\n%verror: %v", igroupName, response.Result, err)
+	// Create igroup
+	igroupResponse, err := d.API.IgroupCreate(igroupName, "iscsi", "linux")
+	if err != nil {
+		return fmt.Errorf("Error creating igroup. %v", err)
+	}
+	if zerr := ontap.NewZapiError(igroupResponse); !zerr.IsPassed() {
+		// Handle case where the igroup already exists
+		if zerr.Code() != azgo.EVDISK_ERROR_INITGROUP_EXISTS {
+			return fmt.Errorf("Error creating igroup %v. %v", igroupName, zerr)
 		}
 	}
 
-	// lookup host iqns
-	iqns, errIqn := utils.GetInitiatorIqns()
-	if errIqn != nil {
-		return fmt.Errorf("Problem determining host initiator iqns error: %v", errIqn)
+	// Lookup host IQNs
+	iqns, err := utils.GetInitiatorIqns()
+	if err != nil {
+		return fmt.Errorf("Error determining host initiator IQNs. %v", err)
 	}
 
-	// igroup add each iqn we found
+	// Add each IQN found to group
 	for _, iqn := range iqns {
-		response2, err2 := d.API.IgroupAdd(igroupName, iqn)
-		if !isPassed(response2.Result.ResultStatusAttr) {
-			if response2.Result.ResultErrnoAttr != azgo.EVDISK_ERROR_INITGROUP_HAS_NODE {
-				return fmt.Errorf("Problem adding iqn: %v to igroup: %v\n%verror: %v", iqn, igroupName, response2.Result, err2)
+		igroupAddResponse, err := d.API.IgroupAdd(igroupName, iqn)
+		if err := ontap.GetError(igroupAddResponse, err); err != nil {
+			if zerr, ok := err.(ontap.ZapiError); ok {
+				if zerr.Code() == azgo.EVDISK_ERROR_INITGROUP_HAS_NODE {
+					continue
+				}
 			}
+			return fmt.Errorf("Error adding IQN %v to igroup %v. %v", iqn, igroupName, err)
 		}
 	}
 
-	// map LUN
+	// Map LUN
 	lunID, err := d.API.LunMapIfNotMapped(igroupName, lunPath)
 	if err != nil {
 		return err
 	}
 
-	// perform discovery to see the created/mapped LUN
+	// Perform discovery to see the created/mapped LUN
 	utils.IscsiRescan()
 
-	// lookup all the scsi device information
-	info, infoErr := utils.GetDeviceInfoForLuns()
-	if infoErr != nil {
-		return fmt.Errorf("Problem getting scsi device information, error: %v", infoErr)
+	// Lookup all the scsi device information
+	info, err := utils.GetDeviceInfoForLuns()
+	if err != nil {
+		return fmt.Errorf("Error getting SCSI device information. %v", err)
 	}
 
-	// lookup all the iSCSI session information
-	sessionInfo, sessionInfoErr := utils.GetIscsiSessionInfo()
-	if sessionInfoErr != nil {
-		return fmt.Errorf("Problem getting iSCSI session information, error: %v", sessionInfoErr)
+	// Lookup all the iSCSI session information
+	sessionInfo, err := utils.GetIscsiSessionInfo()
+	if err != nil {
+		return fmt.Errorf("Error getting iSCSI session information. %v", err)
 	}
 
 	sessionInfoToUse := utils.IscsiSessionInfo{}
@@ -399,34 +432,34 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 			continue
 		}
 
-		// if we're here then, we should be on the right info element:
+		// If we're here then, we should be on the right info element:
 		// *) we have the expected LUN ID
 		// *) we have the expected iscsi session target
 		log.Debugf("Using... %v", e)
 
-		// make sure we use the proper device (multipath if in use)
+		// Make sure we use the proper device (multipath if in use)
 		deviceToUse := e.Device
 		if e.MultipathDevice != "" {
 			deviceToUse = e.MultipathDevice
 		}
 
 		if deviceToUse == "" {
-			return fmt.Errorf("Could not determine device to use for: %v ", name)
+			return fmt.Errorf("Could not determine device to use for %v.", name)
 		}
 
-		// put a filesystem on it if there isn't one already there
+		// Put a filesystem on it if there isn't one already there
 		if e.Filesystem == "" {
 			// format it
 			err := utils.FormatVolume(deviceToUse, "ext4") // TODO externalize fsType
 			if err != nil {
-				return fmt.Errorf("Problem formatting lun: %v device: %v error: %v", name, deviceToUse, err)
+				return fmt.Errorf("Error formatting LUN %v, device %v. %v", name, deviceToUse, err)
 			}
 		}
 
-		// mount it
+		// Mount it
 		err := utils.Mount(deviceToUse, mountpoint)
 		if err != nil {
-			return fmt.Errorf("Problem mounting lun: %v device: %v mountpoint: %v error: %v", name, deviceToUse, mountpoint, err)
+			return fmt.Errorf("Error mounting LUN %v, device %v, mountpoint %v. %v", name, deviceToUse, mountpoint, err)
 		}
 		return nil
 	}
@@ -436,13 +469,24 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 
 // Detach the volume
 func (d *OntapSANStorageDriver) Detach(name, mountpoint string) error {
-	log.Debugf("OntapSANStorageDriver#Detach(%v, %v)", name, mountpoint)
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "Detach",
+			"Type":       "OntapSANStorageDriver",
+			"name":       name,
+			"mountpoint": mountpoint,
+		}
+		log.WithFields(fields).Debug(">>>> Detach")
+		defer log.WithFields(fields).Debug("<<<< Detach")
+	}
 
 	cmd := fmt.Sprintf("umount %s", mountpoint)
-	log.Debugf("cmd==%s", cmd)
+	log.WithField("command", cmd).Debug("Unmounting volume.")
+
 	if out, err := exec.Command("sh", "-c", cmd).CombinedOutput(); err != nil {
-		log.Debugf("out==%v", string(out))
-		return fmt.Errorf("Problem unmounting docker volume: %v mountpoint: %v error: %v", name, mountpoint, err)
+		log.WithField("output", string(out)).Debug("Unmount failed.")
+		return fmt.Errorf("Error unmounting volume %v, mountpoint %v. %v", name, mountpoint, err)
 	}
 
 	return nil
@@ -450,15 +494,40 @@ func (d *OntapSANStorageDriver) Detach(name, mountpoint string) error {
 
 // Return the list of snapshots associated with the named volume
 func (d *OntapSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
-	return GetSnapshotList(name, d.API)
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "SnapshotList",
+			"Type":   "OntapSANStorageDriver",
+			"name":   name,
+		}
+		log.WithFields(fields).Debug(">>>> SnapshotList")
+		defer log.WithFields(fields).Debug("<<<< SnapshotList")
+	}
+
+	return GetSnapshotList(name, &d.Config, d.API)
 }
 
 // Return the list of volumes associated with this tenant
 func (d *OntapSANStorageDriver) List() ([]string, error) {
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "List", "Type": "OntapSANStorageDriver"}
+		log.WithFields(fields).Debug(">>>> List")
+		defer log.WithFields(fields).Debug("<<<< List")
+	}
+
 	return GetVolumeList(d.API, &d.Config)
 }
 
 // Test for the existence of a volume
 func (d *OntapSANStorageDriver) Get(name string) error {
-	return GetVolume(name, d.API)
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "Get", "Type": "OntapSANStorageDriver"}
+		log.WithFields(fields).Debug(">>>> Get")
+		defer log.WithFields(fields).Debug("<<<< Get")
+	}
+
+	return GetVolume(name, d.API, &d.Config)
 }

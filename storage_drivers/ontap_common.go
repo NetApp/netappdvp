@@ -3,15 +3,19 @@
 package storage_drivers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/apis/ontap"
 	"github.com/netapp/netappdvp/azgo"
+	"github.com/netapp/netappdvp/utils"
 )
 
 type OntapStorageDriver interface {
@@ -20,15 +24,46 @@ type OntapStorageDriver interface {
 	Name() string
 }
 
-// InitializeOntapDriver will attempt to derive the SVM to use if not provided
-func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, error) {
-	api := ontap.NewDriver(ontap.DriverConfig{
-		ManagementLIF: config.ManagementLIF,
-		SVM:           config.SVM,
-		Username:      config.Username,
-		Password:      config.Password,
-	})
+// InitializeOntapConfig parses the ONTAP config, mixing in the specified common config.
+func InitializeOntapConfig(
+	configJSON string, commonConfig *CommonStorageDriverConfig,
+) (*OntapStorageDriverConfig, error) {
 
+	if commonConfig.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "InitializeOntapConfig", "Type": "ontap_common"}
+		log.WithFields(fields).Debug(">>>> InitializeOntapConfig")
+		defer log.WithFields(fields).Debug("<<<< InitializeOntapConfig")
+	}
+
+	config := &OntapStorageDriverConfig{}
+	config.CommonStorageDriverConfig = commonConfig
+
+	// decode configJSON into OntapStorageDriverConfig object
+	err := json.Unmarshal([]byte(configJSON), &config)
+	if err != nil {
+		return nil, fmt.Errorf("Could not decode JSON configuration. %v", err)
+	}
+
+	return config, nil
+}
+
+// InitializeOntapDriver sets up the API client and performs all other initialization tasks
+// that are common to all the ONTAP drivers.
+func InitializeOntapDriver(config *OntapStorageDriverConfig) (*ontap.Driver, error) {
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "InitializeOntapDriver", "Type": "ontap_common"}
+		log.WithFields(fields).Debug(">>>> InitializeOntapDriver")
+		defer log.WithFields(fields).Debug("<<<< InitializeOntapDriver")
+	}
+
+	// Get the API client
+	api, err := InitializeOntapAPI(config)
+	if err != nil {
+		return nil, fmt.Errorf("Could not create Data ONTAP API client. %v", err)
+	}
+
+	// Make sure we're using a valid ONTAP version
 	ontapi, err := api.SystemGetOntapiVersion()
 	if err != nil {
 		return nil, fmt.Errorf("Could not determine Data ONTAP API version. %v", err)
@@ -38,7 +73,7 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 	}
 	log.WithField("Ontapi", ontapi).Debug("Data ONTAP API version.")
 
-	// log cluster node serial numbers if we can get them
+	// Log cluster node serial numbers if we can get them
 	config.SerialNumbers, err = api.ListNodeSerialNumbers()
 	if err != nil {
 		log.Warnf("Could not determine controller serial numbers. %v", err)
@@ -46,31 +81,108 @@ func InitializeOntapDriver(config OntapStorageDriverConfig) (*ontap.Driver, erro
 		log.WithField("serialNumbers", config.SerialNumbers).Info("Controller serial numbers.")
 	}
 
+	// Load default config parameters
+	err = PopulateConfigurationDefaults(config)
+	if err != nil {
+		return nil, fmt.Errorf("Could not populate configuration defaults. %v", err)
+	}
+
+	return api, nil
+}
+
+// InitializeOntapAPI returns an ontap.Driver ZAPI client.  If the SVM isn't specified in the config
+// file, this method attempts to derive the one to use.
+func InitializeOntapAPI(config *OntapStorageDriverConfig) (*ontap.Driver, error) {
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "InitializeOntapAPI", "Type": "ontap_common"}
+		log.WithFields(fields).Debug(">>>> InitializeOntapAPI")
+		defer log.WithFields(fields).Debug("<<<< InitializeOntapAPI")
+	}
+
+	api := ontap.NewDriver(ontap.DriverConfig{
+		ManagementLIF:   config.ManagementLIF,
+		SVM:             config.SVM,
+		Username:        config.Username,
+		Password:        config.Password,
+		DebugTraceFlags: config.DebugTraceFlags,
+	})
+
 	if config.SVM != "" {
-		log.Debugf("Using specified SVM: %v", config.SVM)
+		log.WithField("SVM", config.SVM).Debug("Using specified SVM.")
 		return api, nil
 	}
 
-	// use VserverGetIterRequest to populate config.SVM if it wasn't specified and we can derive it
-	response1, err := api.VserverGetIterRequest()
-	if !isPassed(response1.Result.ResultStatusAttr) || err != nil {
-		return nil, fmt.Errorf("Error enumerating SVMs:  status: %v error: %v", response1.Result.ResultStatusAttr, err)
+	// Use VserverGetIterRequest to populate config.SVM if it wasn't specified and we can derive it
+	vserverResponse, err := api.VserverGetIterRequest()
+	if err = ontap.GetError(vserverResponse, err); err != nil {
+		return nil, fmt.Errorf("Error enumerating SVMs. %v", err)
 	}
-	if response1.Result.NumRecords() != 1 {
+
+	if vserverResponse.Result.NumRecords() != 1 {
 		return nil, errors.New("Cannot derive SVM to use, please specify SVM in config file.")
 	}
 
-	// update everything to use our derived svm
-	config.SVM = response1.Result.AttributesList()[0].VserverName()
+	// Update everything to use our derived SVM
+	config.SVM = vserverResponse.Result.AttributesList()[0].VserverName()
 	api = ontap.NewDriver(ontap.DriverConfig{
 		ManagementLIF: config.ManagementLIF,
 		SVM:           config.SVM,
 		Username:      config.Username,
 		Password:      config.Password,
 	})
-	api.SystemGetOntapiVersion()
-	log.Debugf("Using derived SVM: %v", config.SVM)
+	log.WithField("SVM", config.SVM).Debug("Using derived SVM.")
+
 	return api, nil
+}
+
+// ValidateNASDriver contains the validation logic shared between ontap-nas and ontap-nas-economy.
+func ValidateNASDriver(api *ontap.Driver, config *OntapStorageDriverConfig) error {
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "ValidateNASDriver", "Type": "ontap_common"}
+		log.WithFields(fields).Debug(">>>> ValidateNASDriver")
+		defer log.WithFields(fields).Debug("<<<< ValidateNASDriver")
+	}
+
+	lifResponse, err := api.NetInterfaceGet()
+	if err = ontap.GetError(lifResponse, err); err != nil {
+		return fmt.Errorf("Error checking network interfaces. %v", err)
+	}
+
+	// If they didn't set a LIF to use in the config, we'll set it to the first nfs LIF we happen to find
+	if config.DataLIF == "" {
+	loop:
+		for _, attrs := range lifResponse.Result.AttributesList() {
+			for _, protocol := range attrs.DataProtocols() {
+				if protocol == "nfs" {
+					log.WithField("address", attrs.Address()).Debug("Choosing LIF for NFS.")
+					config.DataLIF = string(attrs.Address())
+					break loop
+				}
+			}
+		}
+	}
+
+	foundNfs := false
+loop2:
+	for _, attrs := range lifResponse.Result.AttributesList() {
+		for _, protocol := range attrs.DataProtocols() {
+			if protocol == "nfs" {
+				log.Debugf("Comparing NFS protocol access on %v vs. %v", attrs.Address(), config.DataLIF)
+				if string(attrs.Address()) == config.DataLIF {
+					foundNfs = true
+					break loop2
+				}
+			}
+		}
+	}
+
+	if !foundNfs {
+		return fmt.Errorf("Could not find NFS Data LIF.")
+	}
+
+	return nil
 }
 
 const DefaultSpaceReserve = "none"
@@ -84,6 +196,13 @@ const DefaultSplitOnClone = "false"
 
 // PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
 func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "PopulateConfigurationDefaults", "Type": "ontap_common"}
+		log.WithFields(fields).Debug(">>>> PopulateConfigurationDefaults")
+		defer log.WithFields(fields).Debug("<<<< PopulateConfigurationDefaults")
+	}
+
 	if config.StoragePrefix == nil {
 		prefix := DefaultStoragePrefix
 		config.StoragePrefix = &prefix
@@ -122,9 +241,21 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 	} else {
 		_, err := strconv.ParseBool(config.SplitOnClone)
 		if err != nil {
-			return fmt.Errorf("Invalid boolean value for splitOnClone: %v", err)
+			return fmt.Errorf("Invalid boolean value for splitOnClone. %v", err)
 		}
 	}
+
+	log.WithFields(log.Fields{
+		"StoragePrefix":   config.StoragePrefix,
+		"SpaceReserve":    config.SpaceReserve,
+		"SnapshotPolicy":  config.SnapshotPolicy,
+		"UnixPermissions": config.UnixPermissions,
+		"SnapshotDir":     config.SnapshotDir,
+		"ExportPolicy":    config.ExportPolicy,
+		"SecurityStyle":   config.SecurityStyle,
+		"NfsMountOptions": config.NfsMountOptions,
+		"SplitOnClone":    config.SplitOnClone,
+	}).Debugf("Configuration defaults")
 
 	return nil
 }
@@ -134,18 +265,17 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 func EmsInitialized(driverName string, api *ontap.Driver, config *OntapStorageDriverConfig) {
 
 	// log an informational message when this plugin starts
-	myHostname, hostlookupErr := os.Hostname()
-	if hostlookupErr != nil {
-		log.Warnf("problem while looking up hostname, error: %v", hostlookupErr)
+	myHostname, err := os.Hostname()
+	if err != nil {
+		log.Warnf("Could not determine hostname. %v", err)
 		myHostname = "unknown"
 	}
 
 	message := driverName + " docker volume plugin initialized, version " + FullDriverVersion + " [" + ExtendedDriverVersion + "] build " + BuildVersion
-	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "initialized", myHostname,
-		message,
-		1, "netappdvp", 5)
-	if emsErr != nil {
-		log.Warnf("problem while logging ems message, error: %v", emsErr)
+	emsResponse, err := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "initialized", myHostname,
+		message, 1, "netappdvp", 5)
+	if err = ontap.GetError(emsResponse, err); err != nil {
+		log.Warnf("Error logging EMS message. %v", err)
 	}
 }
 
@@ -154,20 +284,19 @@ func EmsInitialized(driverName string, api *ontap.Driver, config *OntapStorageDr
 func EmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorageDriverConfig) {
 
 	// log an informational message on a timer
-	myHostname, hostlookupErr := os.Hostname()
-	if hostlookupErr != nil {
-		log.Warnf("problem while looking up hostname, error: %v", hostlookupErr)
+	myHostname, err := os.Hostname()
+	if err != nil {
+		log.Warnf("Could not determine hostname. %v", err)
 		myHostname = "unknown"
 	}
 
 	message := driverName + " docker volume plugin, version " + FullDriverVersion + " [" + ExtendedDriverVersion + "] build " +
 		BuildVersion + " SVM[" + config.SVM + "] StoragePrefix[" + *config.StoragePrefix + "]"
 
-	_, emsErr := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "heartbeat", myHostname,
-		message,
-		1, "netappdvp", 5)
-	if emsErr != nil {
-		log.Warnf("problem while logging ems message, error: %v", emsErr)
+	emsResponse, err := api.EmsAutosupportLog(strconv.Itoa(ConfigVersion), false, "heartbeat", myHostname,
+		message, 1, "netappdvp", 5)
+	if err = ontap.GetError(emsResponse, err); err != nil {
+		log.Warnf("Error logging EMS message. %v", err)
 	}
 }
 
@@ -177,9 +306,9 @@ func StartEmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorag
 
 	heartbeatIntervalInHours := 24.0 // default to 24 hours
 	if config.UsageHeartbeat != "" {
-		f, errParsing := strconv.ParseFloat(config.UsageHeartbeat, 64)
-		if errParsing != nil {
-			log.Warnf("Problem parsing heartbeat interval: {%v} error: %v", config.UsageHeartbeat, errParsing)
+		f, err := strconv.ParseFloat(config.UsageHeartbeat, 64)
+		if err != nil {
+			log.WithField("interval", config.UsageHeartbeat).Warnf("Invalid heartbeat interval. %v", err)
 		} else {
 			heartbeatIntervalInHours = f
 		}
@@ -200,49 +329,66 @@ func StartEmsHeartbeat(driverName string, api *ontap.Driver, config *OntapStorag
 }
 
 // Create a volume clone
-func CreateOntapClone(name, source, snapshot string, split bool, api *ontap.Driver) error {
-	log.Debugf("OntapCommon#CreateOntapClone(%v, %v, %v)", name, source, snapshot)
+func CreateOntapClone(
+	name, source, snapshot string, split bool, config *OntapStorageDriverConfig, api *ontap.Driver,
+) error {
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":   "CreateOntapClone",
+			"Type":     "ontap_common",
+			"name":     name,
+			"source":   source,
+			"snapshot": snapshot,
+			"split":    split,
+		}
+		log.WithFields(fields).Debug(">>>> CreateOntapClone")
+		defer log.WithFields(fields).Debug("<<<< CreateOntapClone")
+	}
 
 	// If the specified volume already exists, return an error
-	response, err := api.VolumeSize(name)
+	volExists, err := api.VolumeExists(name)
 	if err != nil {
-		return fmt.Errorf("Error searching for existing volume: error: %v", err)
+		return fmt.Errorf("Error checking for existing volume. %v", err)
 	}
-	if isPassed(response.Result.ResultStatusAttr) {
-		return fmt.Errorf("Volume %s already exists", name)
+	if volExists {
+		return fmt.Errorf("Volume %s already exists.", name)
 	}
 
 	// If no specific snapshot was requested, create one
 	if snapshot == "" {
 		// This is golang being stupid: https://golang.org/pkg/time/#Time.Format
 		snapshot = time.Now().UTC().Format("20060102T150405Z")
-		response, err := api.SnapshotCreate(snapshot, source)
-		if !isPassed(response.Result.ResultStatusAttr) || err != nil {
-			return fmt.Errorf("Error creating snapshot: status: %v error: %v", response.Result.ResultStatusAttr, err)
+		snapResponse, err := api.SnapshotCreate(snapshot, source)
+		if err = ontap.GetError(snapResponse, err); err != nil {
+			return fmt.Errorf("Error creating snapshot. %v", err)
 		}
 	}
 
 	// Create the clone based on a snapshot
-	response2, err2 := api.VolumeCloneCreate(name, source, snapshot)
-	if !isPassed(response2.Result.ResultStatusAttr) || err2 != nil {
-		if response2.Result.ResultErrnoAttr == azgo.EOBJECTNOTFOUND {
-			return fmt.Errorf("Snapshot %s does not exist in volume %s", snapshot, source)
+	cloneResponse, err := api.VolumeCloneCreate(name, source, snapshot)
+	if err != nil {
+		return fmt.Errorf("Error creating clone. %v", err)
+	}
+	if zerr := ontap.NewZapiError(cloneResponse); !zerr.IsPassed() {
+		if zerr.Code() == azgo.EOBJECTNOTFOUND {
+			return fmt.Errorf("Snapshot %s does not exist in volume %s.", snapshot, source)
 		} else {
-			return fmt.Errorf("Error creating clone: status: %v error: %v", response2.Result.ResultStatusAttr, err2)
+			return fmt.Errorf("Error creating clone. %v", zerr)
 		}
 	}
 
 	// Mount the new volume
-	response3, err3 := api.VolumeMount(name, "/"+name)
-	if !isPassed(response3.Result.ResultStatusAttr) || err3 != nil {
-		return fmt.Errorf("Error mounting volume to junction: status: %v error: %v", response3.Result.ResultStatusAttr, err3)
+	mountResponse, err := api.VolumeMount(name, "/"+name)
+	if err = ontap.GetError(mountResponse, err); err != nil {
+		return fmt.Errorf("Error mounting volume to junction. %v", err)
 	}
 
 	// Split the clone if requested
 	if split {
-		response4, err4 := api.VolumeCloneSplitStart(name)
-		if !isPassed(response4.Result.ResultStatusAttr) || err4 != nil {
-			return fmt.Errorf("Error splitting clone: status: %v error: %v", response4.Result.ResultStatusAttr, err4)
+		splitResponse, err := api.VolumeCloneSplitStart(name)
+		if err = ontap.GetError(splitResponse, err); err != nil {
+			return fmt.Errorf("Error splitting clone. %v", err)
 		}
 	}
 
@@ -250,24 +396,38 @@ func CreateOntapClone(name, source, snapshot string, split bool, api *ontap.Driv
 }
 
 // Return the list of snapshots associated with the named volume
-func GetSnapshotList(name string, api *ontap.Driver) ([]CommonSnapshot, error) {
-	log.Debugf("OntapCommon#GetSnapshotList(%v)", name)
+func GetSnapshotList(name string, config *OntapStorageDriverConfig, api *ontap.Driver) ([]CommonSnapshot, error) {
 
-	response, err := api.SnapshotGetByVolume(name)
-	if !isPassed(response.Result.ResultStatusAttr) || err != nil {
-		return nil, fmt.Errorf("Error enumerating snapshots: status: %v error: %v", response.Result.ResultStatusAttr, err)
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "GetSnapshotList",
+			"Type":   "ontap_common",
+			"name":   name,
+		}
+		log.WithFields(fields).Debug(">>>> GetSnapshotList")
+		defer log.WithFields(fields).Debug("<<<< GetSnapshotList")
 	}
 
-	log.Debugf("Returned %v snapshots", response.Result.NumRecords())
-	var snapshots []CommonSnapshot
+	snapResponse, err := api.SnapshotGetByVolume(name)
+	if err = ontap.GetError(snapResponse, err); err != nil {
+		return nil, fmt.Errorf("Error enumerating snapshots. %v", err)
+	}
+
+	log.Debugf("Returned %v snapshots.", snapResponse.Result.NumRecords())
+	snapshots := []CommonSnapshot{}
 
 	// AttributesList() returns []SnapshotInfoType
-	for _, sit := range response.Result.AttributesList() {
-		log.Debugf("Snapshot name: %v, date: %v", sit.Name(), sit.AccessTime())
-		t := time.Unix(int64(sit.AccessTime()), 0)
+	for _, snap := range snapResponse.Result.AttributesList() {
+
+		log.WithFields(log.Fields{
+			"name":       snap.Name(),
+			"accessTime": snap.AccessTime(),
+		}).Debug("Snapshot")
+
 		// Time format: yyyy-mm-ddThh:mm:ssZ
-		tstr := t.UTC().Format("2006-01-02T15:04:05Z")
-		snapshots = append(snapshots, CommonSnapshot{sit.Name(), tstr})
+		snapTime := time.Unix(int64(snap.AccessTime()), 0).UTC().Format("2006-01-02T15:04:05Z")
+
+		snapshots = append(snapshots, CommonSnapshot{snap.Name(), snapTime})
 	}
 
 	return snapshots, nil
@@ -275,38 +435,111 @@ func GetSnapshotList(name string, api *ontap.Driver) ([]CommonSnapshot, error) {
 
 // Return the list of volumes associated with the tenant
 func GetVolumeList(api *ontap.Driver, config *OntapStorageDriverConfig) ([]string, error) {
-	log.Debugf("OntapCommon#GetVolumeList()")
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "GetVolumeList", "Type": "ontap_common"}
+		log.WithFields(fields).Debug(">>>> GetVolumeList")
+		defer log.WithFields(fields).Debug("<<<< GetVolumeList")
+	}
 
 	prefix := *config.StoragePrefix
 
-	response, err := api.VolumeList(prefix)
-	if !isPassed(response.Result.ResultStatusAttr) || err != nil {
-		return nil, fmt.Errorf("Error enumerating volumes: status: %v error: %v", response.Result.ResultStatusAttr, err)
+	volResponse, err := api.VolumeList(prefix)
+	if err = ontap.GetError(volResponse, err); err != nil {
+		return nil, fmt.Errorf("Error enumerating volumes. %v", err)
 	}
 
 	var volumes []string
 
 	// AttributesList() returns []VolumeAttributesType
-	for _, vat := range response.Result.AttributesList() {
-		vid := vat.VolumeIdAttributes()
-		vol := string(vid.Name())[len(prefix):]
-		volumes = append(volumes, vol)
+	for _, volume := range volResponse.Result.AttributesList() {
+		vol_id_attrs := volume.VolumeIdAttributes()
+		volName := string(vol_id_attrs.Name())[len(prefix):]
+		volumes = append(volumes, volName)
 	}
 
 	return volumes, nil
 }
 
-// Test for the existence of a volume
-func GetVolume(name string, api *ontap.Driver) error {
-	response, err := api.VolumeSize(name)
-	if !isPassed(response.Result.ResultStatusAttr) || err != nil {
-		return fmt.Errorf("Error searching for existing volume: status: %v error: %v", response.Result.ResultStatusAttr, err)
+// GetVolume checks for the existence of a volume.  It returns nil if the volume
+// exists and an error if it does not (or the API call fails).
+func GetVolume(name string, api *ontap.Driver, config *OntapStorageDriverConfig) error {
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "GetVolume", "Type": "ontap_common"}
+		log.WithFields(fields).Debug(">>>> GetVolume")
+		defer log.WithFields(fields).Debug("<<<< GetVolume")
+	}
+
+	volExists, err := api.VolumeExists(name)
+	if err != nil {
+		return fmt.Errorf("Error checking for existing volume. %v", err)
+	}
+	if !volExists {
+		log.WithField("flexvol", name).Debug("Flexvol not found.")
+		return fmt.Errorf("Volume %s does not exist.", name)
 	}
 
 	return nil
 }
 
-func isPassed(s string) bool {
-	const passed = "passed"
-	return s == passed
+// MountVolume accepts the mount info for an NFS share and mounts it on the local host.
+func MountVolume(exportPath, mountpoint string, config *OntapStorageDriverConfig) error {
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "MountVolume",
+			"Type":       "ontap_common",
+			"exportPath": exportPath,
+			"mountpoint": mountpoint,
+		}
+		log.WithFields(fields).Debug(">>>> MountVolume")
+		defer log.WithFields(fields).Debug("<<<< MountVolume")
+	}
+
+	nfsMountOptions := config.NfsMountOptions
+
+	// Do the mount
+	var cmd string
+	switch runtime.GOOS {
+	case utils.Linux:
+		cmd = fmt.Sprintf("mount -v %s %s %s", nfsMountOptions, exportPath, mountpoint)
+	case utils.Darwin:
+		cmd = fmt.Sprintf("mount -v -o rw %s -t nfs %s %s", nfsMountOptions, exportPath, mountpoint)
+	default:
+		return fmt.Errorf("Unsupported operating system: %v", runtime.GOOS)
+	}
+
+	log.WithField("command", cmd).Debug("Mounting volume.")
+
+	if out, err := exec.Command("sh", "-c", cmd).CombinedOutput(); err != nil {
+		log.WithField("output", string(out)).Debug("Mount failed.")
+		return fmt.Errorf("Error mounting NFS volume %v on mountpoint %v. %v", exportPath, mountpoint, err)
+	}
+
+	return nil
+}
+
+// UnmountVolume unmounts the volume mounted on the specified mountpoint.
+func UnmountVolume(mountpoint string, config *OntapStorageDriverConfig) error {
+
+	if config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "UnmountVolume",
+			"Type":       "ontap_common",
+			"mountpoint": mountpoint,
+		}
+		log.WithFields(fields).Debug(">>>> UnmountVolume")
+		defer log.WithFields(fields).Debug("<<<< UnmountVolume")
+	}
+
+	cmd := fmt.Sprintf("umount %s", mountpoint)
+	log.WithField("command", cmd).Debug("Unmounting volume.")
+
+	if out, err := exec.Command("sh", "-c", cmd).CombinedOutput(); err != nil {
+		log.WithField("output", string(out)).Debug("Unmount failed.")
+		return fmt.Errorf("Error unmounting NFS volume from mountpoint %v. %v", mountpoint, err)
+	}
+
+	return nil
 }

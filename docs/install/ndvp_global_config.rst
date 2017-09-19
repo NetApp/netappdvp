@@ -3,15 +3,15 @@ Global Configuration
 
 These configuration variables apply to all nDVP configurations, regardless of the storage platform being used.
 
-+-----------------------+-----------------------------------------------------------------------------------+-------------+
-| Option                | Description                                                                       | Example     |
-+=======================+===================================================================================+=============+
-| ``version``           | Config file version number                                                        | 1           |
-+-----------------------+-----------------------------------------------------------------------------------+-------------+
-| ``storageDriverName`` | ``ontap-nas``, ``ontap-san``, ``eseries-iscsi``, or ``solidfire-san``             | ontap-nas   |
-+-----------------------+-----------------------------------------------------------------------------------+-------------+
-| ``storagePrefix``     | Optional prefix for volume names.  Default: "netappdvp\_"                         | netappdvp\_ |
-+-----------------------+-----------------------------------------------------------------------------------+-------------+
++-----------------------+----------------------------------------------------------------------------------------------+-------------+
+| Option                | Description                                                                                  | Example     |
++=======================+==============================================================================================+=============+
+| ``version``           | Config file version number                                                                   | 1           |
++-----------------------+----------------------------------------------------------------------------------------------+-------------+
+| ``storageDriverName`` | ``ontap-nas``, ``ontap-nas-economy``, ``ontap-san``, ``eseries-iscsi``, or ``solidfire-san`` | ontap-nas   |
++-----------------------+----------------------------------------------------------------------------------------------+-------------+
+| ``storagePrefix``     | Optional prefix for volume names.  Default: "netappdvp\_"                                    | netappdvp\_ |
++-----------------------+----------------------------------------------------------------------------------------------+-------------+
 
 Also, default option settings are available to avoid having to specify them on every volume create.  The ``size``
 option is available for all controller types.  See the ONTAP config section for an example of how to set the default
@@ -39,3 +39,6 @@ Known Issues and Limitations
 #. Volume names must be a minimum of 2 characters in length
 
    This is a Docker client limitation. The client will interpret a single character name as being a Windows path. `See bug 25773 <https://github.com/docker/docker/issues/25773>`_.
+
+#. Because Docker Swarm does not orchestrate volume creation across multiple nodes, only the ontap-nas and ontap-san
+drivers will work in Swarm.

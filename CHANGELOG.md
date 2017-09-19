@@ -6,9 +6,11 @@
 
 **Fixes:**
 - Changed the Solidfire driver to teardown the iSCSI connection as part of the docker volume delete operation
+- Added pagination to ONTAP API calls, the lack of which in rare cases could cause nDVP to fail
 
 **Enhancements:**
 - Added controller serial numbers to logs
+- Added ontap-nas-economy driver
 
 ## 17.07.0
 

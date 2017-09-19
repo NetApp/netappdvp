@@ -19,6 +19,7 @@ In addition to the global configuration values above, when using SolidFire, thes
 | ``LegacyNamePrefix``  | Prefix for upgraded nDVP installs                                             | "netappdvp-"               |
 +-----------------------+-------------------------------------------------------------------------------+----------------------------+
 
+The SolidFire driver does not support Docker Swarm.
 
 **LegacyNamePrefix** If you used a version of nDVP prior to 1.3.2 and perform an
 upgrade with existing volumes, you'll need to set this value in order to access

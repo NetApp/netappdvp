@@ -6755,3 +6755,1201 @@ func (o *VmhostInfoType) SetVmhostUuid(newValue string) *VmhostInfoType {
 	o.VmhostUuidPtr = &newValue
 	return o
 }
+
+// QtreeInfoType is a structure to represent a qtree-info ZAPI object
+type QtreeInfoType struct {
+	XMLName xml.Name `xml:"qtree-info"`
+
+	ExportPolicyPtr            *string `xml:"export-policy"`
+	IdPtr                      *int    `xml:"id"`
+	IsExportPolicyInheritedPtr *bool   `xml:"is-export-policy-inherited"`
+	ModePtr                    *string `xml:"mode"`
+	OplocksPtr                 *string `xml:"oplocks"`
+	QtreePtr                   *string `xml:"qtree"`
+	SecurityStylePtr           *string `xml:"security-style"`
+	StatusPtr                  *string `xml:"status"`
+	VolumePtr                  *string `xml:"volume"`
+	VserverPtr                 *string `xml:"vserver"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *QtreeInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewQtreeInfoType is a factory method for creating new instances of QtreeInfoType objects
+func NewQtreeInfoType() *QtreeInfoType { return &QtreeInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o QtreeInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.ExportPolicyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "export-policy", *o.ExportPolicyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("export-policy: nil\n"))
+	}
+	if o.IdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "id", *o.IdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("id: nil\n"))
+	}
+	if o.IsExportPolicyInheritedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-export-policy-inherited", *o.IsExportPolicyInheritedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-export-policy-inherited: nil\n"))
+	}
+	if o.ModePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "mode", *o.ModePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("mode: nil\n"))
+	}
+	if o.OplocksPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "oplocks", *o.OplocksPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("oplocks: nil\n"))
+	}
+	if o.QtreePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "qtree", *o.QtreePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("qtree: nil\n"))
+	}
+	if o.SecurityStylePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "security-style", *o.SecurityStylePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("security-style: nil\n"))
+	}
+	if o.StatusPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "status", *o.StatusPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("status: nil\n"))
+	}
+	if o.VolumePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume", *o.VolumePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("volume: nil\n"))
+	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
+	return buffer.String()
+}
+
+// ExportPolicy is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) ExportPolicy() string {
+	r := *o.ExportPolicyPtr
+	return r
+}
+
+// SetExportPolicy is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetExportPolicy(newValue string) *QtreeInfoType {
+	o.ExportPolicyPtr = &newValue
+	return o
+}
+
+// Id is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) Id() int {
+	r := *o.IdPtr
+	return r
+}
+
+// SetId is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetId(newValue int) *QtreeInfoType {
+	o.IdPtr = &newValue
+	return o
+}
+
+// IsExportPolicyInherited is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) IsExportPolicyInherited() bool {
+	r := *o.IsExportPolicyInheritedPtr
+	return r
+}
+
+// SetIsExportPolicyInherited is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetIsExportPolicyInherited(newValue bool) *QtreeInfoType {
+	o.IsExportPolicyInheritedPtr = &newValue
+	return o
+}
+
+// Mode is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) Mode() string {
+	r := *o.ModePtr
+	return r
+}
+
+// SetMode is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetMode(newValue string) *QtreeInfoType {
+	o.ModePtr = &newValue
+	return o
+}
+
+// Oplocks is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) Oplocks() string {
+	r := *o.OplocksPtr
+	return r
+}
+
+// SetOplocks is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetOplocks(newValue string) *QtreeInfoType {
+	o.OplocksPtr = &newValue
+	return o
+}
+
+// Qtree is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) Qtree() string {
+	r := *o.QtreePtr
+	return r
+}
+
+// SetQtree is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetQtree(newValue string) *QtreeInfoType {
+	o.QtreePtr = &newValue
+	return o
+}
+
+// SecurityStyle is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) SecurityStyle() string {
+	r := *o.SecurityStylePtr
+	return r
+}
+
+// SetSecurityStyle is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetSecurityStyle(newValue string) *QtreeInfoType {
+	o.SecurityStylePtr = &newValue
+	return o
+}
+
+// Status is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) Status() string {
+	r := *o.StatusPtr
+	return r
+}
+
+// SetStatus is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetStatus(newValue string) *QtreeInfoType {
+	o.StatusPtr = &newValue
+	return o
+}
+
+// Volume is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) Volume() string {
+	r := *o.VolumePtr
+	return r
+}
+
+// SetVolume is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetVolume(newValue string) *QtreeInfoType {
+	o.VolumePtr = &newValue
+	return o
+}
+
+// Vserver is a fluent style 'getter' method that can be chained
+func (o *QtreeInfoType) Vserver() string {
+	r := *o.VserverPtr
+	return r
+}
+
+// SetVserver is a fluent style 'setter' method that can be chained
+func (o *QtreeInfoType) SetVserver(newValue string) *QtreeInfoType {
+	o.VserverPtr = &newValue
+	return o
+}
+
+// QtreeListIterKeyTdType is a structure to represent a qtree-list-iter-key-td ZAPI object
+type QtreeListIterKeyTdType struct {
+	XMLName xml.Name `xml:"qtree-list-iter-key-td"`
+
+	Key0Ptr *string `xml:"key-0"`
+	Key1Ptr *string `xml:"key-1"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *QtreeListIterKeyTdType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewQtreeListIterKeyTdType is a factory method for creating new instances of QtreeListIterKeyTdType objects
+func NewQtreeListIterKeyTdType() *QtreeListIterKeyTdType { return &QtreeListIterKeyTdType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o QtreeListIterKeyTdType) String() string {
+	var buffer bytes.Buffer
+	if o.Key0Ptr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "key-0", *o.Key0Ptr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("key-0: nil\n"))
+	}
+	if o.Key1Ptr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "key-1", *o.Key1Ptr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("key-1: nil\n"))
+	}
+	return buffer.String()
+}
+
+// Key0 is a fluent style 'getter' method that can be chained
+func (o *QtreeListIterKeyTdType) Key0() string {
+	r := *o.Key0Ptr
+	return r
+}
+
+// SetKey0 is a fluent style 'setter' method that can be chained
+func (o *QtreeListIterKeyTdType) SetKey0(newValue string) *QtreeListIterKeyTdType {
+	o.Key0Ptr = &newValue
+	return o
+}
+
+// Key1 is a fluent style 'getter' method that can be chained
+func (o *QtreeListIterKeyTdType) Key1() string {
+	r := *o.Key1Ptr
+	return r
+}
+
+// SetKey1 is a fluent style 'setter' method that can be chained
+func (o *QtreeListIterKeyTdType) SetKey1(newValue string) *QtreeListIterKeyTdType {
+	o.Key1Ptr = &newValue
+	return o
+}
+
+// QtreeNameType is a structure to represent a qtree-name ZAPI object
+type QtreeNameType string
+
+// QtreePathType is a structure to represent a qtree-path ZAPI object
+type QtreePathType string
+
+// QuotaEntryType is a structure to represent a quota-entry ZAPI object
+type QuotaEntryType struct {
+	XMLName xml.Name `xml:"quota-entry"`
+
+	DiskLimitPtr          *string `xml:"disk-limit"`
+	FileLimitPtr          *string `xml:"file-limit"`
+	PerformUserMappingPtr *bool   `xml:"perform-user-mapping"`
+	PolicyPtr             *string `xml:"policy"`
+	QtreePtr              *string `xml:"qtree"`
+	QuotaTargetPtr        *string `xml:"quota-target"`
+	QuotaTypePtr          *string `xml:"quota-type"`
+	SoftDiskLimitPtr      *string `xml:"soft-disk-limit"`
+	SoftFileLimitPtr      *string `xml:"soft-file-limit"`
+	ThresholdPtr          *string `xml:"threshold"`
+	VolumePtr             *string `xml:"volume"`
+	VserverPtr            *string `xml:"vserver"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *QuotaEntryType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewQuotaEntryType is a factory method for creating new instances of QuotaEntryType objects
+func NewQuotaEntryType() *QuotaEntryType { return &QuotaEntryType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o QuotaEntryType) String() string {
+	var buffer bytes.Buffer
+	if o.DiskLimitPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "disk-limit", *o.DiskLimitPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("disk-limit: nil\n"))
+	}
+	if o.FileLimitPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "file-limit", *o.FileLimitPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("file-limit: nil\n"))
+	}
+	if o.PerformUserMappingPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "perform-user-mapping", *o.PerformUserMappingPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("perform-user-mapping: nil\n"))
+	}
+	if o.PolicyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "policy", *o.PolicyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("policy: nil\n"))
+	}
+	if o.QtreePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "qtree", *o.QtreePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("qtree: nil\n"))
+	}
+	if o.QuotaTargetPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "quota-target", *o.QuotaTargetPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("quota-target: nil\n"))
+	}
+	if o.QuotaTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "quota-type", *o.QuotaTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("quota-type: nil\n"))
+	}
+	if o.SoftDiskLimitPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "soft-disk-limit", *o.SoftDiskLimitPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("soft-disk-limit: nil\n"))
+	}
+	if o.SoftFileLimitPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "soft-file-limit", *o.SoftFileLimitPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("soft-file-limit: nil\n"))
+	}
+	if o.ThresholdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "threshold", *o.ThresholdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("threshold: nil\n"))
+	}
+	if o.VolumePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume", *o.VolumePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("volume: nil\n"))
+	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
+	return buffer.String()
+}
+
+// DiskLimit is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) DiskLimit() string {
+	r := *o.DiskLimitPtr
+	return r
+}
+
+// SetDiskLimit is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetDiskLimit(newValue string) *QuotaEntryType {
+	o.DiskLimitPtr = &newValue
+	return o
+}
+
+// FileLimit is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) FileLimit() string {
+	r := *o.FileLimitPtr
+	return r
+}
+
+// SetFileLimit is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetFileLimit(newValue string) *QuotaEntryType {
+	o.FileLimitPtr = &newValue
+	return o
+}
+
+// PerformUserMapping is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) PerformUserMapping() bool {
+	r := *o.PerformUserMappingPtr
+	return r
+}
+
+// SetPerformUserMapping is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetPerformUserMapping(newValue bool) *QuotaEntryType {
+	o.PerformUserMappingPtr = &newValue
+	return o
+}
+
+// Policy is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) Policy() string {
+	r := *o.PolicyPtr
+	return r
+}
+
+// SetPolicy is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetPolicy(newValue string) *QuotaEntryType {
+	o.PolicyPtr = &newValue
+	return o
+}
+
+// Qtree is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) Qtree() string {
+	r := *o.QtreePtr
+	return r
+}
+
+// SetQtree is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetQtree(newValue string) *QuotaEntryType {
+	o.QtreePtr = &newValue
+	return o
+}
+
+// QuotaTarget is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) QuotaTarget() string {
+	r := *o.QuotaTargetPtr
+	return r
+}
+
+// SetQuotaTarget is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetQuotaTarget(newValue string) *QuotaEntryType {
+	o.QuotaTargetPtr = &newValue
+	return o
+}
+
+// QuotaType is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) QuotaType() string {
+	r := *o.QuotaTypePtr
+	return r
+}
+
+// SetQuotaType is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetQuotaType(newValue string) *QuotaEntryType {
+	o.QuotaTypePtr = &newValue
+	return o
+}
+
+// SoftDiskLimit is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) SoftDiskLimit() string {
+	r := *o.SoftDiskLimitPtr
+	return r
+}
+
+// SetSoftDiskLimit is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetSoftDiskLimit(newValue string) *QuotaEntryType {
+	o.SoftDiskLimitPtr = &newValue
+	return o
+}
+
+// SoftFileLimit is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) SoftFileLimit() string {
+	r := *o.SoftFileLimitPtr
+	return r
+}
+
+// SetSoftFileLimit is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetSoftFileLimit(newValue string) *QuotaEntryType {
+	o.SoftFileLimitPtr = &newValue
+	return o
+}
+
+// Threshold is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) Threshold() string {
+	r := *o.ThresholdPtr
+	return r
+}
+
+// SetThreshold is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetThreshold(newValue string) *QuotaEntryType {
+	o.ThresholdPtr = &newValue
+	return o
+}
+
+// Volume is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) Volume() string {
+	r := *o.VolumePtr
+	return r
+}
+
+// SetVolume is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetVolume(newValue string) *QuotaEntryType {
+	o.VolumePtr = &newValue
+	return o
+}
+
+// Vserver is a fluent style 'getter' method that can be chained
+func (o *QuotaEntryType) Vserver() string {
+	r := *o.VserverPtr
+	return r
+}
+
+// SetVserver is a fluent style 'setter' method that can be chained
+func (o *QuotaEntryType) SetVserver(newValue string) *QuotaEntryType {
+	o.VserverPtr = &newValue
+	return o
+}
+
+// QuotaErrorMsgType is a structure to represent a quota-error-msg ZAPI object
+type QuotaErrorMsgType string
+
+// QuotaListEntriesIterKeyTdType is a structure to represent a quota-list-entries-iter-key-td ZAPI object
+type QuotaListEntriesIterKeyTdType struct {
+	XMLName xml.Name `xml:"quota-list-entries-iter-key-td"`
+
+	Key0Ptr *string `xml:"key-0"`
+	Key1Ptr *string `xml:"key-1"`
+	Key2Ptr *string `xml:"key-2"`
+	Key3Ptr *string `xml:"key-3"`
+	Key4Ptr *string `xml:"key-4"`
+	Key5Ptr *string `xml:"key-5"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *QuotaListEntriesIterKeyTdType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewQuotaListEntriesIterKeyTdType is a factory method for creating new instances of QuotaListEntriesIterKeyTdType objects
+func NewQuotaListEntriesIterKeyTdType() *QuotaListEntriesIterKeyTdType {
+	return &QuotaListEntriesIterKeyTdType{}
+}
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o QuotaListEntriesIterKeyTdType) String() string {
+	var buffer bytes.Buffer
+	if o.Key0Ptr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "key-0", *o.Key0Ptr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("key-0: nil\n"))
+	}
+	if o.Key1Ptr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "key-1", *o.Key1Ptr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("key-1: nil\n"))
+	}
+	if o.Key2Ptr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "key-2", *o.Key2Ptr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("key-2: nil\n"))
+	}
+	if o.Key3Ptr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "key-3", *o.Key3Ptr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("key-3: nil\n"))
+	}
+	if o.Key4Ptr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "key-4", *o.Key4Ptr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("key-4: nil\n"))
+	}
+	if o.Key5Ptr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "key-5", *o.Key5Ptr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("key-5: nil\n"))
+	}
+	return buffer.String()
+}
+
+// Key0 is a fluent style 'getter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) Key0() string {
+	r := *o.Key0Ptr
+	return r
+}
+
+// SetKey0 is a fluent style 'setter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) SetKey0(newValue string) *QuotaListEntriesIterKeyTdType {
+	o.Key0Ptr = &newValue
+	return o
+}
+
+// Key1 is a fluent style 'getter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) Key1() string {
+	r := *o.Key1Ptr
+	return r
+}
+
+// SetKey1 is a fluent style 'setter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) SetKey1(newValue string) *QuotaListEntriesIterKeyTdType {
+	o.Key1Ptr = &newValue
+	return o
+}
+
+// Key2 is a fluent style 'getter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) Key2() string {
+	r := *o.Key2Ptr
+	return r
+}
+
+// SetKey2 is a fluent style 'setter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) SetKey2(newValue string) *QuotaListEntriesIterKeyTdType {
+	o.Key2Ptr = &newValue
+	return o
+}
+
+// Key3 is a fluent style 'getter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) Key3() string {
+	r := *o.Key3Ptr
+	return r
+}
+
+// SetKey3 is a fluent style 'setter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) SetKey3(newValue string) *QuotaListEntriesIterKeyTdType {
+	o.Key3Ptr = &newValue
+	return o
+}
+
+// Key4 is a fluent style 'getter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) Key4() string {
+	r := *o.Key4Ptr
+	return r
+}
+
+// SetKey4 is a fluent style 'setter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) SetKey4(newValue string) *QuotaListEntriesIterKeyTdType {
+	o.Key4Ptr = &newValue
+	return o
+}
+
+// Key5 is a fluent style 'getter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) Key5() string {
+	r := *o.Key5Ptr
+	return r
+}
+
+// SetKey5 is a fluent style 'setter' method that can be chained
+func (o *QuotaListEntriesIterKeyTdType) SetKey5(newValue string) *QuotaListEntriesIterKeyTdType {
+	o.Key5Ptr = &newValue
+	return o
+}
+
+// ExportPolicyInfoType is a structure to represent a export-policy-info ZAPI object
+type ExportPolicyInfoType struct {
+	XMLName xml.Name `xml:"export-policy-info"`
+
+	PolicyIdPtr   *int                  `xml:"policy-id"`
+	PolicyNamePtr *ExportPolicyNameType `xml:"policy-name"`
+	VserverPtr    *string               `xml:"vserver"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *ExportPolicyInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewExportPolicyInfoType is a factory method for creating new instances of ExportPolicyInfoType objects
+func NewExportPolicyInfoType() *ExportPolicyInfoType { return &ExportPolicyInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o ExportPolicyInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.PolicyIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "policy-id", *o.PolicyIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("policy-id: nil\n"))
+	}
+	if o.PolicyNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "policy-name", *o.PolicyNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("policy-name: nil\n"))
+	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
+	return buffer.String()
+}
+
+// PolicyId is a fluent style 'getter' method that can be chained
+func (o *ExportPolicyInfoType) PolicyId() int {
+	r := *o.PolicyIdPtr
+	return r
+}
+
+// SetPolicyId is a fluent style 'setter' method that can be chained
+func (o *ExportPolicyInfoType) SetPolicyId(newValue int) *ExportPolicyInfoType {
+	o.PolicyIdPtr = &newValue
+	return o
+}
+
+// PolicyName is a fluent style 'getter' method that can be chained
+func (o *ExportPolicyInfoType) PolicyName() ExportPolicyNameType {
+	r := *o.PolicyNamePtr
+	return r
+}
+
+// SetPolicyName is a fluent style 'setter' method that can be chained
+func (o *ExportPolicyInfoType) SetPolicyName(newValue ExportPolicyNameType) *ExportPolicyInfoType {
+	o.PolicyNamePtr = &newValue
+	return o
+}
+
+// Vserver is a fluent style 'getter' method that can be chained
+func (o *ExportPolicyInfoType) Vserver() string {
+	r := *o.VserverPtr
+	return r
+}
+
+// SetVserver is a fluent style 'setter' method that can be chained
+func (o *ExportPolicyInfoType) SetVserver(newValue string) *ExportPolicyInfoType {
+	o.VserverPtr = &newValue
+	return o
+}
+
+// ExportRuleInfoType is a structure to represent a export-rule-info ZAPI object
+type ExportRuleInfoType struct {
+	XMLName xml.Name `xml:"export-rule-info"`
+
+	AnonymousUserIdPtr           *string                   `xml:"anonymous-user-id"`
+	ClientMatchPtr               *string                   `xml:"client-match"`
+	ExportChownModePtr           *ExportchownmodeType      `xml:"export-chown-mode"`
+	ExportNtfsUnixSecurityOpsPtr *ExportntfsunixsecopsType `xml:"export-ntfs-unix-security-ops"`
+	IsAllowDevIsEnabledPtr       *bool                     `xml:"is-allow-dev-is-enabled"`
+	IsAllowSetUidEnabledPtr      *bool                     `xml:"is-allow-set-uid-enabled"`
+	PolicyNamePtr                *ExportPolicyNameType     `xml:"policy-name"`
+	ProtocolPtr                  []AccessProtocolType      `xml:"protocol>access-protocol"`
+	RoRulePtr                    []SecurityFlavorType      `xml:"ro-rule>security-flavor"`
+	RuleIndexPtr                 *int                      `xml:"rule-index"`
+	RwRulePtr                    []SecurityFlavorType      `xml:"rw-rule>security-flavor"`
+	SuperUserSecurityPtr         []SecurityFlavorType      `xml:"super-user-security>security-flavor"`
+	VserverNamePtr               *string                   `xml:"vserver-name"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *ExportRuleInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewExportRuleInfoType is a factory method for creating new instances of ExportRuleInfoType objects
+func NewExportRuleInfoType() *ExportRuleInfoType { return &ExportRuleInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o ExportRuleInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.AnonymousUserIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "anonymous-user-id", *o.AnonymousUserIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("anonymous-user-id: nil\n"))
+	}
+	if o.ClientMatchPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "client-match", *o.ClientMatchPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("client-match: nil\n"))
+	}
+	if o.ExportChownModePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "export-chown-mode", *o.ExportChownModePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("export-chown-mode: nil\n"))
+	}
+	if o.ExportNtfsUnixSecurityOpsPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "export-ntfs-unix-security-ops", *o.ExportNtfsUnixSecurityOpsPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("export-ntfs-unix-security-ops: nil\n"))
+	}
+	if o.IsAllowDevIsEnabledPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-allow-dev-is-enabled", *o.IsAllowDevIsEnabledPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-allow-dev-is-enabled: nil\n"))
+	}
+	if o.IsAllowSetUidEnabledPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-allow-set-uid-enabled", *o.IsAllowSetUidEnabledPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-allow-set-uid-enabled: nil\n"))
+	}
+	if o.PolicyNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "policy-name", *o.PolicyNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("policy-name: nil\n"))
+	}
+	if o.ProtocolPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "protocol", o.ProtocolPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("protocol: nil\n"))
+	}
+	if o.RoRulePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "ro-rule", o.RoRulePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("ro-rule: nil\n"))
+	}
+	if o.RuleIndexPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "rule-index", *o.RuleIndexPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("rule-index: nil\n"))
+	}
+	if o.RwRulePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "rw-rule", o.RwRulePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("rw-rule: nil\n"))
+	}
+	if o.SuperUserSecurityPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "super-user-security", o.SuperUserSecurityPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("super-user-security: nil\n"))
+	}
+	if o.VserverNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver-name", *o.VserverNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver-name: nil\n"))
+	}
+	return buffer.String()
+}
+
+// AnonymousUserId is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) AnonymousUserId() string {
+	r := *o.AnonymousUserIdPtr
+	return r
+}
+
+// SetAnonymousUserId is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetAnonymousUserId(newValue string) *ExportRuleInfoType {
+	o.AnonymousUserIdPtr = &newValue
+	return o
+}
+
+// ClientMatch is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) ClientMatch() string {
+	r := *o.ClientMatchPtr
+	return r
+}
+
+// SetClientMatch is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetClientMatch(newValue string) *ExportRuleInfoType {
+	o.ClientMatchPtr = &newValue
+	return o
+}
+
+// ExportChownMode is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) ExportChownMode() ExportchownmodeType {
+	r := *o.ExportChownModePtr
+	return r
+}
+
+// SetExportChownMode is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetExportChownMode(newValue ExportchownmodeType) *ExportRuleInfoType {
+	o.ExportChownModePtr = &newValue
+	return o
+}
+
+// ExportNtfsUnixSecurityOps is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) ExportNtfsUnixSecurityOps() ExportntfsunixsecopsType {
+	r := *o.ExportNtfsUnixSecurityOpsPtr
+	return r
+}
+
+// SetExportNtfsUnixSecurityOps is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetExportNtfsUnixSecurityOps(newValue ExportntfsunixsecopsType) *ExportRuleInfoType {
+	o.ExportNtfsUnixSecurityOpsPtr = &newValue
+	return o
+}
+
+// IsAllowDevIsEnabled is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) IsAllowDevIsEnabled() bool {
+	r := *o.IsAllowDevIsEnabledPtr
+	return r
+}
+
+// SetIsAllowDevIsEnabled is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetIsAllowDevIsEnabled(newValue bool) *ExportRuleInfoType {
+	o.IsAllowDevIsEnabledPtr = &newValue
+	return o
+}
+
+// IsAllowSetUidEnabled is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) IsAllowSetUidEnabled() bool {
+	r := *o.IsAllowSetUidEnabledPtr
+	return r
+}
+
+// SetIsAllowSetUidEnabled is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetIsAllowSetUidEnabled(newValue bool) *ExportRuleInfoType {
+	o.IsAllowSetUidEnabledPtr = &newValue
+	return o
+}
+
+// PolicyName is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) PolicyName() ExportPolicyNameType {
+	r := *o.PolicyNamePtr
+	return r
+}
+
+// SetPolicyName is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetPolicyName(newValue ExportPolicyNameType) *ExportRuleInfoType {
+	o.PolicyNamePtr = &newValue
+	return o
+}
+
+// Protocol is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) Protocol() []AccessProtocolType {
+	r := o.ProtocolPtr
+	return r
+}
+
+// SetProtocol is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetProtocol(newValue []AccessProtocolType) *ExportRuleInfoType {
+	newSlice := make([]AccessProtocolType, len(newValue))
+	copy(newSlice, newValue)
+	o.ProtocolPtr = newSlice
+	return o
+}
+
+// RoRule is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) RoRule() []SecurityFlavorType {
+	r := o.RoRulePtr
+	return r
+}
+
+// SetRoRule is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetRoRule(newValue []SecurityFlavorType) *ExportRuleInfoType {
+	newSlice := make([]SecurityFlavorType, len(newValue))
+	copy(newSlice, newValue)
+	o.RoRulePtr = newSlice
+	return o
+}
+
+// RuleIndex is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) RuleIndex() int {
+	r := *o.RuleIndexPtr
+	return r
+}
+
+// SetRuleIndex is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetRuleIndex(newValue int) *ExportRuleInfoType {
+	o.RuleIndexPtr = &newValue
+	return o
+}
+
+// RwRule is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) RwRule() []SecurityFlavorType {
+	r := o.RwRulePtr
+	return r
+}
+
+// SetRwRule is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetRwRule(newValue []SecurityFlavorType) *ExportRuleInfoType {
+	newSlice := make([]SecurityFlavorType, len(newValue))
+	copy(newSlice, newValue)
+	o.RwRulePtr = newSlice
+	return o
+}
+
+// SuperUserSecurity is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) SuperUserSecurity() []SecurityFlavorType {
+	r := o.SuperUserSecurityPtr
+	return r
+}
+
+// SetSuperUserSecurity is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetSuperUserSecurity(newValue []SecurityFlavorType) *ExportRuleInfoType {
+	newSlice := make([]SecurityFlavorType, len(newValue))
+	copy(newSlice, newValue)
+	o.SuperUserSecurityPtr = newSlice
+	return o
+}
+
+// VserverName is a fluent style 'getter' method that can be chained
+func (o *ExportRuleInfoType) VserverName() string {
+	r := *o.VserverNamePtr
+	return r
+}
+
+// SetVserverName is a fluent style 'setter' method that can be chained
+func (o *ExportRuleInfoType) SetVserverName(newValue string) *ExportRuleInfoType {
+	o.VserverNamePtr = &newValue
+	return o
+}
+
+// ExportPolicyNameType is a structure to represent a export-policy-name ZAPI object
+type ExportPolicyNameType string
+
+// ExportchownmodeType is a structure to represent a exportchownmode ZAPI object
+type ExportchownmodeType string
+
+// ExportntfsunixsecopsType is a structure to represent a exportntfsunixsecops ZAPI object
+type ExportntfsunixsecopsType string
+
+// AccessProtocolType is a structure to represent a access-protocol ZAPI object
+type AccessProtocolType string
+
+// SecurityFlavorType is a structure to represent a security-flavor ZAPI object
+type SecurityFlavorType string
+
+// NodeOntapiDetailInfoType is a structure to represent a node-ontapi-detail-info ZAPI object
+type NodeOntapiDetailInfoType struct {
+	XMLName xml.Name `xml:"node-ontapi-detail-info"`
+
+	MajorVersionPtr *int    `xml:"major-version"`
+	MinorVersionPtr *int    `xml:"minor-version"`
+	NodeNamePtr     *string `xml:"node-name"`
+	NodeUuidPtr     *string `xml:"node-uuid"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *NodeOntapiDetailInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewNodeOntapiDetailInfoType is a factory method for creating new instances of NodeOntapiDetailInfoType objects
+func NewNodeOntapiDetailInfoType() *NodeOntapiDetailInfoType { return &NodeOntapiDetailInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o NodeOntapiDetailInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.MajorVersionPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "major-version", *o.MajorVersionPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("major-version: nil\n"))
+	}
+	if o.MinorVersionPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "minor-version", *o.MinorVersionPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("minor-version: nil\n"))
+	}
+	if o.NodeNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-name", *o.NodeNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-name: nil\n"))
+	}
+	if o.NodeUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-uuid", *o.NodeUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-uuid: nil\n"))
+	}
+	return buffer.String()
+}
+
+// MajorVersion is a fluent style 'getter' method that can be chained
+func (o *NodeOntapiDetailInfoType) MajorVersion() int {
+	r := *o.MajorVersionPtr
+	return r
+}
+
+// SetMajorVersion is a fluent style 'setter' method that can be chained
+func (o *NodeOntapiDetailInfoType) SetMajorVersion(newValue int) *NodeOntapiDetailInfoType {
+	o.MajorVersionPtr = &newValue
+	return o
+}
+
+// MinorVersion is a fluent style 'getter' method that can be chained
+func (o *NodeOntapiDetailInfoType) MinorVersion() int {
+	r := *o.MinorVersionPtr
+	return r
+}
+
+// SetMinorVersion is a fluent style 'setter' method that can be chained
+func (o *NodeOntapiDetailInfoType) SetMinorVersion(newValue int) *NodeOntapiDetailInfoType {
+	o.MinorVersionPtr = &newValue
+	return o
+}
+
+// NodeName is a fluent style 'getter' method that can be chained
+func (o *NodeOntapiDetailInfoType) NodeName() string {
+	r := *o.NodeNamePtr
+	return r
+}
+
+// SetNodeName is a fluent style 'setter' method that can be chained
+func (o *NodeOntapiDetailInfoType) SetNodeName(newValue string) *NodeOntapiDetailInfoType {
+	o.NodeNamePtr = &newValue
+	return o
+}
+
+// NodeUuid is a fluent style 'getter' method that can be chained
+func (o *NodeOntapiDetailInfoType) NodeUuid() string {
+	r := *o.NodeUuidPtr
+	return r
+}
+
+// SetNodeUuid is a fluent style 'setter' method that can be chained
+func (o *NodeOntapiDetailInfoType) SetNodeUuid(newValue string) *NodeOntapiDetailInfoType {
+	o.NodeUuidPtr = &newValue
+	return o
+}
+
+// NodeVersionDetailInfoType is a structure to represent a node-version-detail-info ZAPI object
+type NodeVersionDetailInfoType struct {
+	XMLName xml.Name `xml:"node-version-detail-info"`
+
+	BuildTimestampPtr *int    `xml:"build-timestamp"`
+	NodeNamePtr       *string `xml:"node-name"`
+	NodeUuidPtr       *string `xml:"node-uuid"`
+	VersionPtr        *string `xml:"version"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *NodeVersionDetailInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewNodeVersionDetailInfoType is a factory method for creating new instances of NodeVersionDetailInfoType objects
+func NewNodeVersionDetailInfoType() *NodeVersionDetailInfoType { return &NodeVersionDetailInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o NodeVersionDetailInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.BuildTimestampPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "build-timestamp", *o.BuildTimestampPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("build-timestamp: nil\n"))
+	}
+	if o.NodeNamePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-name", *o.NodeNamePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-name: nil\n"))
+	}
+	if o.NodeUuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node-uuid", *o.NodeUuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node-uuid: nil\n"))
+	}
+	if o.VersionPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "version", *o.VersionPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("version: nil\n"))
+	}
+	return buffer.String()
+}
+
+// BuildTimestamp is a fluent style 'getter' method that can be chained
+func (o *NodeVersionDetailInfoType) BuildTimestamp() int {
+	r := *o.BuildTimestampPtr
+	return r
+}
+
+// SetBuildTimestamp is a fluent style 'setter' method that can be chained
+func (o *NodeVersionDetailInfoType) SetBuildTimestamp(newValue int) *NodeVersionDetailInfoType {
+	o.BuildTimestampPtr = &newValue
+	return o
+}
+
+// NodeName is a fluent style 'getter' method that can be chained
+func (o *NodeVersionDetailInfoType) NodeName() string {
+	r := *o.NodeNamePtr
+	return r
+}
+
+// SetNodeName is a fluent style 'setter' method that can be chained
+func (o *NodeVersionDetailInfoType) SetNodeName(newValue string) *NodeVersionDetailInfoType {
+	o.NodeNamePtr = &newValue
+	return o
+}
+
+// NodeUuid is a fluent style 'getter' method that can be chained
+func (o *NodeVersionDetailInfoType) NodeUuid() string {
+	r := *o.NodeUuidPtr
+	return r
+}
+
+// SetNodeUuid is a fluent style 'setter' method that can be chained
+func (o *NodeVersionDetailInfoType) SetNodeUuid(newValue string) *NodeVersionDetailInfoType {
+	o.NodeUuidPtr = &newValue
+	return o
+}
+
+// Version is a fluent style 'getter' method that can be chained
+func (o *NodeVersionDetailInfoType) Version() string {
+	r := *o.VersionPtr
+	return r
+}
+
+// SetVersion is a fluent style 'setter' method that can be chained
+func (o *NodeVersionDetailInfoType) SetVersion(newValue string) *NodeVersionDetailInfoType {
+	o.VersionPtr = &newValue
+	return o
+}

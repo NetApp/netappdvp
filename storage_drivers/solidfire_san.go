@@ -20,7 +20,6 @@ func init() {
 	san := &SolidfireSANStorageDriver{}
 	san.Initialized = false
 	Drivers[san.Name()] = san
-	log.Debugf("registered driver '%s'", san.Name())
 }
 
 // SolidfireSANStorageDriver is for iSCSI storage provisioning

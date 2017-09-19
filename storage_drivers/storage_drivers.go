@@ -117,7 +117,9 @@ type OntapStorageDriverConfig struct {
 	Username                         string `json:"username"`
 	Password                         string `json:"password"`
 	Aggregate                        string `json:"aggregate"`
-	UsageHeartbeat                   string `json:"usageHeartbeat"` // in hours, default to 24.0
+	UsageHeartbeat                   string `json:"usageHeartbeat"`           // in hours, default to 24.0
+	QtreePruneFlexvolsPeriod         string `json:"qtreePruneFlexvolsPeriod"` // in seconds, default to 600
+	QtreeQuotaResizePeriod           string `json:"qtreeQuotaResizePeriod"`   // in seconds, default to 60
 	NfsMountOptions                  string `json:"nfsMountOptions"`
 	OntapStorageDriverConfigDefaults `json:"defaults"`
 }

@@ -16,19 +16,27 @@ type ZAPIRequest interface {
 }
 
 type ZapiRunner struct {
-	ManagementLIF string
-	SVM           string
-	Username      string
-	Password      string
-	Secure        bool
-	OntapiVersion string
+	ManagementLIF   string
+	SVM             string
+	Username        string
+	Password        string
+	Secure          bool
+	OntapiVersion   string
+	DebugTraceFlags map[string]bool // Example: {"api":false, "method":true}
 }
 
 // SendZapi sends the provided ZAPIRequest to the Ontap system
 func (o *ZapiRunner) SendZapi(r ZAPIRequest) (*http.Response, error) {
-	zapiCommand, err1 := r.ToXML()
-	if err1 != nil {
-		panic(err1)
+
+	if o.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "SendZapi", "Type": "ZapiRunner"}
+		log.WithFields(fields).Debug(">>>> SendZapi")
+		defer log.WithFields(fields).Debug("<<<< SendZapi")
+	}
+
+	zapiCommand, err := r.ToXML()
+	if err != nil {
+		return nil, err
 	}
 
 	var s = ""
@@ -43,13 +51,17 @@ func (o *ZapiRunner) SendZapi(r ZAPIRequest) (*http.Response, error) {
             %s
         </netapp>`, "vfiler=\""+o.SVM+"\"", zapiCommand)
 	}
-	log.Debugf("sending to '%s' xml: \n%s", o.ManagementLIF, s)
+	if o.DebugTraceFlags["api"] {
+		log.Debugf("sending to '%s' xml: \n%s", o.ManagementLIF, s)
+	}
 
 	url := "http://" + o.ManagementLIF + "/servlets/netapp.servlets.admin.XMLrequest_filer"
 	if o.Secure {
 		url = "https://" + o.ManagementLIF + "/servlets/netapp.servlets.admin.XMLrequest_filer"
 	}
-	log.Debugf("URL:> %s", url)
+	if o.DebugTraceFlags["api"] {
+		log.Debugf("URL:> %s", url)
+	}
 
 	b := []byte(s)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
@@ -63,16 +75,12 @@ func (o *ZapiRunner) SendZapi(r ZAPIRequest) (*http.Response, error) {
 	client := &http.Client{Transport: tr}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	log.Debugf("response Status: %s", resp.Status)
-	log.Debugf("response Headers: %s", resp.Header)
-
-	if resp.StatusCode != http.StatusOK {
-		http_response := http.StatusText(resp.StatusCode)
-		err := fmt.Errorf("%v (%v)", resp.StatusCode, http_response)
-		return resp, err
+	if o.DebugTraceFlags["api"] {
+		log.Debugf("response Status: %s", resp.Status)
+		log.Debugf("response Headers: %s", resp.Header)
 	}
 
 	return resp, err

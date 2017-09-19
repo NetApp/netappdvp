@@ -21,7 +21,6 @@ func init() {
 	san := &ESeriesStorageDriver{}
 	san.Initialized = false
 	Drivers[san.Name()] = san
-	log.Debugf("Registered driver '%v'", san.Name())
 }
 
 // EseriesIscsiStorageDriverName is the name for this storage driver that is specified in the config file, etc.

@@ -3,10 +3,7 @@
 package storage_drivers
 
 import (
-	"encoding/json"
 	"fmt"
-	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -23,7 +20,6 @@ func init() {
 	nas := &OntapNASStorageDriver{}
 	nas.Initialized = false
 	Drivers[nas.Name()] = nas
-	log.Debugf("Registered driver '%v'", nas.Name())
 }
 
 // OntapNASStorageDriver is for NFS storage provisioning
@@ -43,7 +39,6 @@ func (d *OntapNASStorageDriver) GetAPI() *ontap.Driver {
 
 // Name is for returning the name of this driver
 func (d *OntapNASStorageDriver) Name() string {
-	log.Debugf("OntapNASStorageDriver#Name()")
 	return OntapNASStorageDriverName
 }
 
@@ -51,41 +46,28 @@ func (d *OntapNASStorageDriver) Name() string {
 func (d *OntapNASStorageDriver) Initialize(
 	context DriverContext, configJSON string, commonConfig *CommonStorageDriverConfig,
 ) error {
-	log.Debugf("OntapNASStorageDriver#Initialize(...)")
 
-	config := &OntapStorageDriverConfig{}
-	config.CommonStorageDriverConfig = commonConfig
-
-	// decode configJSON into OntapStorageDriverConfig object
-	err := json.Unmarshal([]byte(configJSON), &config)
-	if err != nil {
-		return fmt.Errorf("Cannot decode json configuration error: %v", err)
+	if commonConfig.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "Initialize", "Type": "OntapNASStorageDriver"}
+		log.WithFields(fields).Debug(">>>> Initialize")
+		defer log.WithFields(fields).Debug("<<<< Initialize")
 	}
 
-	log.WithFields(log.Fields{
-		"Version":           config.Version,
-		"StorageDriverName": config.StorageDriverName,
-		"DisableDelete":     config.DisableDelete,
-	}).Debugf("Reparsed into ontapConfig")
+	// Parse the config
+	config, err := InitializeOntapConfig(configJSON, commonConfig)
+	if err != nil {
+		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
+	}
 
 	d.Config = *config
-	d.API, err = InitializeOntapDriver(d.Config)
+	d.API, err = InitializeOntapDriver(&d.Config)
 	if err != nil {
-		return fmt.Errorf("Problem while initializing: %v", err)
+		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
 	}
 
-	defaultsErr := PopulateConfigurationDefaults(&d.Config)
-	if defaultsErr != nil {
-		return fmt.Errorf("Cannot populate configuration defaults: %v", defaultsErr)
-	}
-
-	log.WithFields(log.Fields{
-		"StoragePrefix": *d.Config.StoragePrefix,
-	}).Debugf("Configuration defaults")
-
-	validationErr := d.Validate()
-	if validationErr != nil {
-		return fmt.Errorf("Problem validating OntapNASStorageDriver: %v", validationErr)
+	err = d.Validate()
+	if err != nil {
+		return fmt.Errorf("Error validating %s driver. %v", d.Name(), err)
 	}
 
 	// log an informational message on a heartbeat
@@ -93,68 +75,21 @@ func (d *OntapNASStorageDriver) Initialize(
 	StartEmsHeartbeat(d.Name(), d.API, &d.Config)
 
 	d.Initialized = true
-
 	return nil
 }
 
 // Validate the driver configuration and execution environment
 func (d *OntapNASStorageDriver) Validate() error {
-	log.Debugf("OntapNASStorageDriver#Validate()")
 
-	zr := &azgo.ZapiRunner{
-		ManagementLIF: d.Config.ManagementLIF,
-		SVM:           d.Config.SVM,
-		Username:      d.Config.Username,
-		Password:      d.Config.Password,
-		Secure:        true,
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "Validate", "Type": "OntapNASStorageDriver"}
+		log.WithFields(fields).Debug(">>>> Validate")
+		defer log.WithFields(fields).Debug("<<<< Validate")
 	}
 
-	r0, err0 := azgo.NewSystemGetVersionRequest().ExecuteUsing(zr)
-	if err0 != nil {
-		return fmt.Errorf("Could not validate credentials for %v@%v, error: %v", d.Config.Username, d.Config.SVM, err0)
-	}
-
-	// Add system version validation, if needed, this is a sanity check right now
-	systemVersion := r0.Result
-	if systemVersion.VersionPtr == nil {
-		return fmt.Errorf("Could not determine system version for %v@%v", d.Config.Username, d.Config.SVM)
-	}
-
-	r1, err1 := d.API.NetInterfaceGet()
-	if err1 != nil {
-		return fmt.Errorf("Problem checking network interfaces error: %v", err1)
-	}
-
-	// if they didn't set a lif to use in the config, we'll set it to the first nfs lif we happen to find
-	if d.Config.DataLIF == "" {
-	loop:
-		for _, attrs := range r1.Result.AttributesList() {
-			for _, protocol := range attrs.DataProtocols() {
-				if protocol == "nfs" {
-					log.Debugf("Setting NFS protocol access to '%v'", attrs.Address())
-					d.Config.DataLIF = string(attrs.Address())
-					break loop
-				}
-			}
-		}
-	}
-
-	foundNfs := false
-loop2:
-	for _, attrs := range r1.Result.AttributesList() {
-		for _, protocol := range attrs.DataProtocols() {
-			if protocol == "nfs" {
-				log.Debugf("Comparing NFS protocol access on : '%v' vs '%v'", attrs.Address(), d.Config.DataLIF)
-				if string(attrs.Address()) == d.Config.DataLIF {
-					foundNfs = true
-					break loop2
-				}
-			}
-		}
-	}
-
-	if !foundNfs {
-		return fmt.Errorf("Could not find NFS DataLIF")
+	err := ValidateNASDriver(d.API, &d.Config)
+	if err != nil {
+		return fmt.Errorf("Driver validation failed. %v", err)
 	}
 
 	return nil
@@ -162,12 +97,26 @@ loop2:
 
 // Create a volume with the specified options
 func (d *OntapNASStorageDriver) Create(name string, sizeBytes uint64, opts map[string]string) error {
-	log.Debugf("OntapNASStorageDriver#Create(%v)", name)
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":    "Create",
+			"Type":      "OntapNASStorageDriver",
+			"name":      name,
+			"sizeBytes": sizeBytes,
+			"opts":      opts,
+		}
+		log.WithFields(fields).Debug(">>>> Create")
+		defer log.WithFields(fields).Debug("<<<< Create")
+	}
 
 	// If the volume already exists, bail out
-	response, _ := d.API.VolumeSize(name)
-	if isPassed(response.Result.ResultStatusAttr) {
-		return fmt.Errorf("Volume already exists")
+	volExists, err := d.API.VolumeExists(name)
+	if err != nil {
+		return fmt.Errorf("Error checking for existing volume. %v", err)
+	}
+	if volExists {
+		return fmt.Errorf("Volume %s already exists.", name)
 	}
 
 	// get options with default fallback values
@@ -181,45 +130,48 @@ func (d *OntapNASStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 	aggregate := utils.GetV(opts, "aggregate", d.Config.Aggregate)
 	securityStyle := utils.GetV(opts, "securityStyle", d.Config.SecurityStyle)
 
+	enableSnapshotDir, err := strconv.ParseBool(snapshotDir)
+	if err != nil {
+		return fmt.Errorf("Invalid boolean value for snapshotDir. %v", err)
+	}
+
 	log.WithFields(log.Fields{
 		"name":            name,
 		"size":            size,
 		"spaceReserve":    spaceReserve,
 		"snapshotPolicy":  snapshotPolicy,
 		"unixPermissions": unixPermissions,
-		"snapshotDir":     snapshotDir,
+		"snapshotDir":     enableSnapshotDir,
 		"exportPolicy":    exportPolicy,
 		"aggregate":       aggregate,
 		"securityStyle":   securityStyle,
-	}).Debug("Creating volume with values")
+	}).Debug("Creating Flexvol.")
 
-	// create the volume
-	response1, error1 := d.API.VolumeCreate(name, aggregate, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
-	if !isPassed(response1.Result.ResultStatusAttr) || error1 != nil {
-		if response1.Result.ResultErrnoAttr != azgo.EAPIERROR {
-			return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
-		} else {
-			if !strings.HasSuffix(strings.TrimSpace(response1.Result.ResultReasonAttr), "Job exists") {
-				return fmt.Errorf("Error creating volume\n%verror: %v", response1.Result, error1)
-			} else {
-				log.Warnf("%v volume create job already exists, skipping volume create on this node...", name)
+	// Create the volume
+	volCreateResponse, err := d.API.VolumeCreate(name, aggregate, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
+	if err = ontap.GetError(volCreateResponse, err); err != nil {
+		if zerr, ok := err.(ontap.ZapiError); ok {
+			// Handle case where the Create is passed to every Docker Swarm node
+			if zerr.Code() == azgo.EAPIERROR && strings.HasSuffix(strings.TrimSpace(zerr.Reason()), "Job exists") {
+				log.WithField("volume", name).Warn("Volume create job already exists, skipping volume create on this node.")
 				return nil
 			}
 		}
+		return fmt.Errorf("Error creating volume. %v", err)
 	}
 
-	// disable '.snapshot' to allow official mysql container's chmod-in-init to work
-	if snapshotDir != "true" {
-		response2, error2 := d.API.VolumeDisableSnapshotDirectoryAccess(name)
-		if !isPassed(response2.Result.ResultStatusAttr) || error2 != nil {
-			return fmt.Errorf("Error disabling snapshot directory access\n%verror: %v", response2.Result, error2)
+	// Disable '.snapshot' to allow official mysql container's chmod-in-init to work
+	if !enableSnapshotDir {
+		snapDirResponse, err := d.API.VolumeDisableSnapshotDirectoryAccess(name)
+		if err = ontap.GetError(snapDirResponse, err); err != nil {
+			return fmt.Errorf("Error disabling snapshot directory access. %v", err)
 		}
 	}
 
-	// mount the volume at the specified junction
-	response3, error3 := d.API.VolumeMount(name, "/"+name)
-	if !isPassed(response3.Result.ResultStatusAttr) || error3 != nil {
-		return fmt.Errorf("Error mounting volume to junction\n%verror: %v", response3.Result, error3)
+	// Mount the volume at the specified junction
+	mountResponse, err := d.API.VolumeMount(name, "/"+name)
+	if err = ontap.GetError(mountResponse, err); err != nil {
+		return fmt.Errorf("Error mounting volume to junction. %v", err)
 	}
 
 	return nil
@@ -228,20 +180,40 @@ func (d *OntapNASStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 // Create a volume clone
 func (d *OntapNASStorageDriver) CreateClone(name, source, snapshot string, opts map[string]string) error {
 
-	split, err := strconv.ParseBool(utils.GetV(opts, "splitOnClone", d.Config.SplitOnClone))
-	if err != nil {
-		return fmt.Errorf("Invalid boolean value for splitOnClone: %v", err)
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":   "CreateClone",
+			"Type":     "OntapNASStorageDriver",
+			"name":     name,
+			"source":   source,
+			"snapshot": snapshot,
+			"opts":     opts,
+		}
+		log.WithFields(fields).Debug(">>>> CreateClone")
+		defer log.WithFields(fields).Debug("<<<< CreateClone")
 	}
 
-	log.WithFields(log.Fields{
-		"splitOnClone": split,
-	}).Debug("Creating volume clone with values")
-	return CreateOntapClone(name, source, snapshot, split, d.API)
+	split, err := strconv.ParseBool(utils.GetV(opts, "splitOnClone", d.Config.SplitOnClone))
+	if err != nil {
+		return fmt.Errorf("Invalid boolean value for splitOnClone. %v", err)
+	}
+
+	log.WithField("splitOnClone", split).Debug("Creating volume clone.")
+	return CreateOntapClone(name, source, snapshot, split, &d.Config, d.API)
 }
 
 // Destroy the volume
 func (d *OntapNASStorageDriver) Destroy(name string) error {
-	log.Debugf("OntapNASStorageDriver#Destroy(%v)", name)
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "Destroy",
+			"Type":   "OntapNASStorageDriver",
+			"name":   name,
+		}
+		log.WithFields(fields).Debug(">>>> Destroy")
+		defer log.WithFields(fields).Debug("<<<< Destroy")
+	}
 
 	// TODO: If this is the parent of one or more clones, those clones have to split from this
 	// volume before it can be deleted, which means separate copies of those volumes.
@@ -250,69 +222,96 @@ func (d *OntapNASStorageDriver) Destroy(name string) error {
 	// user to keep the volume around until all of the clones are gone? If we do that, need a
 	// way to list the clones. Maybe volume inspect.
 
-	response, error := d.API.VolumeDestroy(name, true)
-	if !isPassed(response.Result.ResultStatusAttr) || error != nil {
-		if response.Result.ResultErrnoAttr != azgo.EVOLUMEDOESNOTEXIST {
-			return fmt.Errorf("Error destroying volume: %v\n%verror: %v", name, response.Result, error)
-		} else {
-			log.Warnf("Volume already deleted while destroying volume: %v\n%verror: %v", name, response.Result, error)
-		}
-
+	volDestroyResponse, err := d.API.VolumeDestroy(name, true)
+	if err != nil {
+		return fmt.Errorf("Error destroying volume %v. %v", name, err)
 	}
+	if zerr := ontap.NewZapiError(volDestroyResponse); !zerr.IsPassed() {
+
+		// It's not an error if the volume no longer exists
+		if zerr.Code() == azgo.EVOLUMEDOESNOTEXIST {
+			log.WithField("volume", name).Warn("Volume already deleted.")
+		} else {
+			return fmt.Errorf("Error destroying volume %v. %v", name, zerr)
+		}
+	}
+
 	return nil
 }
 
 // Attach the volume
 func (d *OntapNASStorageDriver) Attach(name, mountpoint string, opts map[string]string) error {
-	log.Debugf("OntapNASStorageDriver#Attach(%v, %v, %v)", name, mountpoint, opts)
 
-	nfsServer := d.Config.DataLIF
-	nfsMountOptions := d.Config.NfsMountOptions
-
-	var cmd string
-	switch runtime.GOOS {
-	case utils.Linux:
-		cmd = fmt.Sprintf("mount -v %s %s:/%s %s", nfsMountOptions, nfsServer, name, mountpoint)
-	case utils.Darwin:
-		cmd = fmt.Sprintf("mount -v -o rw %s -t nfs %s:/%s %s", nfsMountOptions, nfsServer, name, mountpoint)
-	default:
-		return fmt.Errorf("Unsupported operating system: %v", runtime.GOOS)
-	}
-	log.Debugf("mount cmd==%s", cmd)
-
-	if out, err := exec.Command("sh", "-c", cmd).CombinedOutput(); err != nil {
-		log.Debugf("out==%v", string(out))
-		return fmt.Errorf("Problem mounting volume: %v mountpoint: %v error: %v", name, mountpoint, err)
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "Attach",
+			"Type":       "OntapNASStorageDriver",
+			"name":       name,
+			"mountpoint": mountpoint,
+			"opts":       opts,
+		}
+		log.WithFields(fields).Debug(">>>> Attach")
+		defer log.WithFields(fields).Debug("<<<< Attach")
 	}
 
-	return nil
+	exportPath := fmt.Sprintf("%s:/%s", d.Config.DataLIF, name)
+
+	return MountVolume(exportPath, mountpoint, &d.Config)
 }
 
 // Detach the volume
 func (d *OntapNASStorageDriver) Detach(name, mountpoint string) error {
-	log.Debugf("OntapNASStorageDriver#Detach(%v, %v)", name, mountpoint)
 
-	cmd := fmt.Sprintf("umount %s", mountpoint)
-	log.Debugf("cmd==%s", cmd)
-	if out, err := exec.Command("sh", "-c", cmd).CombinedOutput(); err != nil {
-		log.Debugf("out==%v", string(out))
-		return fmt.Errorf("Problem unmounting docker volume: %v mountpoint: %v error: %v", name, mountpoint, err)
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":     "Detach",
+			"Type":       "OntapNASStorageDriver",
+			"name":       name,
+			"mountpoint": mountpoint,
+		}
+		log.WithFields(fields).Debug(">>>> Detach")
+		defer log.WithFields(fields).Debug("<<<< Detach")
 	}
 
-	return nil
+	return UnmountVolume(mountpoint, &d.Config)
 }
 
 // Return the list of snapshots associated with the named volume
 func (d *OntapNASStorageDriver) SnapshotList(name string) ([]CommonSnapshot, error) {
-	return GetSnapshotList(name, d.API)
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method": "SnapshotList",
+			"Type":   "OntapNASStorageDriver",
+			"name":   name,
+		}
+		log.WithFields(fields).Debug(">>>> SnapshotList")
+		defer log.WithFields(fields).Debug("<<<< SnapshotList")
+	}
+
+	return GetSnapshotList(name, &d.Config, d.API)
 }
 
 // Return the list of volumes associated with this tenant
 func (d *OntapNASStorageDriver) List() ([]string, error) {
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "List", "Type": "OntapNASStorageDriver"}
+		log.WithFields(fields).Debug(">>>> List")
+		defer log.WithFields(fields).Debug("<<<< List")
+	}
+
 	return GetVolumeList(d.API, &d.Config)
 }
 
 // Test for the existence of a volume
 func (d *OntapNASStorageDriver) Get(name string) error {
-	return GetVolume(name, d.API)
+
+	if d.Config.DebugTraceFlags["method"] {
+		fields := log.Fields{"Method": "Get", "Type": "OntapNASStorageDriver"}
+		log.WithFields(fields).Debug(">>>> Get")
+		defer log.WithFields(fields).Debug("<<<< Get")
+	}
+
+	return GetVolume(name, d.API, &d.Config)
 }
