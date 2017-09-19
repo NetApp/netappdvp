@@ -9,6 +9,7 @@ Volume create options for both NFS and iSCSI:
 * ``spaceReserve`` - thin or thick provision the volume, defaults to thin. Valid values are ``none`` (thin provisioned) and ``volume`` (thick provisioned).
 * ``snapshotPolicy`` - this will set the snapshot policy to the desired value. The default is ``none``, meaning no snapshots will automatically be created for the volume. Unless modified by your storage administrator, a policy named "default" exists on all ONTAP systems which creates and retains six hourly, two daily, and two weekly snapshots. The data preserved in a snapshot can be recovered by browsing to the .snapshot directory in any directory in the volume.
 * ``splitOnClone`` - when cloning a volume, this will cause ONTAP to immediately split the clone from its parent. The default is ``false``. Some use cases for cloning volumes are best served by splitting the clone from its parent immediately upon creation, since there is unlikely to be any opportunity for storage efficiencies. For example, cloning an empty database can offer large time savings but little storage savings, so it's best to split the clone immediately.
+* ``encryption`` - this will enable NetApp Volume Encryption (NVE) on the new volume, defaults to ``false``.  NVE must be licensed and enabled on the cluster to use this option.
 
 NFS has two additional options that aren't relevant when using iSCSI:
 
@@ -27,7 +28,7 @@ Using these options during the docker volume create operation is super simple, j
 .. code-block:: bash
 
    # create a 10GiB volume
-   docker volume create -d netapp --name demo -o size=10G
+   docker volume create -d netapp --name demo -o size=10G -o encryption=true
 
    # create a 100GiB volume with snapshots
    docker volume create -d netapp --name demo -o size=100G -o snapshotPolicy=default

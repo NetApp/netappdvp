@@ -21,6 +21,7 @@ type VolumeCreateRequest struct {
 	ConstituentRolePtr              *string `xml:"constituent-role"`
 	ContainingAggrNamePtr           *string `xml:"containing-aggr-name"`
 	EfficiencyPolicyPtr             *string `xml:"efficiency-policy"`
+	EncryptPtr                      *bool   `xml:"encrypt"`
 	ExcludedFromAutobalancePtr      *bool   `xml:"excluded-from-autobalance"`
 	ExportPolicyPtr                 *string `xml:"export-policy"`
 	FlexcacheCachePolicyPtr         *string `xml:"flexcache-cache-policy"`
@@ -137,6 +138,11 @@ func (o VolumeCreateRequest) String() string {
 		buffer.WriteString(fmt.Sprintf("%s: %v\n", "efficiency-policy", *o.EfficiencyPolicyPtr))
 	} else {
 		buffer.WriteString(fmt.Sprintf("efficiency-policy: nil\n"))
+	}
+	if o.EncryptPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "encrypt", *o.EncryptPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("encrypt: nil\n"))
 	}
 	if o.ExcludedFromAutobalancePtr != nil {
 		buffer.WriteString(fmt.Sprintf("%s: %v\n", "excluded-from-autobalance", *o.ExcludedFromAutobalancePtr))
@@ -385,6 +391,18 @@ func (o *VolumeCreateRequest) EfficiencyPolicy() string {
 // SetEfficiencyPolicy is a fluent style 'setter' method that can be chained
 func (o *VolumeCreateRequest) SetEfficiencyPolicy(newValue string) *VolumeCreateRequest {
 	o.EfficiencyPolicyPtr = &newValue
+	return o
+}
+
+// Encrypt is a fluent style 'getter' method that can be chained
+func (o *VolumeCreateRequest) Encrypt() bool {
+	r := *o.EncryptPtr
+	return r
+}
+
+// SetEncrypt is a fluent style 'setter' method that can be chained
+func (o *VolumeCreateRequest) SetEncrypt(newValue bool) *VolumeCreateRequest {
+	o.EncryptPtr = &newValue
 	return o
 }
 

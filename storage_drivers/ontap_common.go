@@ -236,6 +236,7 @@ const DefaultSecurityStyle = "unix"
 const DefaultNfsMountOptions = "-o nfsvers=3"
 const DefaultSplitOnClone = "false"
 const DefaultFileSystemType = "ext4"
+const DefaultEncryption = "false"
 
 // PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
 func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
@@ -292,6 +293,10 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 		config.FileSystemType = DefaultFileSystemType
 	}
 
+	if config.Encryption == "" {
+		config.Encryption = DefaultEncryption
+	}
+
 	log.WithFields(log.Fields{
 		"StoragePrefix":   config.StoragePrefix,
 		"SpaceReserve":    config.SpaceReserve,
@@ -303,9 +308,31 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 		"NfsMountOptions": config.NfsMountOptions,
 		"SplitOnClone":    config.SplitOnClone,
 		"FileSystemType":  config.FileSystemType,
+		"Encryption":      config.Encryption,
 	}).Debugf("Configuration defaults")
 
 	return nil
+}
+
+// ValidateEncryptionAttribute returns true/false if encryption is being requested of a backend that
+// supports NetApp Volume Encryption, and nil otherwise so that the ZAPIs may be sent without
+// any reference to encryption.
+func ValidateEncryptionAttribute(encryption string, api *ontap.Driver) (*bool, error) {
+
+	enableEncryption, err := strconv.ParseBool(encryption)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid boolean value for encryption. %v", err)
+	}
+
+	if api.SupportsApiFeature(ontap.NETAPP_VOLUME_ENCRYPTION) {
+		return &enableEncryption, nil
+	} else {
+		if enableEncryption {
+			return nil, errors.New("Encrypted volumes are not supported on this storage backend.")
+		} else {
+			return nil, nil
+		}
+	}
 }
 
 // EmsInitialized logs an ASUP message that this docker volume plugin has been initialized

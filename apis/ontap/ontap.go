@@ -164,14 +164,16 @@ type ontapApiFeature string
 
 // Define new version-specific feature constants here
 const (
-	MINIMUM_ONTAPI_VERSION ontapApiFeature = "MINIMUM_ONTAPI_VERSION"
-	VSERVER_SHOW_AGGR      ontapApiFeature = "VSERVER_SHOW_AGGR"
+	MINIMUM_ONTAPI_VERSION   ontapApiFeature = "MINIMUM_ONTAPI_VERSION"
+	VSERVER_SHOW_AGGR        ontapApiFeature = "VSERVER_SHOW_AGGR"
+	NETAPP_VOLUME_ENCRYPTION ontapApiFeature = "NETAPP_VOLUME_ENCRYPTION"
 )
 
 // Indicate the minimum Ontapi version for each feature here
 var ontapAPIFeatures = map[ontapApiFeature]semver.Version{
-	MINIMUM_ONTAPI_VERSION: semver.MustParse("1.30.0"), // cDOT 8.3.0
-	VSERVER_SHOW_AGGR:      semver.MustParse("1.100.0"),
+	MINIMUM_ONTAPI_VERSION:   semver.MustParse("1.30.0"),  // cDOT 8.3.0
+	VSERVER_SHOW_AGGR:        semver.MustParse("1.100.0"), // cDOT 9.0.0
+	NETAPP_VOLUME_ENCRYPTION: semver.MustParse("1.110.0"), // cDOT 9.1.0
 }
 
 // SupportsApiFeature returns true if the Ontapi version supports the supplied feature
@@ -405,9 +407,10 @@ func (d Driver) LunGetAttribute(lunPath, name string) (response azgo.LunGetAttri
 // VOLUME operations BEGIN
 
 // VolumeCreate creates a volume with the specified options
-// equivalent to filer::> volume create -vserver iscsi_vs -volume v -aggregate aggr1 -size 1g -state online -type RW -policy default -unix-permissions ---rwxr-xr-x -space-guarantee none -snapshot-policy none -security-style unix
-func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle string) (response azgo.VolumeCreateResponse, err error) {
-	response, err = azgo.NewVolumeCreateRequest().
+// equivalent to filer::> volume create -vserver iscsi_vs -volume v -aggregate aggr1 -size 1g -state online -type RW -policy default -unix-permissions ---rwxr-xr-x -space-guarantee none -snapshot-policy none -security-style unix -encrypt false
+func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPolicy, unixPermissions,
+	exportPolicy, securityStyle string, encrypt *bool) (response azgo.VolumeCreateResponse, err error) {
+	request := azgo.NewVolumeCreateRequest().
 		SetVolume(name).
 		SetContainingAggrName(aggregateName).
 		SetSize(size).
@@ -415,8 +418,14 @@ func (d Driver) VolumeCreate(name, aggregateName, size, spaceReserve, snapshotPo
 		SetSnapshotPolicy(snapshotPolicy).
 		SetUnixPermissions(unixPermissions).
 		SetExportPolicy(exportPolicy).
-		SetVolumeSecurityStyle(securityStyle).
-		ExecuteUsing(d.zr)
+		SetVolumeSecurityStyle(securityStyle)
+
+	// Don't send 'encrypt' unless needed, as pre-9.1 ONTAP won't accept it.
+	if encrypt != nil {
+		request.SetEncrypt(*encrypt)
+	}
+
+	response, err = request.ExecuteUsing(d.zr)
 	return
 }
 
@@ -570,7 +579,9 @@ func (d Driver) VolumeList(prefix string) (response azgo.VolumeGetIterResponse, 
 }
 
 // VolumeList returns the names of all Flexvols matching the specified attributes
-func (d Driver) VolumeListByAttrs(prefix, aggregate, spaceReserve, snapshotPolicy string, snapshotDir bool) (response azgo.VolumeGetIterResponse, err error) {
+func (d Driver) VolumeListByAttrs(
+	prefix, aggregate, spaceReserve, snapshotPolicy string, snapshotDir bool, encrypt *bool,
+) (response azgo.VolumeGetIterResponse, err error) {
 
 	// Limit the Flexvols to those matching the specified attributes
 	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().
@@ -585,6 +596,10 @@ func (d Driver) VolumeListByAttrs(prefix, aggregate, spaceReserve, snapshotPolic
 		SetVolumeIdAttributes(*queryVolIdAttrs).
 		SetVolumeSpaceAttributes(*queryVolSpaceAttrs).
 		SetVolumeSnapshotAttributes(*queryVolSnapshotAttrs)
+
+	if encrypt != nil {
+		query.SetEncrypt(*encrypt)
+	}
 
 	// Limit the returned data to only the Flexvol names
 	desiredVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName("")

@@ -226,10 +226,16 @@ func (d *OntapNASQtreeStorageDriver) Create(name string, sizeBytes uint64, opts 
 	spaceReserve := utils.GetV(opts, "spaceReserve", d.Config.SpaceReserve)
 	snapshotPolicy := utils.GetV(opts, "snapshotPolicy", d.Config.SnapshotPolicy)
 	snapshotDir := utils.GetV(opts, "snapshotDir", d.Config.SnapshotDir)
+	encryption := utils.GetV(opts, "encryption", d.Config.Encryption)
 
 	enableSnapshotDir, err := strconv.ParseBool(snapshotDir)
 	if err != nil {
 		return fmt.Errorf("Invalid boolean value for snapshotDir. %v", err)
+	}
+
+	encrypt, err := ValidateEncryptionAttribute(encryption, d.API)
+	if err != nil {
+		return err
 	}
 
 	// Ensure any Flexvol we use won't be pruned before we place a qtree on it
@@ -237,18 +243,19 @@ func (d *OntapNASQtreeStorageDriver) Create(name string, sizeBytes uint64, opts 
 	defer d.provMutex.Unlock()
 
 	// Make sure we have a Flexvol for the new qtree
-	flexvol, err := d.ensureFlexvolForQtree(aggregate, spaceReserve, snapshotPolicy, enableSnapshotDir)
+	flexvol, err := d.ensureFlexvolForQtree(
+		aggregate, spaceReserve, snapshotPolicy, enableSnapshotDir, encrypt)
 	if err != nil {
 		log.Errorf("Flexvol location/creation failed. %v", err)
 		return createError
 	}
 
 	// Grow or shrink the Flexvol as needed
-	flexvolSizeBytes, err := d.getOptimumSizeForFlexvol(flexvol, sizeBytes)
+	flexvolSizeBytes, err := d.getOptimalSizeForFlexvol(flexvol, sizeBytes)
 	if err != nil {
-		log.Warnf("Could not calculate optimum Flexvol size. %v", err)
+		log.Warnf("Could not calculate optimal Flexvol size. %v", err)
 
-		// Lacking the optimum size, just grow the Flexvol to contain the new qtree
+		// Lacking the optimal size, just grow the Flexvol to contain the new qtree
 		resizeResponse, err := d.API.SetVolumeSize(flexvol, "+"+size)
 		if err = ontap.GetError(resizeResponse.Result, err); err != nil {
 			log.Errorf("Flexvol resize failed. %v", err)
@@ -256,7 +263,7 @@ func (d *OntapNASQtreeStorageDriver) Create(name string, sizeBytes uint64, opts 
 		}
 	} else {
 
-		// Got optimum size, so just set the Flexvol to that value
+		// Got optimal size, so just set the Flexvol to that value
 		flexvolSizeStr := strconv.FormatUint(flexvolSizeBytes, 10)
 		resizeResponse, err := d.API.SetVolumeSize(flexvol, flexvolSizeStr)
 		if err = ontap.GetError(resizeResponse.Result, err); err != nil {
@@ -485,11 +492,11 @@ func (d *OntapNASQtreeStorageDriver) Get(name string) error {
 // ensureFlexvolForQtree accepts a set of Flexvol characteristics and either finds one to contain a new
 // qtree or it creates a new Flexvol with the needed attributes.
 func (d *OntapNASQtreeStorageDriver) ensureFlexvolForQtree(
-	aggregate, spaceReserve, snapshotPolicy string, enableSnapshotDir bool,
+	aggregate, spaceReserve, snapshotPolicy string, enableSnapshotDir bool, encrypt *bool,
 ) (string, error) {
 
 	// Check if a suitable Flexvol already exists
-	flexvol, err := d.getFlexvolForQtree(aggregate, spaceReserve, snapshotPolicy, enableSnapshotDir)
+	flexvol, err := d.getFlexvolForQtree(aggregate, spaceReserve, snapshotPolicy, enableSnapshotDir, encrypt)
 	if err != nil {
 		return "", fmt.Errorf("Error finding Flexvol for qtree. %v", err)
 	}
@@ -500,7 +507,7 @@ func (d *OntapNASQtreeStorageDriver) ensureFlexvolForQtree(
 	}
 
 	// Nothing found, so create a suitable Flexvol
-	flexvol, err = d.createFlexvolForQtree(aggregate, spaceReserve, snapshotPolicy, enableSnapshotDir)
+	flexvol, err = d.createFlexvolForQtree(aggregate, spaceReserve, snapshotPolicy, enableSnapshotDir, encrypt)
 	if err != nil {
 		return "", fmt.Errorf("Error creating Flexvol for qtree. %v", err)
 	}
@@ -513,7 +520,7 @@ func (d *OntapNASQtreeStorageDriver) ensureFlexvolForQtree(
 // Once this method returns, the Flexvol exists, is mounted, and has a default tree
 // quota.
 func (d *OntapNASQtreeStorageDriver) createFlexvolForQtree(
-	aggregate, spaceReserve, snapshotPolicy string, enableSnapshotDir bool,
+	aggregate, spaceReserve, snapshotPolicy string, enableSnapshotDir bool, encrypt *bool,
 ) (string, error) {
 
 	flexvol := d.FlexvolNamePrefix() + utils.RandomString(10)
@@ -521,6 +528,11 @@ func (d *OntapNASQtreeStorageDriver) createFlexvolForQtree(
 	unixPermissions := "0700"
 	exportPolicy := d.flexvolExportPolicy
 	securityStyle := "unix"
+
+	encryption := false
+	if encrypt != nil {
+		encryption = *encrypt
+	}
 
 	log.WithFields(log.Fields{
 		"name":            flexvol,
@@ -532,12 +544,13 @@ func (d *OntapNASQtreeStorageDriver) createFlexvolForQtree(
 		"snapshotDir":     enableSnapshotDir,
 		"exportPolicy":    exportPolicy,
 		"securityStyle":   securityStyle,
+		"encryption":      encryption,
 	}).Debug("Creating Flexvol for qtrees.")
 
 	// Create the Flexvol
 	createResponse, err := d.API.VolumeCreate(
 		flexvol, aggregate, size, spaceReserve, snapshotPolicy,
-		unixPermissions, exportPolicy, securityStyle)
+		unixPermissions, exportPolicy, securityStyle, encrypt)
 	if err = ontap.GetError(createResponse, err); err != nil {
 		return "", fmt.Errorf("Error creating Flexvol. %v", err)
 	}
@@ -577,11 +590,13 @@ func (d *OntapNASQtreeStorageDriver) createFlexvolForQtree(
 // considered an error.  If more than one matching Flexvol is found, one of those
 // is returned at random.
 func (d *OntapNASQtreeStorageDriver) getFlexvolForQtree(
-	aggregate, spaceReserve, snapshotPolicy string, enableSnapshotDir bool,
+	aggregate, spaceReserve, snapshotPolicy string, enableSnapshotDir bool, encrypt *bool,
 ) (string, error) {
 
 	// Get all volumes matching the specified attributes
-	volListResponse, err := d.API.VolumeListByAttrs(d.FlexvolNamePrefix(), aggregate, spaceReserve, snapshotPolicy, enableSnapshotDir)
+	volListResponse, err := d.API.VolumeListByAttrs(
+		d.FlexvolNamePrefix(), aggregate, spaceReserve, snapshotPolicy, enableSnapshotDir, encrypt)
+
 	if err = ontap.GetError(volListResponse, err); err != nil {
 		return "", fmt.Errorf("Error enumerating Flexvols. %v", err)
 	}
@@ -614,10 +629,10 @@ func (d *OntapNASQtreeStorageDriver) getFlexvolForQtree(
 	}
 }
 
-// getOptimumSizeForFlexvol sums up all the disk limit quota rules on a Flexvol and adds the size of
+// getOptimalSizeForFlexvol sums up all the disk limit quota rules on a Flexvol and adds the size of
 // the new qtree being added as well as the current Flexvol snapshot reserve.  This value may be used
 // to grow (or shrink) the Flexvol as new qtrees are being added.
-func (d *OntapNASQtreeStorageDriver) getOptimumSizeForFlexvol(
+func (d *OntapNASQtreeStorageDriver) getOptimalSizeForFlexvol(
 	flexvol string, newQtreeSizeBytes uint64,
 ) (uint64, error) {
 
@@ -643,7 +658,7 @@ func (d *OntapNASQtreeStorageDriver) getOptimumSizeForFlexvol(
 		"totalDiskLimitBytes":   totalDiskLimitBytes,
 		"newQtreeSizeBytes":     newQtreeSizeBytes,
 		"flexvolSizeBytes":      flexvolSizeBytes,
-	}).Debug("Calculated optimum size for Flexvol with new qtree.")
+	}).Debug("Calculated optimal size for Flexvol with new qtree.")
 
 	return flexvolSizeBytes, nil
 }

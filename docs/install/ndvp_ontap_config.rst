@@ -73,6 +73,8 @@ Also, when using ONTAP, these default option settings are available to avoid hav
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``splitOnClone``      | Split a clone from its parent upon creation, defaults to "false"         | false      |
 +-----------------------+--------------------------------------------------------------------------+------------+
+| ``encryption``        | Enable NetApp Volume Encryption, defaults to "false"                     | true       |
++-----------------------+--------------------------------------------------------------------------+------------+
 | ``unixPermissions``   | NAS option for provisioned NFS volumes, defaults to "777"                | 777        |
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``snapshotDir``       | NAS option for access to the .snapshot directory, defaults to "false"    | false      |

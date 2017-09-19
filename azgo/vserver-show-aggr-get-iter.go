@@ -81,12 +81,19 @@ func (o *VserverShowAggrGetIterRequest) ExecuteUsing(zr *ZapiRunner) (VserverSho
 				o.SetTag(*nextTagPtr)
 			}
 
-			recordsRead := n.Result.NumRecords()
-			if recordsRead == 0 {
+			if n.Result.NumRecordsPtr == nil {
 				done = true
+			} else {
+				recordsRead := n.Result.NumRecords()
+				if recordsRead == 0 {
+					done = true
+				}
 			}
 
-			combined.Result.SetAttributesList(append(combined.Result.AttributesList(), n.Result.AttributesList()...))
+			if n.Result.AttributesListPtr != nil {
+				combined.Result.SetAttributesList(append(combined.Result.AttributesList(), n.Result.AttributesList()...))
+			}
+
 			if done == true {
 				combined.Result.ResultErrnoAttr = n.Result.ResultErrnoAttr
 				combined.Result.ResultReasonAttr = n.Result.ResultReasonAttr

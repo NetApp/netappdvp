@@ -26,6 +26,7 @@
   (Issue [#73](https://github.com/NetApp/netappdvp/issues/73)).
 - Added iSCSI multipath support to SolidFire driver
   (Issue [#49](https://github.com/NetApp/netappdvp/issues/49)).
+- Added support for NetApp Volume Encryption to the ONTAP drivers.
 
 ## 17.07.0
 

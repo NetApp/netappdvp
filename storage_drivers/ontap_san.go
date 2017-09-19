@@ -190,6 +190,12 @@ func (d *OntapSANStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 	exportPolicy := utils.GetV(opts, "exportPolicy", d.Config.ExportPolicy)
 	aggregate := utils.GetV(opts, "aggregate", d.Config.Aggregate)
 	securityStyle := utils.GetV(opts, "securityStyle", d.Config.SecurityStyle)
+	encryption := utils.GetV(opts, "encryption", d.Config.Encryption)
+
+	encrypt, err := ValidateEncryptionAttribute(encryption, d.API)
+	if err != nil {
+		return err
+	}
 
 	// Check for a supported file system type
 	fstype := strings.ToLower(utils.GetV(opts, "fstype|fileSystemType", d.Config.FileSystemType))
@@ -210,10 +216,14 @@ func (d *OntapSANStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 		"exportPolicy":    exportPolicy,
 		"aggregate":       aggregate,
 		"securityStyle":   securityStyle,
+		"encryption":      encryption,
 	}).Debug("Creating Flexvol.")
 
 	// Create the volume
-	volCreateResponse, err := d.API.VolumeCreate(name, aggregate, size, spaceReserve, snapshotPolicy, unixPermissions, exportPolicy, securityStyle)
+	volCreateResponse, err := d.API.VolumeCreate(
+		name, aggregate, size, spaceReserve, snapshotPolicy,
+		unixPermissions, exportPolicy, securityStyle, encrypt)
+
 	if err = ontap.GetError(volCreateResponse, err); err != nil {
 		if zerr, ok := err.(ontap.ZapiError); ok {
 			// Handle case where the Create is passed to every Docker Swarm node
