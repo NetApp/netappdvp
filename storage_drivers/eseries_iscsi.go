@@ -97,7 +97,7 @@ func (d *ESeriesStorageDriver) Initialize(
 	d.Config = *config
 
 	// Ensure the config is valid
-	err = d.Validate()
+	err = d.Validate(context)
 	if err != nil {
 		return fmt.Errorf("Could not validate ESeriesStorageDriver config. %v", err)
 	}
@@ -151,13 +151,10 @@ func (d *ESeriesStorageDriver) Initialize(
 }
 
 // Validate the driver configuration
-func (d *ESeriesStorageDriver) Validate() error {
+func (d *ESeriesStorageDriver) Validate(context DriverContext) error {
 
 	if d.Config.DebugTraceFlags["method"] {
-		fields := log.Fields{
-			"Method": "Validate",
-			"Type":   "ESeriesStorageDriver",
-		}
+		fields := log.Fields{"Method": "Validate", "Type": "ESeriesStorageDriver", "context": context}
 		log.WithFields(fields).Debug(">>>> Validate")
 		defer log.WithFields(fields).Debug("<<<< Validate")
 	}

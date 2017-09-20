@@ -74,17 +74,9 @@ func (d *OntapSANStorageDriver) Initialize(
 		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
 	}
 
-	err = d.Validate()
+	err = d.Validate(context)
 	if err != nil {
 		return fmt.Errorf("Error validating %s driver. %v", d.Name(), err)
-	}
-
-	if context == ContextNDVP {
-		// Make sure this host is logged into the ONTAP iSCSI target
-		err := utils.EnsureIscsiSession(d.Config.DataLIF)
-		if err != nil {
-			return fmt.Errorf("Error establishing iSCSI session. %v", err)
-		}
 	}
 
 	// log an informational message on a heartbeat
@@ -96,10 +88,10 @@ func (d *OntapSANStorageDriver) Initialize(
 }
 
 // Validate the driver configuration and execution environment
-func (d *OntapSANStorageDriver) Validate() error {
+func (d *OntapSANStorageDriver) Validate(context DriverContext) error {
 
 	if d.Config.DebugTraceFlags["method"] {
-		fields := log.Fields{"Method": "Validate", "Type": "OntapSANStorageDriver"}
+		fields := log.Fields{"Method": "Validate", "Type": "OntapSANStorageDriver", "context": context}
 		log.WithFields(fields).Debug(">>>> Validate")
 		defer log.WithFields(fields).Debug("<<<< Validate")
 	}
@@ -144,6 +136,20 @@ func (d *OntapSANStorageDriver) Validate() error {
 
 	if !foundIscsi {
 		return fmt.Errorf("Could not find iSCSI data LIF.")
+	}
+
+	if context == ContextNDVP {
+		// Make sure this host is logged into the ONTAP iSCSI target
+		err := utils.EnsureIscsiSession(d.Config.DataLIF)
+		if err != nil {
+			return fmt.Errorf("Error establishing iSCSI session. %v", err)
+		}
+
+		// Make sure the configured aggregate is available
+		err = ValidateAggregate(d.API, &d.Config)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

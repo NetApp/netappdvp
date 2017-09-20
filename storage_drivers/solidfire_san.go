@@ -173,19 +173,10 @@ func (d *SolidfireSANStorageDriver) Initialize(
 		"InitiatorIFace": iscsiInterface,
 	}).Debug("Driver initialized with the following settings")
 
-	validationErr := d.Validate()
+	validationErr := d.Validate(context)
 	if validationErr != nil {
 		log.Errorf("problem validating SolidfireSANStorageDriver error: %+v", validationErr)
 		return errors.New("error encountered validating SolidFire driver on init")
-	}
-
-	if context == ContextNDVP {
-		// Validate the environment
-		isIscsiSupported := utils.IscsiSupported()
-		if !isIscsiSupported {
-			log.Errorf("host doesn't appear to support iSCSI")
-			return errors.New("no iSCSI support on this host")
-		}
 	}
 
 	// log cluster node serial numbers
@@ -215,7 +206,7 @@ func (d *SolidfireSANStorageDriver) Initialize(
 }
 
 // Validate the driver configuration and execution environment
-func (d *SolidfireSANStorageDriver) Validate() error {
+func (d *SolidfireSANStorageDriver) Validate(context DriverContext) error {
 	log.Debug("SolidfireSANStorageDriver#Validate()")
 
 	// We want to verify we have everything we need to run the Docker driver
@@ -227,6 +218,15 @@ func (d *SolidfireSANStorageDriver) Validate() error {
 	}
 	if d.Config.SVIP == "" {
 		log.Fatal("missing required SVIP in config")
+	}
+
+	if context == ContextNDVP {
+		// Validate the environment
+		isIscsiSupported := utils.IscsiSupported()
+		if !isIscsiSupported {
+			log.Errorf("host doesn't appear to support iSCSI")
+			return errors.New("no iSCSI support on this host")
+		}
 	}
 
 	return nil

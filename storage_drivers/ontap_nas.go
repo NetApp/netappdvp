@@ -65,7 +65,7 @@ func (d *OntapNASStorageDriver) Initialize(
 		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
 	}
 
-	err = d.Validate()
+	err = d.Validate(context)
 	if err != nil {
 		return fmt.Errorf("Error validating %s driver. %v", d.Name(), err)
 	}
@@ -79,15 +79,15 @@ func (d *OntapNASStorageDriver) Initialize(
 }
 
 // Validate the driver configuration and execution environment
-func (d *OntapNASStorageDriver) Validate() error {
+func (d *OntapNASStorageDriver) Validate(context DriverContext) error {
 
 	if d.Config.DebugTraceFlags["method"] {
-		fields := log.Fields{"Method": "Validate", "Type": "OntapNASStorageDriver"}
+		fields := log.Fields{"Method": "Validate", "Type": "OntapNASStorageDriver", "context": context}
 		log.WithFields(fields).Debug(">>>> Validate")
 		defer log.WithFields(fields).Debug("<<<< Validate")
 	}
 
-	err := ValidateNASDriver(d.API, &d.Config)
+	err := ValidateNASDriver(context, d.API, &d.Config)
 	if err != nil {
 		return fmt.Errorf("Driver validation failed. %v", err)
 	}

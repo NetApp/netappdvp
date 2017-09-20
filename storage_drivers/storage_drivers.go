@@ -188,7 +188,7 @@ var Drivers = make(map[string]StorageDriver)
 type StorageDriver interface {
 	Name() string
 	Initialize(DriverContext, string, *CommonStorageDriverConfig) error
-	Validate() error
+	Validate(DriverContext) error
 	Create(name string, sizeBytes uint64, opts map[string]string) error
 	CreateClone(name, source, snapshot string, opts map[string]string) error
 	Destroy(name string) error

@@ -11,6 +11,7 @@
 **Enhancements:**
 - Added controller serial numbers to logs
 - Added ontap-nas-economy driver
+- Added aggregate validation to the ONTAP drivers
 
 ## 17.07.0
 

@@ -49,7 +49,7 @@ In addition to the global configuration values above, when using ONTAP these top
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``password``          | Password to connect to the storage device                                | netapp123  |
 +-----------------------+--------------------------------------------------------------------------+------------+
-| ``aggregate``         | Aggregate to use for volume/LUN provisioning                             | aggr1      |
+| ``aggregate``         | Aggregate to use for provisioning; it must be assigned to the SVM        | aggr1      |
 +-----------------------+--------------------------------------------------------------------------+------------+
 
 For the ontap-nas and ontap-nas-economy drivers, an additional top level option is available.

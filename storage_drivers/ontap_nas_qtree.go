@@ -94,7 +94,7 @@ func (d *OntapNASQtreeStorageDriver) Initialize(
 		"FlexvolExportPolicy": d.flexvolExportPolicy,
 	}).Debugf("Qtree driver settings.")
 
-	err = d.Validate()
+	err = d.Validate(context)
 	if err != nil {
 		return fmt.Errorf("Error validating %s driver. %v", d.Name(), err)
 	}
@@ -113,15 +113,15 @@ func (d *OntapNASQtreeStorageDriver) Initialize(
 }
 
 // Validate the driver configuration and execution environment
-func (d *OntapNASQtreeStorageDriver) Validate() error {
+func (d *OntapNASQtreeStorageDriver) Validate(context DriverContext) error {
 
 	if d.Config.DebugTraceFlags["method"] {
-		fields := log.Fields{"Method": "Validate", "Type": "OntapNASQtreeStorageDriver"}
+		fields := log.Fields{"Method": "Validate", "Type": "OntapNASQtreeStorageDriver", "context": context}
 		log.WithFields(fields).Debug(">>>> Validate")
 		defer log.WithFields(fields).Debug("<<<< Validate")
 	}
 
-	err := ValidateNASDriver(d.API, &d.Config)
+	err := ValidateNASDriver(context, d.API, &d.Config)
 	if err != nil {
 		return fmt.Errorf("Driver validation failed. %v", err)
 	}
