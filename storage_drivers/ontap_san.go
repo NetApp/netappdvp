@@ -319,7 +319,7 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 
 	// Perform rediscovery to remove the deleted LUN
 	utils.MultipathFlush() // flush unused paths
-	utils.IscsiRescan()
+	utils.IscsiRescan(true)
 
 	// Delete the Flexvol
 	volDestroyResponse, err := d.API.VolumeDestroy(name, true)
@@ -418,9 +418,14 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 	}
 
 	// Perform discovery to see the created/mapped LUN
-	utils.IscsiRescan()
+	utils.IscsiRescan(false)
 
-	// Lookup all the scsi device information
+	cmd := fmt.Sprintf("dmesg | tail -n 50")
+	log.Debugf("running 'sh -c %v'", cmd)
+	out2, _ := exec.Command("sh", "-c", cmd).CombinedOutput()
+	log.Debug(string(out2))
+
+	// Lookup all the SCSI device information
 	info, err := utils.GetDeviceInfoForLuns()
 	if err != nil {
 		return fmt.Errorf("Error getting SCSI device information. %v", err)
@@ -518,7 +523,7 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 		return nil
 	}
 
-	return nil
+	return fmt.Errorf("Attach failed, device not found. %v", name)
 }
 
 // Detach the volume

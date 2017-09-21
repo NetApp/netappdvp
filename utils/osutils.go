@@ -112,16 +112,9 @@ type ScsiDeviceInfo struct {
 	IQN             string
 }
 
-// LsscsiCmd executes and parses the output from the 'lsscsi' command
-func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
+// GetDeviceInfoForLuns executes and parses the output from the 'lsscsi' command
+func GetDeviceInfoForLuns() ([]ScsiDeviceInfo, error) {
 	/*
-		# lsscsi
-		[0:0:0:0]    disk    ATA      VBOX HARDDISK    1.0   /dev/sda
-		[5:0:0:0]    disk    NETAPP   LUN C-Mode       8200  /dev/sdb
-		[6:0:0:0]    disk    NETAPP   LUN C-Mode       8200  /dev/sdc
-		[7:0:0:0]    disk    NETAPP   LUN C-Mode       8200  /dev/sdd
-		[8:0:0:0]    disk    NETAPP   LUN C-Mode       8200  /dev/sde
-
 		# lsscsi -t
 		[0:0:0:0]    disk    sata:                           /dev/sda
 		[5:0:0:0]    disk    iqn.1992-08.com.netapp:sn.afbb1784f77411e582f8080027e22798:vs.3,t,0x404  /dev/sdb
@@ -129,29 +122,36 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 		[7:0:0:0]    disk    iqn.1992-08.com.netapp:sn.d724e00bfa0311e582f8080027e22798:vs.4,t,0x407  /dev/sdd
 		[8:0:0:0]    disk    iqn.1992-08.com.netapp:sn.d724e00bfa0311e582f8080027e22798:vs.4,t,0x408  /dev/sde
 	*/
-	hasArgs := args != nil && len(args) > 0
 
-	log.Debugf("Begin osutils.LsscsiCmd: %v", args)
-	out, err := exec.Command("lsscsi", args...).CombinedOutput()
+	log.Debugf("Begin osutils.LsscsiCmd")
+
+	multipathDetected := MultipathDetected()
+	if !multipathDetected {
+		log.Debug("Skipping multipath check, /sbin/multipath doesn't exist")
+	}
+
+	cmdArgs := []string{"-t"}
+	out, err := exec.Command("lsscsi", cmdArgs...).CombinedOutput()
 	if err != nil {
 		log.Errorf("Error listing iSCSI devices: %v. %v", err, string(out))
 		return nil, err
 	}
+	log.Debug(string(out))
 
 	var info []ScsiDeviceInfo
 
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	log.Debugf("Found output lines: %v", lines)
 	for _, line := range lines {
-		log.Debugf("processing line: %v", line)
 
 		d := strings.Fields(line)
-		if d == nil || len(d) < 1 {
-			log.Debugf("could not parse output, skipping line: %v", line)
+		if d == nil || len(d) < 4 {
+			log.Debugf("Could not parse output, skipping line: %v", line)
 			continue
 		}
 
-		log.Debugf("Found d: %v", d)
+		log.WithField("lsscsi", d).Debugf("Processing SCSI device")
+
+		// Host, Channel, Target, LUN
 		s := d[0]
 		s = s[1 : len(s)-1]
 		scsiBusInfo := strings.Split(s, ":")
@@ -161,7 +161,11 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 		scsiTarget := scsiBusInfo[2]
 		scsiLun := scsiBusInfo[3]
 
-		// the device is the last field in the output
+		// IQN
+		iqn := d[2]
+		log.Debugf("iqn: %v", iqn)
+
+		// Device is the last field in the output
 		devFile := d[len(d)-1]
 		log.Debugf("devFile: %v", devFile)
 		if !strings.HasPrefix(devFile, "/dev") {
@@ -169,18 +173,10 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 			continue
 		}
 
-		// we only have iqn info if '-t' specified
-		iqn := ""
-		if hasArgs {
-			iqn = d[2]
-		}
-		log.Debugf("iqn: %v", iqn)
-
-		// check to see if there's a multipath device
+		// Check to see if there's a multipath device
 		multipathDevFile := ""
-		if !MultipathDetected() {
-			log.Debug("Skipping multipath check, /sbin/multipath doesn't exist")
-		} else {
+		if multipathDetected {
+			log.Debug("Running multipath check")
 
 			lsblkCmd := fmt.Sprintf("lsblk %v -n -o name,type -r | grep mpath | cut -f1 -d\\ ", devFile)
 			log.Debugf("running 'sh -c %v'", lsblkCmd)
@@ -221,7 +217,7 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 			"devFile":          devFile,
 			"fsType":           fsType,
 			"iqn":              iqn,
-		}).Debug("Found")
+		}).Debug("Found SCSI device")
 
 		info = append(info, ScsiDeviceInfo{
 			Host:            scsiHost,
@@ -236,52 +232,6 @@ func LsscsiCmd(args []string) ([]ScsiDeviceInfo, error) {
 	}
 
 	return info, nil
-}
-
-// GetDeviceInfoForLuns parses 'lsscsi' to find NetApp LUNs
-func GetDeviceInfoForLuns() ([]ScsiDeviceInfo, error) {
-	log.Debug("Begin osutils.getDeviceInfoForLuns: ")
-
-	// first, list w/out iSCSI target info
-	var info1 []ScsiDeviceInfo
-	info1, err1 := LsscsiCmd(nil)
-	if err1 != nil {
-		return nil, err1
-	}
-
-	// now, list w/ iSCSI target info
-	var info2 []ScsiDeviceInfo
-	info2, err2 := LsscsiCmd([]string{"-t"})
-	if err2 != nil {
-		return nil, err2
-	}
-
-	// finally, glue the 2 outputs together
-	for j, e1 := range info1 {
-	innerLoop:
-		for k, e2 := range info2 {
-			if e1.MultipathDevice == "" || e2.MultipathDevice == "" {
-				// no multipath device info, skipping
-				if e1.Device == e2.Device {
-					// no multipath device info, skipping multipath compare but we still need the IQN info
-					log.Debugf("Matched, setting IQN to: %v", e2.IQN)
-					info1[j].IQN = info2[k].IQN
-				}
-				continue
-			}
-
-			log.Debugf("Comparing d: %v and d: %v", e1.Device, e2.Device)
-			log.Debugf("Comparing md: %v and md: %v", e1.MultipathDevice, e2.MultipathDevice)
-			if (e1.Device == e2.Device) &&
-				(e1.MultipathDevice == e2.MultipathDevice) {
-				log.Debugf("Matched, setting IQN to: %v", e2.IQN)
-				info1[j].IQN = info2[k].IQN
-				break innerLoop
-			}
-		}
-	}
-
-	return info1, nil
 }
 
 // GetDeviceFileFromIscsiPath returns the /dev device for the supplied iscsiPath
@@ -431,6 +381,55 @@ func GetIscsiSessionInfo() ([]IscsiSessionInfo, error) {
 	return sessionInfo, nil
 }
 
+// GetIscsiHostInfo parses output from 'iscsiadm -m host' and returns the parsed output
+func GetIscsiHostInfo() ([]string, error) {
+	log.Debugf("Begin osutils.GetIscsiHostInfo")
+
+	out, err := IscsiadmCmd([]string{"-m", "host"})
+	if err != nil {
+		exitErr, ok := err.(*exec.ExitError)
+		if ok && exitErr.ProcessState.Sys().(syscall.WaitStatus).ExitStatus() == ISCSI_ERR_NO_OBJS_FOUND {
+			log.Debug("No iSCSI hosts found.")
+			return make([]string, 0), nil
+		} else {
+			log.Errorf("Problem checking iSCSI hosts. %v", err)
+			return nil, err
+		}
+	}
+
+	/*
+	   # iscsiadm -m host
+	   tcp: [33] 192.168.228.16,[<empty>],<empty> <empty>
+	   tcp: [34] 192.168.228.16,[<empty>],<empty> <empty>
+
+	   a[0]==tcp:
+	   a[1]==[33]
+	   a[2]==192.168.228.16,[<empty>],<empty>
+	   a[3]==<empty>
+	*/
+
+	var hosts []string
+
+	//log.Debugf("out==%v", string(out))
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	for _, l := range lines {
+		//log.Debugf("l==%v", l)
+		a := strings.Fields(l)
+		if len(a) > 3 {
+			host := a[1]
+			host = host[1 : len(host)-1]
+			hosts = append(hosts, host)
+
+			log.WithFields(log.Fields{
+				"Host": host,
+			}).Debug("Adding iSCSI host")
+
+		}
+	}
+
+	return hosts, nil
+}
+
 // IscsiTargetInfo structure for usage with the iscsiadm command
 type IscsiTargetInfo struct {
 	IP        string
@@ -473,23 +472,51 @@ func IscsiSessionExists(portal string) (bool, error) {
 }
 
 // IscsiRescan uses the 'rescan-scsi-bus' command to perform rescanning of the SCSI bus
-func IscsiRescan() (err error) {
+func IscsiRescan(remove bool) (err error) {
 	log.Debugf("Begin osutils.IscsiRescan")
 	defer UdevSettle()
 
+	// Get iSCSI hosts so we don't have to rescan the entire SCSI subsystem
+	hosts, err := GetIscsiHostInfo()
+	if err != nil {
+		log.Errorf("Could not find iSCSI hosts, scanning everything. %v", err)
+		hosts = []string{}
+	}
+
+	// Build arguments for rescan command
+	rescanArgs := []string{"--alltargets"}
+	if remove {
+		rescanArgs = append(rescanArgs, "--remove")
+	}
+	if len(hosts) > 0 {
+		rescanArgs = append(rescanArgs, "--hosts="+strings.Join(hosts, ","))
+	}
+	if log.GetLevel() == log.DebugLevel {
+		rescanArgs = append(rescanArgs, "-d")
+	}
+
 	// look for version of rescan-scsi-bus in known locations
-	var rescanCommands []string = []string{"/sbin/rescan-scsi-bus", "/sbin/rescan-scsi-bus.sh", "/bin/rescan-scsi-bus.sh", "/usr/bin/rescan-scsi-bus.sh"}
+	var rescanCommands []string = []string{
+		"/usr/bin/rescan-scsi-bus.sh",
+		"/sbin/rescan-scsi-bus",
+		"/sbin/rescan-scsi-bus.sh",
+		"/bin/rescan-scsi-bus.sh",
+	}
+
 	for _, rescanCommand := range rescanCommands {
 		_, err = os.Lstat(rescanCommand)
 		// The command exists in this location
 		if !os.IsNotExist(err) {
-			out, rescanErr := exec.Command(rescanCommand, "-a", "-r").CombinedOutput()
+			log.WithField("command", rescanCommand).Debugf("Found SCSI rescan command.")
+			log.Debugf("Rescan args: %s", rescanArgs)
+			out, rescanErr := exec.Command(rescanCommand, rescanArgs...).CombinedOutput()
 			// We encountered an error condition
 			if rescanErr != nil {
 				log.Errorf("Could not rescan SCSI bus: %v. %v", rescanErr, string(out))
 				return rescanErr
 			} else {
 				// The command was successful
+				log.Debugf("%s", string(out))
 				return
 			}
 		}
@@ -497,7 +524,7 @@ func IscsiRescan() (err error) {
 	}
 
 	// Attempt to find the binary on the path
-	out, err := exec.Command("rescan-scsi-bus.sh", "-a", "-r").CombinedOutput()
+	out, err := exec.Command("rescan-scsi-bus.sh", rescanArgs...).CombinedOutput()
 	if err != nil {
 		log.Errorf("Could not rescan SCSI bus: %v. %v", err, string(out))
 		return

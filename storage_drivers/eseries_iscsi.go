@@ -270,7 +270,7 @@ func (d *ESeriesStorageDriver) Destroy(name string) error {
 
 	// perform rediscovery to remove the deleted LUN
 	utils.MultipathFlush() // flush unused paths
-	utils.IscsiRescan()
+	utils.IscsiRescan(true)
 
 	return nil
 }
@@ -322,7 +322,7 @@ func (d *ESeriesStorageDriver) Attach(name, mountpoint string, opts map[string]s
 	}
 
 	// Rescan the SCSI bus to ensure the host sees the LUN
-	err = utils.IscsiRescan()
+	err = utils.IscsiRescan(false)
 	if err != nil {
 		return fmt.Errorf("Could not rescan the SCSI bus. %v", err)
 	}

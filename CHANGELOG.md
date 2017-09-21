@@ -11,7 +11,7 @@
 - Fixed an issue with volume creation on all-flash E-series arrays.
 
 **Enhancements:**
-
+- Improved iSCSI rescan performance for ONTAP SAN and E-series plugins.
 
 ## 17.10.0
 
