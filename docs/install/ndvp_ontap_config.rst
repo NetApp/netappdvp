@@ -19,7 +19,8 @@ Below are the ONTAP CLI comands to create a dedicated user for nDVP with specifi
   security login role create -vserver [VSERVER] -role ndvp_role -cmddirname "vserver" -access readonly
   security login role create -vserver [VSERVER] -role ndvp_role -cmddirname "vserver nfs show" -access readonly
   security login role create -vserver [VSERVER] -role ndvp_role -cmddirname "volume" -access all
-  
+  security login role create -vserver [VSERVER] -role ndvp_role -cmddirname "snapmirror" -access all
+
   # grant ontap-san nDVP permissions
   security login role create -vserver [VSERVER] -role ndvp_role -cmddirname "vserver iscsi show" -access readonly
   security login role create -vserver [VSERVER] -role ndvp_role -cmddirname "lun" -access all

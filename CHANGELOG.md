@@ -5,15 +5,27 @@
 ## Changes since 17.07.0
 
 **Fixes:**
-- Changed the Solidfire driver to tear down the iSCSI connection as part of the docker volume delete operation
-- Added pagination to ONTAP API calls, the lack of which in rare cases could cause nDVP to fail
-- Fixed issue where ONTAP NAS volumes were not mountable immediately after creation when using load-sharing mirrors for the SVM root volume
+- Changed the SolidFire driver to tear down the iSCSI connection as part
+  of the docker volume delete operation
+  (Issue [#93](https://github.com/NetApp/netappdvp/issues/93)).
+- nDVP plugin no longer requires /etc/iscsi bind mount even for NFS-only
+  installs (Issue [#82](https://github.com/NetApp/netappdvp/issues/82)).
+- Added pagination to ONTAP API calls, the lack of which in rare cases
+  could cause nDVP to fail.
+- Fixed issue where ONTAP NAS volumes were not mountable immediately
+  after creation when using load-sharing mirrors for the SVM root
+  volume (Issue [#84](https://github.com/NetApp/netappdvp/issues/84)).
 
 **Enhancements:**
-- Added controller serial numbers to logs
-- Added ontap-nas-economy driver
+- Added controller serial numbers to logs.
+- Added ontap-nas-economy driver.
 - Added aggregate validation to the ONTAP drivers
-- Added support for xfs and ext3 to the SolidFire, ONTAP SAN, and E-series drivers
+  (Issue [#92](https://github.com/NetApp/netappdvp/issues/92)).
+- Added support for xfs and ext3 to the SolidFire, ONTAP SAN, and
+  E-series drivers
+  (Issue [#73](https://github.com/NetApp/netappdvp/issues/73)).
+- Added iSCSI multipath support to SolidFire driver
+  (Issue [#49](https://github.com/NetApp/netappdvp/issues/49)).
 
 ## 17.07.0
 
