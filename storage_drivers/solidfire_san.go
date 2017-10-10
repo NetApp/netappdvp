@@ -180,7 +180,19 @@ func (d *SolidfireSANStorageDriver) Initialize(
 		return errors.New("error encountered validating SolidFire driver on init")
 	}
 
-	// log cluster node serial numbers
+	// log cluster node serial numbers asynchronously since the API can take a long time
+	go d.getNodeSerialNumbers(c.CommonStorageDriverConfig)
+
+	// log an informational message when this plugin starts
+	// TODO how does solidfire do this?
+	//EmsInitialized(d.Name(), d.api)
+
+	d.Initialized = true
+
+	return nil
+}
+
+func (d *SolidfireSANStorageDriver) getNodeSerialNumbers(c *CommonStorageDriverConfig) {
 	c.SerialNumbers = make([]string, 0, 0)
 	hwInfo, err := d.Client.GetClusterHardwareInfo()
 	if err != nil {
@@ -196,14 +208,6 @@ func (d *SolidfireSANStorageDriver) Initialize(
 		}
 	}
 	log.WithField("serialNumbers", c.SerialNumbers).Info("Controller serial numbers.")
-
-	// log an informational message when this plugin starts
-	// TODO how does solidfire do this?
-	//EmsInitialized(d.Name(), d.api)
-
-	d.Initialized = true
-
-	return nil
 }
 
 // Validate the driver configuration and execution environment
