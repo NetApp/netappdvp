@@ -21,7 +21,7 @@ import (
 // OntapNASQtreeStorageDriverName is the constant name for this Ontap qtree-based NAS storage driver
 const OntapNASQtreeStorageDriverName = "ontap-nas-economy"
 const deletedQtreeNamePrefix = "deleted_"
-const maxQtreesPerFlexvol = 100
+const maxQtreesPerFlexvol = 200
 const defaultPruneFlexvolsPeriodSecs = uint64(600) // default to 10 minutes
 const defaultResizeQuotasPeriodSecs = uint64(60)   // default to 1 minute
 
