@@ -171,11 +171,12 @@ func (d *OntapNASQtreeStorageDriver) startHousekeepingTasks() {
 
 	// Keep the system devoid of Flexvols with no qtrees
 	d.pruneUnusedFlexvols()
+	d.reapDeletedQtrees()
 	pruneTicker := time.NewTicker(time.Duration(pruneFlexvolsPeriodSecs) * time.Second)
 	go func() {
-		for t := range pruneTicker.C {
-			log.WithField("tick", t).Debug("Running housekeeping task: prune unused Flexvols.")
+		for range pruneTicker.C {
 			d.pruneUnusedFlexvols()
+			d.reapDeletedQtrees()
 		}
 	}()
 
@@ -183,8 +184,7 @@ func (d *OntapNASQtreeStorageDriver) startHousekeepingTasks() {
 	d.resizeQuotas()
 	resizeTicker := time.NewTicker(time.Duration(resizeQuotasPeriodSecs) * time.Second)
 	go func() {
-		for t := range resizeTicker.C {
-			log.WithField("tick", t).Debug("Running housekeeping task: resize quotas.")
+		for range resizeTicker.C {
 			d.resizeQuotas()
 		}
 	}()
@@ -336,6 +336,7 @@ func (d *OntapNASQtreeStorageDriver) Destroy(name string) error {
 	}
 	if !exists {
 		log.WithField("qtree", name).Warn("Qtree not found.")
+		return nil
 	}
 
 	// Rename qtree so it doesn't show up in lists while ONTAP is deleting it in the background
@@ -801,6 +802,8 @@ func (d *OntapNASQtreeStorageDriver) resizeQuotas() {
 	d.provMutex.Lock()
 	defer d.provMutex.Unlock()
 
+	log.Debug("Housekeeping, resizing quotas.")
+
 	for flexvol, resize := range d.quotaResizeMap {
 
 		if resize {
@@ -872,6 +875,8 @@ func (d *OntapNASQtreeStorageDriver) pruneUnusedFlexvols() {
 	d.provMutex.Lock()
 	defer d.provMutex.Unlock()
 
+	log.Debug("Housekeeping, checking for managed Flexvols with no qtrees.")
+
 	// Get list of Flexvols managed by this driver
 	volumeListResponse, err := d.API.VolumeList(d.FlexvolNamePrefix())
 	if err = ontap.GetError(volumeListResponse, err); err != nil {
@@ -885,8 +890,6 @@ func (d *OntapNASQtreeStorageDriver) pruneUnusedFlexvols() {
 		flexvols = append(flexvols, volName)
 	}
 
-	log.WithField("flexvols", len(flexvols)).Debug("Housekeeping, checking for managed Flexvols with qtrees.")
-
 	// Destroy any Flexvol if it is devoid of qtrees
 	for _, flexvol := range flexvols {
 		qtreeCount, err := d.API.QtreeCount(flexvol)
@@ -894,6 +897,30 @@ func (d *OntapNASQtreeStorageDriver) pruneUnusedFlexvols() {
 			log.WithField("flexvol", flexvol).Debug("Housekeeping, deleting managed Flexvol with no qtrees.")
 			d.API.VolumeDestroy(flexvol, true)
 		}
+	}
+}
+
+// reapDeletedQtrees is called periodically by a background task.  Any qtrees
+// that have been deleted (discovered by virtue of having a well-known hardcoded
+// prefix on their names) are destroyed.  This is only needed for the exceptional case
+// in which a qtree was renamed (prior to being destroyed) but the subsequent
+// destroy call failed or was never made due to a process interruption.
+func (d *OntapNASQtreeStorageDriver) reapDeletedQtrees() {
+
+	log.Debug("Housekeeping, checking for deleted qtrees.")
+
+	// Get all deleted qtrees in all FlexVols managed by this driver
+	prefix := deletedQtreeNamePrefix + *d.Config.StoragePrefix
+	listResponse, err := d.API.QtreeList(prefix, d.FlexvolNamePrefix())
+	if err = ontap.GetError(listResponse, err); err != nil {
+		log.Errorf("Error listing deleted qtrees. %v", err)
+	}
+
+	// AttributesList() returns []QtreeInfoType
+	for _, qtree := range listResponse.Result.AttributesList() {
+		qtreePath := fmt.Sprintf("/vol/%s/%s", qtree.Volume(), qtree.Qtree())
+		log.WithField("qtree", qtreePath).Debug("Housekeeping, reaping deleted qtree.")
+		d.API.QtreeDestroyAsync(qtreePath, true)
 	}
 }
 
