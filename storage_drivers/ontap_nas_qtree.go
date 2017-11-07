@@ -21,6 +21,7 @@ import (
 // OntapNASQtreeStorageDriverName is the constant name for this Ontap qtree-based NAS storage driver
 const OntapNASQtreeStorageDriverName = "ontap-nas-economy"
 const deletedQtreeNamePrefix = "deleted_"
+const maxQtreeNameLength = 64
 const maxQtreesPerFlexvol = 200
 const defaultPruneFlexvolsPeriodSecs = uint64(600) // default to 10 minutes
 const defaultResizeQuotasPeriodSecs = uint64(60)   // default to 1 minute
@@ -219,6 +220,11 @@ func (d *OntapNASQtreeStorageDriver) Create(name string, sizeBytes uint64, opts 
 		return fmt.Errorf("Volume %s already exists.", name)
 	}
 
+	// Ensure qtree name isn't too long
+	if len(name) > maxQtreeNameLength {
+		return fmt.Errorf("Volume %s name exceeds the limit of %d characters.", name, maxQtreeNameLength)
+	}
+
 	// Get Flexvol options with default fallback values
 	// see also: ontap_common.go#PopulateConfigurationDefaults
 	size := strconv.FormatUint(sizeBytes, 10)
@@ -339,9 +345,16 @@ func (d *OntapNASQtreeStorageDriver) Destroy(name string) error {
 		return nil
 	}
 
-	// Rename qtree so it doesn't show up in lists while ONTAP is deleting it in the background
+	// Rename qtree so it doesn't show up in lists while ONTAP is deleting it in the background.
+	// Ensure the deleted name doesn't exceed the qtree name length limit of 64 characters.
 	path := fmt.Sprintf("/vol/%s/%s", flexvol, name)
-	deletedPath := fmt.Sprintf("/vol/%s/%s", flexvol, deletedQtreeNamePrefix+name+"_"+utils.RandomString(5))
+	deletedName := deletedQtreeNamePrefix + name + "_" + utils.RandomString(5)
+	if len(deletedName) > maxQtreeNameLength {
+		trimLength := len(deletedQtreeNamePrefix) + 10
+		deletedName = deletedQtreeNamePrefix + name[trimLength:] + "_" + utils.RandomString(5)
+	}
+	deletedPath := fmt.Sprintf("/vol/%s/%s", flexvol, deletedName)
+
 	renameResponse, err := d.API.QtreeRename(path, deletedPath)
 	if err = ontap.GetError(renameResponse, err); err != nil {
 		log.Errorf("Qtree rename failed. %v", err)
