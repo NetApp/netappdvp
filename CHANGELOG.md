@@ -2,7 +2,17 @@
 
 [Releases](https://github.com/NetApp/netappdvp/releases)
 
-## Changes since 17.07.0
+## Changes since 17.10.0
+
+**Fixes:**
+- Added delete idempotency to the ontap-nas-economy driver as needed by Trident.
+- Fixed an issue where qtrees with names near the 64-character limit could not
+  be deleted.
+
+**Enhancements:**
+
+
+## 17.10.0
 
 **Fixes:**
 - Changed the SolidFire driver to tear down the iSCSI connection as part
