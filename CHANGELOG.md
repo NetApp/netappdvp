@@ -8,6 +8,7 @@
 - Added delete idempotency to the ontap-nas-economy driver as needed by Trident.
 - Fixed an issue where qtrees with names near the 64-character limit could not
   be deleted.
+- Fixed an issue with volume creation on all-flash E-series arrays.
 
 **Enhancements:**
 

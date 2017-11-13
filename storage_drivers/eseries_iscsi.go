@@ -192,7 +192,7 @@ func (d *ESeriesStorageDriver) Create(name string, sizeBytes uint64, opts map[st
 	}
 
 	// Get media type, or default to "hdd" if not specified
-	mediaType := utils.GetV(opts, "mediaType", "hdd")
+	mediaType := utils.GetV(opts, "mediaType", "")
 
 	// Check for a supported file system type
 	fstype := strings.ToLower(utils.GetV(opts, "fstype|fileSystemType", "ext4"))
