@@ -89,6 +89,13 @@ func (d *SolidfireSANStorageDriver) Initialize(
 	prefix := ""
 	c.StoragePrefix = &prefix
 
+	if context == ContextNDVP {
+		if !c.UseCHAP {
+			log.Info("Enabling CHAP for Docker volumes.")
+			c.UseCHAP = true
+		}
+	}
+
 	log.Debugf("Decoded to %+v", c)
 	d.Config = *c
 
@@ -563,6 +570,30 @@ func (d *SolidfireSANStorageDriver) SnapshotList(name string) ([]CommonSnapshot,
 func (d *SolidfireSANStorageDriver) Get(name string) error {
 	_, err := d.GetVolume(name)
 	return err
+}
+
+// GetVolumes returns all volumes for the configured tenant.  The
+// keys are the volume names as reported to Docker.
+func (d *SolidfireSANStorageDriver) GetVolumes() (map[string]sfapi.Volume, error) {
+	var req sfapi.ListVolumesForAccountRequest
+	req.AccountID = d.TenantID
+	volumes, err := d.Client.ListVolumesForAccount(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	volMap := make(map[string]sfapi.Volume)
+	for _, volume := range volumes {
+		if volume.Status != "deleted" {
+			attrs, _ := volume.Attributes.(map[string]interface{})
+			dName := strings.Replace(volume.Name, d.LegacyNamePrefix, "", -1)
+			if str, ok := attrs["docker-name"].(string); ok {
+				dName = strings.Replace(str, d.LegacyNamePrefix, "", -1)
+			}
+			volMap[dName] = volume
+		}
+	}
+	return volMap, nil
 }
 
 func (d *SolidfireSANStorageDriver) GetVolume(name string) (sfapi.Volume, error) {

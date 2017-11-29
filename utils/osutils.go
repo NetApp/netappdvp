@@ -880,5 +880,8 @@ func InvokeShellCommand(name string, args ...string) ([]byte, error) {
 
 func sanitizeString(s string) string {
 	// Strip xterm color & movement characters
-	return XtermControlRegex.ReplaceAllString(s, "")
+	s = XtermControlRegex.ReplaceAllString(s, "")
+	// Strip trailing newline
+	s = strings.TrimSuffix(s, "\n")
+	return s
 }

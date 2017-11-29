@@ -41,6 +41,10 @@ var ExtendedDriverVersion = "native"
 // DefaultStoragePrefix can be overridden by Trident too. God.
 var DefaultStoragePrefix = "netappdvp_"
 
+// Default SAN igroup / host group names
+const DefaultDockerIgroupName = "netappdvp"
+const DefaultTridentIgroupName = "trident"
+
 // CommonStorageDriverConfig holds settings in common across all StorageDrivers
 type CommonStorageDriverConfig struct {
 	Version                           int             `json:"version"`

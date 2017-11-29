@@ -436,6 +436,39 @@ func (d ESeriesAPIDriver) GetVolumePools(mediaType string, minFreeSpaceBytes uin
 	return matchingPools, nil
 }
 
+// GetVolumePoolByRef returns the pool with the specified volumeGroupRef.
+func (d ESeriesAPIDriver) GetVolumePoolByRef(volumeGroupRef string) (VolumeGroupEx, error) {
+
+	if d.config.DebugTraceFlags["method"] {
+		fields := log.Fields{
+			"Method":         "GetVolumePoolByRef",
+			"Type":           "ESeriesAPIDriver",
+			"volumeGroupRef": volumeGroupRef,
+		}
+		log.WithFields(fields).Debug(">>>> GetVolumePoolByRef")
+		defer log.WithFields(fields).Debug("<<<< GetVolumePoolByRef")
+	}
+
+	// Get the storage pool (may be either volume RAID group or dynamic disk pool)
+	resourcePath := "/storage-pools/" + volumeGroupRef
+	response, responseBody, err := d.InvokeAPI(nil, "GET", resourcePath)
+	if err != nil {
+		return VolumeGroupEx{}, fmt.Errorf("Could not get storage pool. %v", err)
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return VolumeGroupEx{}, fmt.Errorf("Could not get storage pool. Status code: %d", response.StatusCode)
+	}
+
+	// Parse JSON data
+	pool := VolumeGroupEx{}
+	if err := json.Unmarshal(responseBody, &pool); err != nil {
+		return VolumeGroupEx{}, fmt.Errorf("Could not parse storage pool data: %s. %v", string(responseBody), err)
+	}
+
+	return pool, nil
+}
+
 // GetVolumes returns an array containing all the volumes on the array.
 func (d ESeriesAPIDriver) GetVolumes() ([]VolumeEx, error) {
 

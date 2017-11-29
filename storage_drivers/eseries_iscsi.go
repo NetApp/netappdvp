@@ -25,7 +25,6 @@ func init() {
 
 // EseriesIscsiStorageDriverName is the name for this storage driver that is specified in the config file, etc.
 const EseriesIscsiStorageDriverName = "eseries-iscsi"
-const DefaultAccessGroupName = "netappdvp"
 const DefaultHostType = "linux_dm_mp"
 
 // ESeriesStorageDriver is for storage provisioning via the Web Services Proxy RESTful interface that communicates
@@ -72,7 +71,12 @@ func (d *ESeriesStorageDriver) Initialize(
 		config.StoragePrefix = &prefix
 	}
 	if config.AccessGroup == "" {
-		config.AccessGroup = DefaultAccessGroupName
+		switch context {
+		case ContextNDVP:
+			config.AccessGroup = DefaultDockerIgroupName
+		case ContextTrident:
+			config.AccessGroup = DefaultTridentIgroupName
+		}
 	}
 	if config.HostType == "" {
 		config.HostType = DefaultHostType

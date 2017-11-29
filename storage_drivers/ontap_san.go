@@ -66,7 +66,12 @@ func (d *OntapSANStorageDriver) Initialize(
 	}
 
 	if config.IgroupName == "" {
-		config.IgroupName = "netappdvp"
+		switch context {
+		case ContextNDVP:
+			config.IgroupName = DefaultDockerIgroupName
+		case ContextTrident:
+			config.IgroupName = DefaultTridentIgroupName
+		}
 	}
 
 	d.Config = *config
