@@ -9303,3 +9303,693 @@ func (o *SnapmirrorInfoType) SetVserver(newValue string) *SnapmirrorInfoType {
 	o.VserverPtr = &newValue
 	return o
 }
+
+// LunInfoType is a structure to represent a lun-info ZAPI object
+type LunInfoType struct {
+	XMLName xml.Name `xml:"lun-info"`
+
+	AlignmentPtr                 *string       `xml:"alignment"`
+	BackingSnapshotPtr           *string       `xml:"backing-snapshot"`
+	BlockSizePtr                 *int          `xml:"block-size"`
+	CachingPolicyPtr             *string       `xml:"caching-policy"`
+	ClassPtr                     *string       `xml:"class"`
+	CloneBackingSnapshotPtr      *string       `xml:"clone-backing-snapshot"`
+	CommentPtr                   *string       `xml:"comment"`
+	CreationTimestampPtr         *int          `xml:"creation-timestamp"`
+	DeviceBinaryIdPtr            *string       `xml:"device-binary-id"`
+	DeviceIdPtr                  *int          `xml:"device-id"`
+	DeviceTextIdPtr              *string       `xml:"device-text-id"`
+	IsClonePtr                   *bool         `xml:"is-clone"`
+	IsCloneAutodeleteEnabledPtr  *bool         `xml:"is-clone-autodelete-enabled"`
+	IsInconsistentImportPtr      *bool         `xml:"is-inconsistent-import"`
+	IsRestoreInaccessiblePtr     *bool         `xml:"is-restore-inaccessible"`
+	IsSpaceAllocEnabledPtr       *bool         `xml:"is-space-alloc-enabled"`
+	IsSpaceReservationEnabledPtr *bool         `xml:"is-space-reservation-enabled"`
+	MappedPtr                    *bool         `xml:"mapped"`
+	MultiprotocolTypePtr         *string       `xml:"multiprotocol-type"`
+	NodePtr                      *NodeNameType `xml:"node"`
+	OnlinePtr                    *bool         `xml:"online"`
+	PathPtr                      *string       `xml:"path"`
+	PrefixSizePtr                *int          `xml:"prefix-size"`
+	QosPolicyGroupPtr            *string       `xml:"qos-policy-group"`
+	QtreePtr                     *string       `xml:"qtree"`
+	ReadOnlyPtr                  *bool         `xml:"read-only"`
+	Serial7ModePtr               *string       `xml:"serial-7-mode"`
+	SerialNumberPtr              *string       `xml:"serial-number"`
+	ShareStatePtr                *string       `xml:"share-state"`
+	SizePtr                      *int          `xml:"size"`
+	SizeUsedPtr                  *int          `xml:"size-used"`
+	StagingPtr                   *bool         `xml:"staging"`
+	StatePtr                     *string       `xml:"state"`
+	SuffixSizePtr                *int          `xml:"suffix-size"`
+	UuidPtr                      *string       `xml:"uuid"`
+	VolumePtr                    *string       `xml:"volume"`
+	VserverPtr                   *string       `xml:"vserver"`
+}
+
+// ToXML converts this object into an xml string representation
+func (o *LunInfoType) ToXML() (string, error) {
+	output, err := xml.MarshalIndent(o, " ", "    ")
+	if err != nil {
+		log.Errorf("error: %v", err)
+	}
+	return string(output), err
+}
+
+// NewLunInfoType is a factory method for creating new instances of LunInfoType objects
+func NewLunInfoType() *LunInfoType { return &LunInfoType{} }
+
+// String returns a string representation of this object's fields and implements the Stringer interface
+func (o LunInfoType) String() string {
+	var buffer bytes.Buffer
+	if o.AlignmentPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "alignment", *o.AlignmentPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("alignment: nil\n"))
+	}
+	if o.BackingSnapshotPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "backing-snapshot", *o.BackingSnapshotPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("backing-snapshot: nil\n"))
+	}
+	if o.BlockSizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "block-size", *o.BlockSizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("block-size: nil\n"))
+	}
+	if o.CachingPolicyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "caching-policy", *o.CachingPolicyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("caching-policy: nil\n"))
+	}
+	if o.ClassPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "class", *o.ClassPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("class: nil\n"))
+	}
+	if o.CloneBackingSnapshotPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "clone-backing-snapshot", *o.CloneBackingSnapshotPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("clone-backing-snapshot: nil\n"))
+	}
+	if o.CommentPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "comment", *o.CommentPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("comment: nil\n"))
+	}
+	if o.CreationTimestampPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "creation-timestamp", *o.CreationTimestampPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("creation-timestamp: nil\n"))
+	}
+	if o.DeviceBinaryIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "device-binary-id", *o.DeviceBinaryIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("device-binary-id: nil\n"))
+	}
+	if o.DeviceIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "device-id", *o.DeviceIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("device-id: nil\n"))
+	}
+	if o.DeviceTextIdPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "device-text-id", *o.DeviceTextIdPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("device-text-id: nil\n"))
+	}
+	if o.IsClonePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-clone", *o.IsClonePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-clone: nil\n"))
+	}
+	if o.IsCloneAutodeleteEnabledPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-clone-autodelete-enabled", *o.IsCloneAutodeleteEnabledPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-clone-autodelete-enabled: nil\n"))
+	}
+	if o.IsInconsistentImportPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-inconsistent-import", *o.IsInconsistentImportPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-inconsistent-import: nil\n"))
+	}
+	if o.IsRestoreInaccessiblePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-restore-inaccessible", *o.IsRestoreInaccessiblePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-restore-inaccessible: nil\n"))
+	}
+	if o.IsSpaceAllocEnabledPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-space-alloc-enabled", *o.IsSpaceAllocEnabledPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-space-alloc-enabled: nil\n"))
+	}
+	if o.IsSpaceReservationEnabledPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "is-space-reservation-enabled", *o.IsSpaceReservationEnabledPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("is-space-reservation-enabled: nil\n"))
+	}
+	if o.MappedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "mapped", *o.MappedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("mapped: nil\n"))
+	}
+	if o.MultiprotocolTypePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "multiprotocol-type", *o.MultiprotocolTypePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("multiprotocol-type: nil\n"))
+	}
+	if o.NodePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "node", *o.NodePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("node: nil\n"))
+	}
+	if o.OnlinePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "online", *o.OnlinePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("online: nil\n"))
+	}
+	if o.PathPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "path", *o.PathPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("path: nil\n"))
+	}
+	if o.PrefixSizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "prefix-size", *o.PrefixSizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("prefix-size: nil\n"))
+	}
+	if o.QosPolicyGroupPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "qos-policy-group", *o.QosPolicyGroupPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("qos-policy-group: nil\n"))
+	}
+	if o.QtreePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "qtree", *o.QtreePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("qtree: nil\n"))
+	}
+	if o.ReadOnlyPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "read-only", *o.ReadOnlyPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("read-only: nil\n"))
+	}
+	if o.Serial7ModePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "serial-7-mode", *o.Serial7ModePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("serial-7-mode: nil\n"))
+	}
+	if o.SerialNumberPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "serial-number", *o.SerialNumberPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("serial-number: nil\n"))
+	}
+	if o.ShareStatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "share-state", *o.ShareStatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("share-state: nil\n"))
+	}
+	if o.SizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "size", *o.SizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("size: nil\n"))
+	}
+	if o.SizeUsedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "size-used", *o.SizeUsedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("size-used: nil\n"))
+	}
+	if o.StagingPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "staging", *o.StagingPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("staging: nil\n"))
+	}
+	if o.StatePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "state", *o.StatePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("state: nil\n"))
+	}
+	if o.SuffixSizePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "suffix-size", *o.SuffixSizePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("suffix-size: nil\n"))
+	}
+	if o.UuidPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "uuid", *o.UuidPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("uuid: nil\n"))
+	}
+	if o.VolumePtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "volume", *o.VolumePtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("volume: nil\n"))
+	}
+	if o.VserverPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "vserver", *o.VserverPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("vserver: nil\n"))
+	}
+	return buffer.String()
+}
+
+// Alignment is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Alignment() string {
+	r := *o.AlignmentPtr
+	return r
+}
+
+// SetAlignment is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetAlignment(newValue string) *LunInfoType {
+	o.AlignmentPtr = &newValue
+	return o
+}
+
+// BackingSnapshot is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) BackingSnapshot() string {
+	r := *o.BackingSnapshotPtr
+	return r
+}
+
+// SetBackingSnapshot is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetBackingSnapshot(newValue string) *LunInfoType {
+	o.BackingSnapshotPtr = &newValue
+	return o
+}
+
+// BlockSize is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) BlockSize() int {
+	r := *o.BlockSizePtr
+	return r
+}
+
+// SetBlockSize is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetBlockSize(newValue int) *LunInfoType {
+	o.BlockSizePtr = &newValue
+	return o
+}
+
+// CachingPolicy is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) CachingPolicy() string {
+	r := *o.CachingPolicyPtr
+	return r
+}
+
+// SetCachingPolicy is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetCachingPolicy(newValue string) *LunInfoType {
+	o.CachingPolicyPtr = &newValue
+	return o
+}
+
+// Class is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Class() string {
+	r := *o.ClassPtr
+	return r
+}
+
+// SetClass is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetClass(newValue string) *LunInfoType {
+	o.ClassPtr = &newValue
+	return o
+}
+
+// CloneBackingSnapshot is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) CloneBackingSnapshot() string {
+	r := *o.CloneBackingSnapshotPtr
+	return r
+}
+
+// SetCloneBackingSnapshot is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetCloneBackingSnapshot(newValue string) *LunInfoType {
+	o.CloneBackingSnapshotPtr = &newValue
+	return o
+}
+
+// Comment is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Comment() string {
+	r := *o.CommentPtr
+	return r
+}
+
+// SetComment is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetComment(newValue string) *LunInfoType {
+	o.CommentPtr = &newValue
+	return o
+}
+
+// CreationTimestamp is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) CreationTimestamp() int {
+	r := *o.CreationTimestampPtr
+	return r
+}
+
+// SetCreationTimestamp is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetCreationTimestamp(newValue int) *LunInfoType {
+	o.CreationTimestampPtr = &newValue
+	return o
+}
+
+// DeviceBinaryId is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) DeviceBinaryId() string {
+	r := *o.DeviceBinaryIdPtr
+	return r
+}
+
+// SetDeviceBinaryId is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetDeviceBinaryId(newValue string) *LunInfoType {
+	o.DeviceBinaryIdPtr = &newValue
+	return o
+}
+
+// DeviceId is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) DeviceId() int {
+	r := *o.DeviceIdPtr
+	return r
+}
+
+// SetDeviceId is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetDeviceId(newValue int) *LunInfoType {
+	o.DeviceIdPtr = &newValue
+	return o
+}
+
+// DeviceTextId is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) DeviceTextId() string {
+	r := *o.DeviceTextIdPtr
+	return r
+}
+
+// SetDeviceTextId is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetDeviceTextId(newValue string) *LunInfoType {
+	o.DeviceTextIdPtr = &newValue
+	return o
+}
+
+// IsClone is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) IsClone() bool {
+	r := *o.IsClonePtr
+	return r
+}
+
+// SetIsClone is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetIsClone(newValue bool) *LunInfoType {
+	o.IsClonePtr = &newValue
+	return o
+}
+
+// IsCloneAutodeleteEnabled is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) IsCloneAutodeleteEnabled() bool {
+	r := *o.IsCloneAutodeleteEnabledPtr
+	return r
+}
+
+// SetIsCloneAutodeleteEnabled is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetIsCloneAutodeleteEnabled(newValue bool) *LunInfoType {
+	o.IsCloneAutodeleteEnabledPtr = &newValue
+	return o
+}
+
+// IsInconsistentImport is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) IsInconsistentImport() bool {
+	r := *o.IsInconsistentImportPtr
+	return r
+}
+
+// SetIsInconsistentImport is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetIsInconsistentImport(newValue bool) *LunInfoType {
+	o.IsInconsistentImportPtr = &newValue
+	return o
+}
+
+// IsRestoreInaccessible is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) IsRestoreInaccessible() bool {
+	r := *o.IsRestoreInaccessiblePtr
+	return r
+}
+
+// SetIsRestoreInaccessible is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetIsRestoreInaccessible(newValue bool) *LunInfoType {
+	o.IsRestoreInaccessiblePtr = &newValue
+	return o
+}
+
+// IsSpaceAllocEnabled is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) IsSpaceAllocEnabled() bool {
+	r := *o.IsSpaceAllocEnabledPtr
+	return r
+}
+
+// SetIsSpaceAllocEnabled is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetIsSpaceAllocEnabled(newValue bool) *LunInfoType {
+	o.IsSpaceAllocEnabledPtr = &newValue
+	return o
+}
+
+// IsSpaceReservationEnabled is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) IsSpaceReservationEnabled() bool {
+	r := *o.IsSpaceReservationEnabledPtr
+	return r
+}
+
+// SetIsSpaceReservationEnabled is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetIsSpaceReservationEnabled(newValue bool) *LunInfoType {
+	o.IsSpaceReservationEnabledPtr = &newValue
+	return o
+}
+
+// Mapped is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Mapped() bool {
+	r := *o.MappedPtr
+	return r
+}
+
+// SetMapped is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetMapped(newValue bool) *LunInfoType {
+	o.MappedPtr = &newValue
+	return o
+}
+
+// MultiprotocolType is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) MultiprotocolType() string {
+	r := *o.MultiprotocolTypePtr
+	return r
+}
+
+// SetMultiprotocolType is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetMultiprotocolType(newValue string) *LunInfoType {
+	o.MultiprotocolTypePtr = &newValue
+	return o
+}
+
+// Node is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Node() NodeNameType {
+	r := *o.NodePtr
+	return r
+}
+
+// SetNode is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetNode(newValue NodeNameType) *LunInfoType {
+	o.NodePtr = &newValue
+	return o
+}
+
+// Online is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Online() bool {
+	r := *o.OnlinePtr
+	return r
+}
+
+// SetOnline is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetOnline(newValue bool) *LunInfoType {
+	o.OnlinePtr = &newValue
+	return o
+}
+
+// Path is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Path() string {
+	r := *o.PathPtr
+	return r
+}
+
+// SetPath is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetPath(newValue string) *LunInfoType {
+	o.PathPtr = &newValue
+	return o
+}
+
+// PrefixSize is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) PrefixSize() int {
+	r := *o.PrefixSizePtr
+	return r
+}
+
+// SetPrefixSize is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetPrefixSize(newValue int) *LunInfoType {
+	o.PrefixSizePtr = &newValue
+	return o
+}
+
+// QosPolicyGroup is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) QosPolicyGroup() string {
+	r := *o.QosPolicyGroupPtr
+	return r
+}
+
+// SetQosPolicyGroup is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetQosPolicyGroup(newValue string) *LunInfoType {
+	o.QosPolicyGroupPtr = &newValue
+	return o
+}
+
+// Qtree is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Qtree() string {
+	r := *o.QtreePtr
+	return r
+}
+
+// SetQtree is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetQtree(newValue string) *LunInfoType {
+	o.QtreePtr = &newValue
+	return o
+}
+
+// ReadOnly is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) ReadOnly() bool {
+	r := *o.ReadOnlyPtr
+	return r
+}
+
+// SetReadOnly is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetReadOnly(newValue bool) *LunInfoType {
+	o.ReadOnlyPtr = &newValue
+	return o
+}
+
+// Serial7Mode is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Serial7Mode() string {
+	r := *o.Serial7ModePtr
+	return r
+}
+
+// SetSerial7Mode is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetSerial7Mode(newValue string) *LunInfoType {
+	o.Serial7ModePtr = &newValue
+	return o
+}
+
+// SerialNumber is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) SerialNumber() string {
+	r := *o.SerialNumberPtr
+	return r
+}
+
+// SetSerialNumber is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetSerialNumber(newValue string) *LunInfoType {
+	o.SerialNumberPtr = &newValue
+	return o
+}
+
+// ShareState is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) ShareState() string {
+	r := *o.ShareStatePtr
+	return r
+}
+
+// SetShareState is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetShareState(newValue string) *LunInfoType {
+	o.ShareStatePtr = &newValue
+	return o
+}
+
+// Size is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Size() int {
+	r := *o.SizePtr
+	return r
+}
+
+// SetSize is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetSize(newValue int) *LunInfoType {
+	o.SizePtr = &newValue
+	return o
+}
+
+// SizeUsed is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) SizeUsed() int {
+	r := *o.SizeUsedPtr
+	return r
+}
+
+// SetSizeUsed is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetSizeUsed(newValue int) *LunInfoType {
+	o.SizeUsedPtr = &newValue
+	return o
+}
+
+// Staging is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Staging() bool {
+	r := *o.StagingPtr
+	return r
+}
+
+// SetStaging is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetStaging(newValue bool) *LunInfoType {
+	o.StagingPtr = &newValue
+	return o
+}
+
+// State is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) State() string {
+	r := *o.StatePtr
+	return r
+}
+
+// SetState is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetState(newValue string) *LunInfoType {
+	o.StatePtr = &newValue
+	return o
+}
+
+// SuffixSize is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) SuffixSize() int {
+	r := *o.SuffixSizePtr
+	return r
+}
+
+// SetSuffixSize is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetSuffixSize(newValue int) *LunInfoType {
+	o.SuffixSizePtr = &newValue
+	return o
+}
+
+// Uuid is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Uuid() string {
+	r := *o.UuidPtr
+	return r
+}
+
+// SetUuid is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetUuid(newValue string) *LunInfoType {
+	o.UuidPtr = &newValue
+	return o
+}
+
+// Volume is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Volume() string {
+	r := *o.VolumePtr
+	return r
+}
+
+// SetVolume is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetVolume(newValue string) *LunInfoType {
+	o.VolumePtr = &newValue
+	return o
+}
+
+// Vserver is a fluent style 'getter' method that can be chained
+func (o *LunInfoType) Vserver() string {
+	r := *o.VserverPtr
+	return r
+}
+
+// SetVserver is a fluent style 'setter' method that can be chained
+func (o *LunInfoType) SetVserver(newValue string) *LunInfoType {
+	o.VserverPtr = &newValue
+	return o
+}

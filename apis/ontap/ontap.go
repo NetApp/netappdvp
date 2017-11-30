@@ -400,6 +400,57 @@ func (d Driver) LunGetAttribute(lunPath, name string) (response azgo.LunGetAttri
 	return
 }
 
+// LunGet returns all relevant details for a single LUN
+// equivalent to filer::> lun show
+func (d Driver) LunGet(path string) (azgo.LunInfoType, error) {
+
+	// Limit the LUNs to the one matching the path
+	query := azgo.NewLunInfoType().SetPath(path)
+
+	// Limit the returned data to only the data relevant to containers
+	desiredAttributes := azgo.NewLunInfoType().
+		SetPath("").
+		SetVolume("").
+		SetSize(0)
+
+	response, err := azgo.NewLunGetIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+
+	if err != nil {
+		return azgo.LunInfoType{}, err
+	} else if response.Result.NumRecords() == 0 {
+		return azgo.LunInfoType{}, fmt.Errorf("LUN %s not found.", path)
+	} else if response.Result.NumRecords() > 1 {
+		return azgo.LunInfoType{}, fmt.Errorf("More than one LUN %s found.", path)
+	}
+
+	return response.Result.AttributesList()[0], nil
+}
+
+// LunGetAll returns all relevant details for all LUNs whose paths match the supplied pattern
+// equivalent to filer::> lun show
+func (d Driver) LunGetAll(pathPattern string) (response azgo.LunGetIterResponse, err error) {
+
+	// Limit the LUNs to those matching the path pattern
+	query := azgo.NewLunInfoType().SetPath(pathPattern)
+
+	// Limit the returned data to only the data relevant to containers
+	desiredAttributes := azgo.NewLunInfoType().
+		SetPath("").
+		SetVolume("").
+		SetSize(0)
+
+	response, err = azgo.NewLunGetIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+	return
+}
+
 // LUN operations END
 /////////////////////////////////////////////////////////////////////////////
 
@@ -536,6 +587,8 @@ func (d Driver) VolumeDestroy(name string, force bool) (response azgo.VolumeDest
 	return
 }
 
+// VolumeGet returns all relevant details for a single Flexvol
+// equivalent to filer::> volume show
 func (d Driver) VolumeGet(name string) (azgo.VolumeAttributesType, error) {
 
 	// Limit the Flexvols to the one matching the name
@@ -556,7 +609,45 @@ func (d Driver) VolumeGet(name string) (azgo.VolumeAttributesType, error) {
 	}
 
 	return response.Result.AttributesList()[0], nil
+}
 
+// VolumeGetAll returns all relevant details for all FlexVols whose names match the supplied prefix
+// equivalent to filer::> volume show
+func (d Driver) VolumeGetAll(prefix string) (response azgo.VolumeGetIterResponse, err error) {
+
+	// Limit the Flexvols to those matching the name prefix
+	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(prefix + "*"))
+	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*queryVolIdAttrs)
+
+	// Limit the returned data to only the data relevant to containers
+	desiredVolExportAttrs := azgo.NewVolumeExportAttributesType().
+		SetPolicy("")
+	desiredVolIdAttrs := azgo.NewVolumeIdAttributesType().
+		SetName("").
+		SetContainingAggregateName("")
+	desiredVolSecurityUnixAttrs := azgo.NewVolumeSecurityUnixAttributesType().
+		SetPermissions("")
+	desiredVolSecurityAttrs := azgo.NewVolumeSecurityAttributesType().
+		SetVolumeSecurityUnixAttributes(*desiredVolSecurityUnixAttrs)
+	desiredVolSpaceAttrs := azgo.NewVolumeSpaceAttributesType().
+		SetSize(0)
+	desiredVolSnapshotAttrs := azgo.NewVolumeSnapshotAttributesType().
+		SetSnapdirAccessEnabled(true).
+		SetSnapshotPolicy("")
+
+	desiredAttributes := azgo.NewVolumeAttributesType().
+		SetVolumeExportAttributes(*desiredVolExportAttrs).
+		SetVolumeIdAttributes(*desiredVolIdAttrs).
+		SetVolumeSecurityAttributes(*desiredVolSecurityAttrs).
+		SetVolumeSpaceAttributes(*desiredVolSpaceAttrs).
+		SetVolumeSnapshotAttributes(*desiredVolSnapshotAttrs)
+
+	response, err = azgo.NewVolumeGetIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+	return
 }
 
 // VolumeList returns the names of all Flexvols whose names match the supplied prefix
@@ -578,7 +669,7 @@ func (d Driver) VolumeList(prefix string) (response azgo.VolumeGetIterResponse, 
 	return
 }
 
-// VolumeList returns the names of all Flexvols matching the specified attributes
+// VolumeListByAttrs returns the names of all Flexvols matching the specified attributes
 func (d Driver) VolumeListByAttrs(
 	prefix, aggregate, spaceReserve, snapshotPolicy string, snapshotDir bool, encrypt *bool,
 ) (response azgo.VolumeGetIterResponse, err error) {
@@ -738,6 +829,52 @@ func (d Driver) QtreeExists(name, volumePrefix string) (bool, string, error) {
 	return true, flexvol, nil
 }
 
+// QtreeGet returns all relevant details for a single qtree
+// equivalent to filer::> volume qtree show
+func (d Driver) QtreeGet(name, volumePrefix string) (azgo.QtreeInfoType, error) {
+
+	// Limit the qtrees to those matching the Flexvol and Qtree name prefixes
+	query := azgo.NewQtreeInfoType().SetVolume(volumePrefix + "*").SetQtree(name)
+
+	response, err := azgo.NewQtreeListIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		ExecuteUsing(d.zr)
+
+	if err != nil {
+		return azgo.QtreeInfoType{}, err
+	} else if response.Result.NumRecords() == 0 {
+		return azgo.QtreeInfoType{}, fmt.Errorf("Qtree %s not found.", name)
+	} else if response.Result.NumRecords() > 1 {
+		return azgo.QtreeInfoType{}, fmt.Errorf("More than one qtree %s found.", name)
+	}
+
+	return response.Result.AttributesList()[0], nil
+}
+
+// QtreeGetAll returns all relevant details for all qtrees whose Flexvol names match the supplied prefix
+// equivalent to filer::> volume qtree show
+func (d Driver) QtreeGetAll(volumePrefix string) (response azgo.QtreeListIterResponse, err error) {
+
+	// Limit the qtrees to those matching the Flexvol name prefix
+	query := azgo.NewQtreeInfoType().SetVolume(volumePrefix + "*")
+
+	// Limit the returned data to only the data relevant to containers
+	desiredAttributes := azgo.NewQtreeInfoType().
+		SetVolume("").
+		SetQtree("").
+		SetSecurityStyle("").
+		SetMode("").
+		SetExportPolicy("")
+
+	response, err = azgo.NewQtreeListIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+	return
+}
+
 // QuotaOn enables quotas on a Flexvol
 // equivalent to filer::> volume quota on
 func (d Driver) QuotaOn(volume string) (response azgo.QuotaOnResponse, err error) {
@@ -792,12 +929,40 @@ func (d Driver) QuotaSetEntry(qtreeName, volumeName, quotaTarget, quotaType, dis
 	return request.ExecuteUsing(d.zr)
 }
 
-func (d Driver) QuotaEntryList(volume string) (response azgo.QuotaListEntriesIterResponse, err error) {
+// QuotaEntryGet returns the disk limit for a single qtree
+// equivalent to filer::> volume quota policy rule show
+func (d Driver) QuotaEntryGet(target string) (azgo.QuotaEntryType, error) {
 
-	query := azgo.NewQuotaEntryType().SetVolume(volume)
+	query := azgo.NewQuotaEntryType().SetQuotaType("tree").SetQuotaTarget(target)
 
 	// Limit the returned data to only the disk limit
-	desiredAttributes := azgo.NewQuotaEntryType().SetDiskLimit("")
+	desiredAttributes := azgo.NewQuotaEntryType().SetDiskLimit("").SetQuotaTarget("")
+
+	response, err := azgo.NewQuotaListEntriesIterRequest().
+		SetMaxRecords(defaultZapiRecords).
+		SetQuery(*query).
+		SetDesiredAttributes(*desiredAttributes).
+		ExecuteUsing(d.zr)
+
+	if err != nil {
+		return azgo.QuotaEntryType{}, err
+	} else if response.Result.NumRecords() == 0 {
+		return azgo.QuotaEntryType{}, fmt.Errorf("Tree quota for %s not found.", target)
+	} else if response.Result.NumRecords() > 1 {
+		return azgo.QuotaEntryType{}, fmt.Errorf("More than one tree quota for %s found.", target)
+	}
+
+	return response.Result.AttributesList()[0], nil
+}
+
+// QuotaEntryList returns the disk limit quotas for a Flexvol
+// equivalent to filer::> volume quota policy rule show
+func (d Driver) QuotaEntryList(volume string) (response azgo.QuotaListEntriesIterResponse, err error) {
+
+	query := azgo.NewQuotaEntryType().SetVolume(volume).SetQuotaType("tree")
+
+	// Limit the returned data to only the disk limit
+	desiredAttributes := azgo.NewQuotaEntryType().SetDiskLimit("").SetQuotaTarget("")
 
 	response, err = azgo.NewQuotaListEntriesIterRequest().
 		SetMaxRecords(defaultZapiRecords).
