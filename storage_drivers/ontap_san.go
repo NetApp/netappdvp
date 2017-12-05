@@ -420,11 +420,6 @@ func (d *OntapSANStorageDriver) Attach(name, mountpoint string, opts map[string]
 	// Perform discovery to see the created/mapped LUN
 	utils.IscsiRescan(false)
 
-	cmd := fmt.Sprintf("dmesg | tail -n 50")
-	log.Debugf("running 'sh -c %v'", cmd)
-	out2, _ := exec.Command("sh", "-c", cmd).CombinedOutput()
-	log.Debug(string(out2))
-
 	// Lookup all the SCSI device information
 	info, err := utils.GetDeviceInfoForLuns()
 	if err != nil {
