@@ -1208,6 +1208,25 @@ func (d Driver) NetInterfaceGet() (response azgo.NetInterfaceGetIterResponse, er
 	return
 }
 
+func (d Driver) NetInterfaceGetDataLIFs(protocol string) ([]string, error) {
+	lifResponse, err := d.NetInterfaceGet()
+	if err = GetError(lifResponse, err); err != nil {
+		return nil, fmt.Errorf("Error checking network interfaces. %v", err)
+	}
+
+	dataLIFs := make([]string, 0)
+	for _, attrs := range lifResponse.Result.AttributesList() {
+		for _, proto := range attrs.DataProtocols() {
+			if proto == azgo.DataProtocolType(protocol) {
+				dataLIFs = append(dataLIFs, string(attrs.Address()))
+			}
+		}
+	}
+
+	log.WithField("dataLIFs", dataLIFs).Debug("Data LIFs")
+	return dataLIFs, nil
+}
+
 // SystemGetVersion returns the system version
 // equivalent to filer::> version
 func (d Driver) SystemGetVersion() (response azgo.SystemGetVersionResponse, err error) {

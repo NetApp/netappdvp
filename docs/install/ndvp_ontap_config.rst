@@ -42,7 +42,7 @@ In addition to the global configuration values above, when using ONTAP these top
 +=======================+==========================================================================+============+
 | ``managementLIF``     | IP address of ONTAP management LIF                                       | 10.0.0.1   |
 +-----------------------+--------------------------------------------------------------------------+------------+
-| ``dataLIF``           | IP address of protocol lif; will be derived if not specified             | 10.0.0.2   |
+| ``dataLIF``           | IP address of protocol LIF; will be derived if not specified             | 10.0.0.2   |
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``svm``               | Storage virtual machine to use (req, if management LIF is a cluster LIF) | svm_nfs    |
 +-----------------------+--------------------------------------------------------------------------+------------+
@@ -52,6 +52,9 @@ In addition to the global configuration values above, when using ONTAP these top
 +-----------------------+--------------------------------------------------------------------------+------------+
 | ``aggregate``         | Aggregate to use for provisioning; it must be assigned to the SVM        | aggr1      |
 +-----------------------+--------------------------------------------------------------------------+------------+
+
+For the ontap-nas and ontap-nas-economy drivers a fully-qualified domain name can be specified for the
+'dataLIF' option.
 
 For the ontap-nas and ontap-nas-economy drivers, an additional top level option is available.
 For NFS host configuration, see also: http://www.netapp.com/us/media/tr-4067.pdf

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"runtime"
@@ -179,41 +180,43 @@ func ValidateNASDriver(context DriverContext, api *ontap.Driver, config *OntapSt
 		defer log.WithFields(fields).Debug("<<<< ValidateNASDriver")
 	}
 
-	lifResponse, err := api.NetInterfaceGet()
-	if err = ontap.GetError(lifResponse, err); err != nil {
-		return fmt.Errorf("Error checking network interfaces. %v", err)
+	nfsDataLIFs, err := api.NetInterfaceGetDataLIFs("nfs")
+	if err != nil {
+		return err
 	}
 
 	// If they didn't set a LIF to use in the config, we'll set it to the first nfs LIF we happen to find
 	if config.DataLIF == "" {
-	loop:
-		for _, attrs := range lifResponse.Result.AttributesList() {
-			for _, protocol := range attrs.DataProtocols() {
-				if protocol == "nfs" {
-					log.WithField("address", attrs.Address()).Debug("Choosing LIF for NFS.")
-					config.DataLIF = string(attrs.Address())
+		config.DataLIF = nfsDataLIFs[0]
+	} else {
+		addressesFromHostname, err := net.LookupHost(config.DataLIF)
+		if err != nil {
+			log.Error("Host lookup failed. ", err)
+			return err
+		}
+
+		log.WithFields(log.Fields{
+			"hostname":  config.DataLIF,
+			"addresses": addressesFromHostname,
+		}).Debug("Addresses found from hostname lookup.")
+
+		for _, hostNameAddress := range addressesFromHostname {
+			foundValidLIFAddress := false
+		loop:
+			for _, lifAddress := range nfsDataLIFs {
+				if lifAddress == hostNameAddress {
+					foundValidLIFAddress = true
 					break loop
 				}
 			}
-		}
-	}
-
-	foundNfs := false
-loop2:
-	for _, attrs := range lifResponse.Result.AttributesList() {
-		for _, protocol := range attrs.DataProtocols() {
-			if protocol == "nfs" {
-				log.Debugf("Comparing NFS protocol access on %v vs. %v", attrs.Address(), config.DataLIF)
-				if string(attrs.Address()) == config.DataLIF {
-					foundNfs = true
-					break loop2
-				}
+			if foundValidLIFAddress {
+				log.WithField("hostNameAddress", hostNameAddress).Debug("Found matching NFS Data LIF.")
+			} else {
+				log.WithField("hostNameAddress", hostNameAddress).Debug("Could not find matching NFS Data LIF.")
+				return fmt.Errorf("Could not find NFS Data LIF for %s.", hostNameAddress)
 			}
 		}
-	}
 
-	if !foundNfs {
-		return fmt.Errorf("Could not find NFS Data LIF.")
 	}
 
 	if context == ContextNDVP {

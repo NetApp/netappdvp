@@ -12,6 +12,7 @@
 
 **Enhancements:**
 - Improved iSCSI rescan performance for ONTAP SAN and E-series plugins.
+- Added hostname support to the dataLIF option in the config file for ontap-nas and ontap-nas-economy drivers.
 
 ## 17.10.0
 
