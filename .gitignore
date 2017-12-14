@@ -9,6 +9,7 @@ netappdvp
 contrib/rancher/netappdvp
 contrib/docker/plugin/myplugin/
 contrib/docker/plugin/netappdvp
+docs/_build/
 
 ###############################################################################
 # Go
