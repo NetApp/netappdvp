@@ -23,7 +23,7 @@ RUN ln -s /host/var/lib/docker-volumes /var/lib/docker-volumes
 # Use APK mirrors for fault tolerance
 RUN printf "http://dl-1.alpinelinux.org/alpine/v3.6/main\nhttp://dl-2.alpinelinux.org/alpine/v3.6/main\nhttp://dl-3.alpinelinux.org/alpine/v3.6/main\nhttp://dl-4.alpinelinux.org/alpine/v3.6/main\nhttp://dl-5.alpinelinux.org/alpine/v3.6/main\n\nhttp://dl-1.alpinelinux.org/alpine/v3.6/community\nhttp://dl-2.alpinelinux.org/alpine/v3.6/community\nhttp://dl-3.alpinelinux.org/alpine/v3.6/community\nhttp://dl-4.alpinelinux.org/alpine/v3.6/community\nhttp://dl-5.alpinelinux.org/alpine/v3.6/community" > /etc/apk/repositories
 
-RUN apk update && apk add curl vim screen tmux bash jq
+RUN apk update || true && apk add curl vim screen tmux bash jq
 
 #ADD netappdvp-1.3.tar.gz /netapp
 ADD container-launch.sh /netapp
