@@ -1,4 +1,4 @@
-FROM alpine:3.4
+FROM alpine:3.6
 
 RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
 RUN mkdir -p /netapp /etc/netappdvp
@@ -19,6 +19,9 @@ RUN ln -s /host/var/log /var/log
 
 RUN mkdir -p /host/var/lib/docker-volumes
 RUN ln -s /host/var/lib/docker-volumes /var/lib/docker-volumes
+
+# Use APK mirrors for fault tolerance
+RUN printf "http://dl-1.alpinelinux.org/alpine/v3.6/main\nhttp://dl-2.alpinelinux.org/alpine/v3.6/main\nhttp://dl-3.alpinelinux.org/alpine/v3.6/main\nhttp://dl-4.alpinelinux.org/alpine/v3.6/main\nhttp://dl-5.alpinelinux.org/alpine/v3.6/main\n\nhttp://dl-1.alpinelinux.org/alpine/v3.6/community\nhttp://dl-2.alpinelinux.org/alpine/v3.6/community\nhttp://dl-3.alpinelinux.org/alpine/v3.6/community\nhttp://dl-4.alpinelinux.org/alpine/v3.6/community\nhttp://dl-5.alpinelinux.org/alpine/v3.6/community" > /etc/apk/repositories
 
 RUN apk update && apk add curl vim screen tmux bash jq
 
