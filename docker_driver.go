@@ -73,6 +73,10 @@ func (d ndvpDriver) Create(r *volume.CreateRequest) error {
 	}
 	var createErr error
 
+	// Impose a blacklist of creation options
+	delete(opts, "aggregate")
+	delete(opts, "pool")
+
 	// If 'from' is specified, create a snapshot and a clone rather than a new empty volume
 	from := utils.GetV(opts, "from", "")
 	if from != "" {

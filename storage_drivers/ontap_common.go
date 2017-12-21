@@ -149,6 +149,10 @@ func ValidateAggregate(api *ontap.Driver, config *OntapStorageDriverConfig) erro
 		defer log.WithFields(fields).Debug("<<<< ValidateAggregate")
 	}
 
+	if config.Aggregate == "" {
+		return errors.New("No aggregate was specified in the config file.")
+	}
+
 	// Get the aggregates assigned to the SVM.  There must be at least one!
 	vserverAggrs, err := api.GetVserverAggregateNames()
 	if err != nil {

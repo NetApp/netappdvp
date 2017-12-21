@@ -9,6 +9,7 @@
 - Fixed an issue where qtrees with names near the 64-character limit could not
   be deleted.
 - Fixed an issue with volume creation on all-flash E-series arrays.
+- Enforced fencing of ONTAP aggregates and E-series pools to match config file values.
 
 **Enhancements:**
 - Improved iSCSI rescan performance for ONTAP SAN and E-series plugins.

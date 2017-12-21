@@ -19,18 +19,6 @@ Currently only two values for ``mediaType`` are supported:  ``ssd`` and ``hdd``.
    # create a 100GiB HDD backed volume
    docker volume create -d eseries --name eseriesHdd -o mediaType=hdd -o size=100G
 
-Pool
-----
-
-The user can specify the pool name to use for creating the volume.  
-
-``poolName`` is optional, if no pool is specified, then the default is to use all pools available.
-
-.. code-block:: bash
-
-  # create a volume using the "testme" pool
-  docker volume create -d eseries --name testmePoolVolume -o poolName=testme -o size=100G
-
 File System Type
 ----------------
 
