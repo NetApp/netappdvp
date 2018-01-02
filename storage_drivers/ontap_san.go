@@ -293,8 +293,6 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 		defer log.WithFields(fields).Debug("<<<< Destroy")
 	}
 
-	lunPath := lunPath(name)
-
 	// Validate Flexvol exists before trying to destroy
 	volExists, err := d.API.VolumeExists(name)
 	if err != nil {
@@ -305,36 +303,23 @@ func (d *OntapSANStorageDriver) Destroy(name string) error {
 		return nil
 	}
 
-	// Set LUN offline
-	offlineResponse, err := d.API.LunOffline(lunPath)
-	if err := ontap.GetError(offlineResponse, err); err != nil {
-		log.Warnf("Error attempting to offline LUN %v. %v", lunPath, err)
-	}
-
-	// Destroy LUN
-	lunDestroyResponse, err := d.API.LunDestroy(lunPath)
-	if err := ontap.GetError(lunDestroyResponse, err); err != nil {
-		log.Warnf("Error destroying LUN %v. %v", lunPath, err)
-	}
-
-	// Perform rediscovery to remove the deleted LUN
-	utils.MultipathFlush() // flush unused paths
-	utils.IscsiRescan(true)
-
-	// Delete the Flexvol
+	// Delete the Flexvol & LUN
 	volDestroyResponse, err := d.API.VolumeDestroy(name, true)
 	if err != nil {
 		return fmt.Errorf("Error destroying volume %v. %v", name, err)
 	}
 	if zerr := ontap.NewZapiError(volDestroyResponse); !zerr.IsPassed() {
-
-		// It's not an error if the volume no longer exists
+		// Handle case where the Destroy is passed to every Docker Swarm node
 		if zerr.Code() == azgo.EVOLUMEDOESNOTEXIST {
 			log.WithField("volume", name).Warn("Volume already deleted.")
 		} else {
 			return fmt.Errorf("Error destroying volume %v. %v", name, zerr)
 		}
 	}
+
+	// Perform rediscovery to remove the deleted LUN
+	utils.MultipathFlush() // flush unused paths
+	utils.IscsiRescan(true)
 
 	return nil
 }

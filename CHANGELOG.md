@@ -10,6 +10,8 @@
   be deleted.
 - Fixed an issue with volume creation on all-flash E-series arrays.
 - Enforced fencing of ONTAP aggregates and E-series pools to match config file values.
+- Fixed an issue where deleting volumes using the ONTAP SAN driver could leave
+  volumes stuck in a partially deleted state.
 
 **Enhancements:**
 - Improved iSCSI rescan performance for ONTAP SAN and E-series plugins.

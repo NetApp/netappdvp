@@ -24,7 +24,7 @@ const (
 const ConfigVersion = 1
 
 // DriverVersion is the actual release version number
-const DriverVersion = "17.10.0"
+const DriverVersion = "18.01.0"
 
 // FullDriverVersion is the DriverVersion as well as any pre-release tags
 var FullDriverVersion = DriverVersion
