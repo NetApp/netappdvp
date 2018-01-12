@@ -220,6 +220,11 @@ func (d *OntapNASQtreeStorageDriver) Create(name string, sizeBytes uint64, opts 
 		return fmt.Errorf("Volume %s already exists.", name)
 	}
 
+	if sizeBytes < OntapMinimumVolumeSizeBytes {
+		return fmt.Errorf("Requested volume size (%d bytes) is too small.  The minimum volume size is %d bytes.",
+			sizeBytes, OntapMinimumVolumeSizeBytes)
+	}
+
 	// Ensure qtree name isn't too long
 	if len(name) > maxQtreeNameLength {
 		return fmt.Errorf("Volume %s name exceeds the limit of %d characters.", name, maxQtreeNameLength)

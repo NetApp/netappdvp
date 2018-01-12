@@ -26,6 +26,7 @@ func init() {
 // EseriesIscsiStorageDriverName is the name for this storage driver that is specified in the config file, etc.
 const EseriesIscsiStorageDriverName = "eseries-iscsi"
 const DefaultHostType = "linux_dm_mp"
+const EseriesMinimumVolumeSizeBytes = 1048576 // 1 MiB
 
 // ESeriesStorageDriver is for storage provisioning via the Web Services Proxy RESTful interface that communicates
 // with E-Series controllers via the SYMbol API.
@@ -193,6 +194,11 @@ func (d *ESeriesStorageDriver) Create(name string, sizeBytes uint64, opts map[st
 		}
 		log.WithFields(fields).Debug(">>>> Create")
 		defer log.WithFields(fields).Debug("<<<< Create")
+	}
+
+	if sizeBytes < EseriesMinimumVolumeSizeBytes {
+		return fmt.Errorf("Requested volume size (%d bytes) is too small.  The minimum volume size is %d bytes.",
+			sizeBytes, EseriesMinimumVolumeSizeBytes)
 	}
 
 	// Get media type, or default to "hdd" if not specified

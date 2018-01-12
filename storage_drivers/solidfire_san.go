@@ -16,6 +16,7 @@ import (
 
 // SolidfireSANStorageDriverName is the constant name for this Solidfire SAN storage driver
 const SolidfireSANStorageDriverName = "solidfire-san"
+const SolidfireMinimumVolumeSizeBytes = 1000000000 // 1 GB
 
 func init() {
 	san := &SolidfireSANStorageDriver{}
@@ -263,6 +264,11 @@ func (d *SolidfireSANStorageDriver) Create(name string, sizeBytes uint64, opts m
 	if err == nil && v.VolumeID != 0 {
 		log.Warningf("found existing Volume by name: %s", name)
 		return errors.New("volume with requested name already exists")
+	}
+
+	if sizeBytes < SolidfireMinimumVolumeSizeBytes {
+		return fmt.Errorf("Requested volume size (%d bytes) is too small.  The minimum volume size is %d bytes.",
+			sizeBytes, SolidfireMinimumVolumeSizeBytes)
 	}
 
 	qos_opt := utils.GetV(opts, "qos", "")

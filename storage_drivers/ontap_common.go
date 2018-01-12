@@ -20,6 +20,7 @@ import (
 )
 
 const LS_MIRROR_IDLE_TIMEOUT_SECS = 30
+const OntapMinimumVolumeSizeBytes = 20971520 // 20 MiB
 
 type OntapStorageDriver interface {
 	GetConfig() *OntapStorageDriverConfig

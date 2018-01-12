@@ -119,6 +119,11 @@ func (d *OntapNASStorageDriver) Create(name string, sizeBytes uint64, opts map[s
 		return fmt.Errorf("Volume %s already exists.", name)
 	}
 
+	if sizeBytes < OntapMinimumVolumeSizeBytes {
+		return fmt.Errorf("Requested volume size (%d bytes) is too small.  The minimum volume size is %d bytes.",
+			sizeBytes, OntapMinimumVolumeSizeBytes)
+	}
+
 	// get options with default fallback values
 	// see also: ontap_common.go#PopulateConfigurationDefaults
 	size := strconv.FormatUint(sizeBytes, 10)
