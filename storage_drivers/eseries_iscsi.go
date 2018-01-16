@@ -68,16 +68,11 @@ func (d *ESeriesStorageDriver) Initialize(
 
 	// Apply config defaults
 	if config.StoragePrefix == nil {
-		prefix := DefaultStoragePrefix
+		prefix := GetDefaultStoragePrefix(context)
 		config.StoragePrefix = &prefix
 	}
 	if config.AccessGroup == "" {
-		switch context {
-		case ContextNDVP:
-			config.AccessGroup = DefaultDockerIgroupName
-		case ContextTrident:
-			config.AccessGroup = DefaultTridentIgroupName
-		}
+		config.AccessGroup = GetDefaultIgroupName(context)
 	}
 	if config.HostType == "" {
 		config.HostType = DefaultHostType

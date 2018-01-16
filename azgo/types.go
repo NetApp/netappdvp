@@ -2851,6 +2851,7 @@ type VolumeIdAttributesType struct {
 	OwningVserverUuidPtr       *UuidType         `xml:"owning-vserver-uuid"`
 	ProvenanceUuidPtr          *UuidType         `xml:"provenance-uuid"`
 	StylePtr                   *string           `xml:"style"`
+	StyleExtendedPtr           *string           `xml:"style-extended"`
 	TypePtr                    *string           `xml:"type"`
 	UuidPtr                    *UuidType         `xml:"uuid"`
 }
@@ -2951,6 +2952,11 @@ func (o VolumeIdAttributesType) String() string {
 		buffer.WriteString(fmt.Sprintf("%s: %v\n", "style", *o.StylePtr))
 	} else {
 		buffer.WriteString(fmt.Sprintf("style: nil\n"))
+	}
+	if o.StyleExtendedPtr != nil {
+		buffer.WriteString(fmt.Sprintf("%s: %v\n", "style-extended", *o.StyleExtendedPtr))
+	} else {
+		buffer.WriteString(fmt.Sprintf("style-extended: nil\n"))
 	}
 	if o.TypePtr != nil {
 		buffer.WriteString(fmt.Sprintf("%s: %v\n", "type", *o.TypePtr))
@@ -3132,6 +3138,18 @@ func (o *VolumeIdAttributesType) Style() string {
 
 func (o *VolumeIdAttributesType) SetStyle(newValue string) *VolumeIdAttributesType {
 	o.StylePtr = &newValue
+	return o
+}
+
+// StyleExtended is a fluent style 'getter' method that can be chained
+func (o *VolumeIdAttributesType) StyleExtended() string {
+	r := *o.StyleExtendedPtr
+	return r
+}
+
+// SetStyleExtended is a fluent style 'setter' method that can be chained
+func (o *VolumeIdAttributesType) SetStyleExtended(newValue string) *VolumeIdAttributesType {
+	o.StyleExtendedPtr = &newValue
 	return o
 }
 

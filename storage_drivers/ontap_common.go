@@ -53,7 +53,7 @@ func InitializeOntapConfig(
 
 // InitializeOntapDriver sets up the API client and performs all other initialization tasks
 // that are common to all the ONTAP drivers.
-func InitializeOntapDriver(config *OntapStorageDriverConfig) (*ontap.Driver, error) {
+func InitializeOntapDriver(context DriverContext, config *OntapStorageDriverConfig) (*ontap.Driver, error) {
 
 	if config.DebugTraceFlags["method"] {
 		fields := log.Fields{"Method": "InitializeOntapDriver", "Type": "ontap_common"}
@@ -86,7 +86,7 @@ func InitializeOntapDriver(config *OntapStorageDriverConfig) (*ontap.Driver, err
 	}
 
 	// Load default config parameters
-	err = PopulateConfigurationDefaults(config)
+	err = PopulateConfigurationDefaults(context, config)
 	if err != nil {
 		return nil, fmt.Errorf("Could not populate configuration defaults. %v", err)
 	}
@@ -247,7 +247,7 @@ const DefaultFileSystemType = "ext4"
 const DefaultEncryption = "false"
 
 // PopulateConfigurationDefaults fills in default values for configuration settings if not supplied in the config file
-func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
+func PopulateConfigurationDefaults(context DriverContext, config *OntapStorageDriverConfig) error {
 
 	if config.DebugTraceFlags["method"] {
 		fields := log.Fields{"Method": "PopulateConfigurationDefaults", "Type": "ontap_common"}
@@ -256,7 +256,7 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 	}
 
 	if config.StoragePrefix == nil {
-		prefix := DefaultStoragePrefix
+		prefix := GetDefaultStoragePrefix(context)
 		config.StoragePrefix = &prefix
 	}
 
@@ -306,7 +306,7 @@ func PopulateConfigurationDefaults(config *OntapStorageDriverConfig) error {
 	}
 
 	log.WithFields(log.Fields{
-		"StoragePrefix":   config.StoragePrefix,
+		"StoragePrefix":   *config.StoragePrefix,
 		"SpaceReserve":    config.SpaceReserve,
 		"SnapshotPolicy":  config.SnapshotPolicy,
 		"UnixPermissions": config.UnixPermissions,

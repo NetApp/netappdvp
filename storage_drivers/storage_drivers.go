@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/netapp/netappdvp/apis/sfapi"
@@ -38,8 +39,9 @@ var BuildTime = "unknown"
 // ExtendedDriverVersion can be overridden by embeddors such as Trident to uniquify the version string
 var ExtendedDriverVersion = "native"
 
-// DefaultStoragePrefix can be overridden by Trident too. God.
-var DefaultStoragePrefix = "netappdvp_"
+// Default storage prefix
+const DefaultDockerStoragePrefix = "netappdvp_"
+const DefaultTridentStoragePrefix = "trident_"
 
 // Default SAN igroup / host group names
 const DefaultDockerIgroupName = "netappdvp"
@@ -99,16 +101,63 @@ func ValidateCommonSettings(configJSON string) (*CommonStorageDriverConfig, erro
 		}
 	}
 
-	// maintain three possible prefix states: nil, "", "<value>"
+	// The storage prefix may have three states: nil (no prefix specified, drivers will use
+	// a default prefix), "" (specified as an empty string, drivers will use no prefix), and
+	// "<value>" (a prefix specified in the backend config file).  For historical reasons,
+	// the value is serialized as a raw JSON string (a byte array), and it may take multiple
+	// forms.  An empty byte array, or an array with the ASCII values {} or null, is interpreted
+	// as nil (no prefix specified).  A byte array containing two double-quote characters ("")
+	// is an empty string.  A byte array containing characters enclosed in double quotes is
+	// a specified prefix.  Anything else is rejected as invalid.  The storage prefix is exposed
+	// to the rest of the code in StoragePrefix; only serialization code such as this should
+	// be concerned with StoragePrefixRaw.
+
 	if len(config.StoragePrefixRaw) > 0 {
-		// Trident wrote braces here that meant 'nil'
-		if config.StoragePrefixRaw[0] != '{' {
-			rawstr := string(config.StoragePrefixRaw[1 : len(config.StoragePrefixRaw)-1])
-			config.StoragePrefix = &rawstr
+		rawPrefix := string(config.StoragePrefixRaw)
+		if rawPrefix == "{}" || rawPrefix == "null" {
+			config.StoragePrefix = nil
+			log.Debugf("Storage prefix is %s, will use default prefix.", rawPrefix)
+		} else if rawPrefix == "\"\"" {
+			empty := ""
+			config.StoragePrefix = &empty
+			log.Debug("Storage prefix is empty, will use no prefix.")
+		} else if strings.HasPrefix(rawPrefix, "\"") && strings.HasSuffix(rawPrefix, "\"") {
+			prefix := string(config.StoragePrefixRaw[1 : len(config.StoragePrefixRaw)-1])
+			config.StoragePrefix = &prefix
+			log.WithField("prefix", prefix).Debug("Parsed storage prefix.")
+		} else {
+			return nil, fmt.Errorf("Invalid value for storage prefix: %v", config.StoragePrefixRaw)
 		}
+	} else {
+		config.StoragePrefix = nil
+		log.Debug("Storage prefix is absent, will use default prefix.")
 	}
 
+	log.Debugf("Parsed commonConfig: %+v", *config)
+
 	return config, nil
+}
+
+func GetDefaultStoragePrefix(context DriverContext) string {
+	switch context {
+	default:
+		fallthrough
+	case ContextTrident:
+		return DefaultTridentStoragePrefix
+	case ContextNDVP:
+		return DefaultDockerStoragePrefix
+	}
+}
+
+func GetDefaultIgroupName(context DriverContext) string {
+	switch context {
+	default:
+		fallthrough
+	case ContextTrident:
+		return DefaultTridentIgroupName
+	case ContextNDVP:
+		return DefaultDockerIgroupName
+	}
 }
 
 // OntapStorageDriverConfig holds settings for OntapStorageDrivers

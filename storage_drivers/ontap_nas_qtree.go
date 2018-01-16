@@ -77,11 +77,11 @@ func (d *OntapNASQtreeStorageDriver) Initialize(
 		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
 	}
 
-	d.Config = *config
-	d.API, err = InitializeOntapDriver(&d.Config)
+	d.API, err = InitializeOntapDriver(context, config)
 	if err != nil {
 		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
 	}
+	d.Config = *config
 
 	// Set up internal driver state
 	d.quotaResizeMap = make(map[string]bool)

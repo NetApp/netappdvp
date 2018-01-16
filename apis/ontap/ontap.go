@@ -166,6 +166,7 @@ type ontapApiFeature string
 const (
 	MINIMUM_ONTAPI_VERSION   ontapApiFeature = "MINIMUM_ONTAPI_VERSION"
 	VSERVER_SHOW_AGGR        ontapApiFeature = "VSERVER_SHOW_AGGR"
+	FLEX_GROUPS              ontapApiFeature = "FLEX_GROUPS"
 	NETAPP_VOLUME_ENCRYPTION ontapApiFeature = "NETAPP_VOLUME_ENCRYPTION"
 )
 
@@ -173,6 +174,7 @@ const (
 var ontapAPIFeatures = map[ontapApiFeature]semver.Version{
 	MINIMUM_ONTAPI_VERSION:   semver.MustParse("1.30.0"),  // cDOT 8.3.0
 	VSERVER_SHOW_AGGR:        semver.MustParse("1.100.0"), // cDOT 9.0.0
+	FLEX_GROUPS:              semver.MustParse("1.100.0"), // cDOT 9.0.0
 	NETAPP_VOLUME_ENCRYPTION: semver.MustParse("1.110.0"), // cDOT 9.1.0
 }
 
@@ -593,6 +595,9 @@ func (d Driver) VolumeGet(name string) (azgo.VolumeAttributesType, error) {
 
 	// Limit the Flexvols to the one matching the name
 	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(name))
+	if d.SupportsApiFeature(FLEX_GROUPS) {
+		queryVolIdAttrs.SetStyleExtended("flexvol")
+	}
 	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*queryVolIdAttrs)
 
 	response, err := azgo.NewVolumeGetIterRequest().
@@ -617,6 +622,9 @@ func (d Driver) VolumeGetAll(prefix string) (response azgo.VolumeGetIterResponse
 
 	// Limit the Flexvols to those matching the name prefix
 	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(prefix + "*"))
+	if d.SupportsApiFeature(FLEX_GROUPS) {
+		queryVolIdAttrs.SetStyleExtended("flexvol")
+	}
 	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*queryVolIdAttrs)
 
 	// Limit the returned data to only the data relevant to containers
@@ -655,6 +663,9 @@ func (d Driver) VolumeList(prefix string) (response azgo.VolumeGetIterResponse, 
 
 	// Limit the Flexvols to those matching the name prefix
 	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().SetName(azgo.VolumeNameType(prefix + "*"))
+	if d.SupportsApiFeature(FLEX_GROUPS) {
+		queryVolIdAttrs.SetStyleExtended("flexvol")
+	}
 	query := azgo.NewVolumeAttributesType().SetVolumeIdAttributes(*queryVolIdAttrs)
 
 	// Limit the returned data to only the Flexvol names
@@ -678,6 +689,9 @@ func (d Driver) VolumeListByAttrs(
 	queryVolIdAttrs := azgo.NewVolumeIdAttributesType().
 		SetName(azgo.VolumeNameType(prefix + "*")).
 		SetContainingAggregateName(aggregate)
+	if d.SupportsApiFeature(FLEX_GROUPS) {
+		queryVolIdAttrs.SetStyleExtended("flexvol")
+	}
 	queryVolSpaceAttrs := azgo.NewVolumeSpaceAttributesType().
 		SetSpaceGuarantee(spaceReserve)
 	queryVolSnapshotAttrs := azgo.NewVolumeSnapshotAttributesType().

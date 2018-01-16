@@ -66,19 +66,14 @@ func (d *OntapSANStorageDriver) Initialize(
 	}
 
 	if config.IgroupName == "" {
-		switch context {
-		case ContextNDVP:
-			config.IgroupName = DefaultDockerIgroupName
-		case ContextTrident:
-			config.IgroupName = DefaultTridentIgroupName
-		}
+		config.IgroupName = GetDefaultIgroupName(context)
 	}
 
-	d.Config = *config
-	d.API, err = InitializeOntapDriver(&d.Config)
+	d.API, err = InitializeOntapDriver(context, config)
 	if err != nil {
 		return fmt.Errorf("Error initializing %s driver. %v", d.Name(), err)
 	}
+	d.Config = *config
 
 	err = d.Validate(context)
 	if err != nil {

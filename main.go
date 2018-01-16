@@ -66,8 +66,6 @@ func main() {
 		}).Fatal("Problem validating configuration file.")
 	}
 
-	log.Debugf("Parsed commonConfig: %+v", *commonConfig)
-
 	// Lookup the specified storage driver
 	storageDriver := storage_drivers.Drivers[commonConfig.StorageDriverName]
 	if storageDriver == nil {
