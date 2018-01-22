@@ -206,6 +206,10 @@ func (d *OntapNASQtreeStorageDriver) Create(name string, sizeBytes uint64, opts 
 		defer log.WithFields(fields).Debug("<<<< Create")
 	}
 
+	// Ensure any Flexvol we create won't be pruned before we place a qtree on it
+	d.provMutex.Lock()
+	defer d.provMutex.Unlock()
+
 	// Generic user-facing message
 	createError := errors.New("Volume creation failed.")
 
@@ -248,10 +252,6 @@ func (d *OntapNASQtreeStorageDriver) Create(name string, sizeBytes uint64, opts 
 	if err != nil {
 		return err
 	}
-
-	// Ensure any Flexvol we use won't be pruned before we place a qtree on it
-	d.provMutex.Lock()
-	defer d.provMutex.Unlock()
 
 	// Make sure we have a Flexvol for the new qtree
 	flexvol, err := d.ensureFlexvolForQtree(
@@ -336,6 +336,10 @@ func (d *OntapNASQtreeStorageDriver) Destroy(name string) error {
 		log.WithFields(fields).Debug(">>>> Destroy")
 		defer log.WithFields(fields).Debug("<<<< Destroy")
 	}
+
+	// Ensure the deleted qtree reaping job doesn't interfere with this workflow
+	d.provMutex.Lock()
+	defer d.provMutex.Unlock()
 
 	// Generic user-facing message
 	deleteError := errors.New("Volume deletion failed.")
@@ -924,6 +928,10 @@ func (d *OntapNASQtreeStorageDriver) pruneUnusedFlexvols() {
 // in which a qtree was renamed (prior to being destroyed) but the subsequent
 // destroy call failed or was never made due to a process interruption.
 func (d *OntapNASQtreeStorageDriver) reapDeletedQtrees() {
+
+	// Ensure we don't reap any qtree that is involved in a qtree delete workflow
+	d.provMutex.Lock()
+	defer d.provMutex.Unlock()
 
 	log.Debug("Housekeeping, checking for deleted qtrees.")
 
