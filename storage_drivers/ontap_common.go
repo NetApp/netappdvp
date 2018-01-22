@@ -461,10 +461,12 @@ func CreateOntapClone(
 		}
 	}
 
-	// Mount the new volume
-	mountResponse, err := api.VolumeMount(name, "/"+name)
-	if err = ontap.GetError(mountResponse, err); err != nil {
-		return fmt.Errorf("Error mounting volume to junction. %v", err)
+	if config.StorageDriverName == OntapNASStorageDriverName {
+		// Mount the new volume
+		mountResponse, err := api.VolumeMount(name, "/"+name)
+		if err = ontap.GetError(mountResponse, err); err != nil {
+			return fmt.Errorf("Error mounting volume to junction. %v", err)
+		}
 	}
 
 	// Split the clone if requested
