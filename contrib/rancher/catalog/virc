@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-#vim infra-catalog/infra-templates/netapp-*/0/rancher-compose.yml 
-vim infra-catalog/infra-templates/netapp-*/1/rancher-compose.yml 

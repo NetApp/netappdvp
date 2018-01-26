@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-vim infra-catalog/infra-templates/netapp-*/config.yml 

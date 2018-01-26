@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-#echo "Connect via:  git://10.0.207.1/infra-catalog"
-echo "Connect via:  git://$(hostname)/infra-catalog"
-git daemon --base-path=. --export-all --reuseaddr --informative-errors --verbose

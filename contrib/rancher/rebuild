@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-rm -f ./netappdvp
-cp -f ../../bin/netappdvp .
-docker rmi netapp/ndvp:17.07
-docker build -t netapp/ndvp:17.07 .
-
